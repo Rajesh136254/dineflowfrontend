@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Web site created using create-react-app"
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <!--
+      manifest.json provides metadata used when your web app is installed on a
+      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <!-- Add these lines inside the <head> of public/index.html -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add this line inside the <head> of public/index.html -->
+       <!-- ... other head tags -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- <-- THIS LINE MUST BE HERE -->
+
+    <!-- ... other head tags -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script> <!-- <-- ADD THIS LINE -->
+
+    <!--
+      Notice the use of %PUBLIC_URL% in the tags above.
+      It will be replaced with the URL of the `public` folder during the build.
+      Only files inside the `public` folder can be referenced from the HTML.
+
+      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
+      work correctly both with client-side routing and a non-root public URL.
+      Learn how to configure a non-root public URL by running `npm run build`.
+    -->
+
+    <!--Analytics styles -->
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        }
+        
+        .stat-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #f97316, #ea580c);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stat-icon {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-container:hover {
+            transform: scale(1.02);
+        }
+        
+        .period-btn {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .period-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .period-btn:hover::before {
+            left: 100%;
+        }
+        
+        .period-btn.active {
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+        }
+        
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .trend-up {
+            color: #10b981;
+        }
+        
+        .trend-down {
+            color: #ef4444;
+        }
+        
+        .trend-neutral {
+            color: #6b7280;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+            
+            .period-tabs {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            .period-btn {
+                flex: 1;
+                min-width: 0;
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #f97316;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ea580c;
+        }
+        
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1f2937;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 4px;
+        }
+        
+        /* Animated numbers */
+        .animated-number {
+            transition: all 0.5s ease;
+        }
+        
+        /* Progress bars */
+        .progress-bar {
+            transition: width 0.8s ease;
+        }
+        
+        /* Card hover effects */
+        .hover-lift {
+            transition: all 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Advanced analytics styles */
+        .comparison-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .comparison-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 40px 40px 0;
+            border-color: transparent #10b981 transparent transparent;
+        }
+        
+        .comparison-card.negative::after {
+            border-color: transparent #ef4444 transparent transparent;
+        }
+        
+        .comparison-card .comparison-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .insight-card {
+            border-left: 4px solid #f97316;
+        }
+        
+        .insight-card.positive {
+            border-left-color: #10b981;
+        }
+        
+        .insight-card.negative {
+            border-left-color: #ef4444;
+        }
+        
+        .metric-card {
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .data-table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+        }
+        
+        .data-table tr:hover {
+            background-color: #f9fafb;
+        }
+        
+        .no-data {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .no-data i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #d1d5db;
+        }
+    </style>
+
+    <!--Customer page styles -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- PASTE THE ENTIRE <style> BLOCK FROM customer.html HERE -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); }
+        .menu-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .category-pill {
+            transition: all 0.2s ease;
+        }
+        
+        .category-pill.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+        
+        .cart-item {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .badge-bounce {
+            animation: bounce 0.5s ease;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .modal-backdrop {
+            backdrop-filter: blur(8px);
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+        
+        .food-image {
+            transition: all 0.3s ease;
+        }
+        
+        .food-image:hover {
+            transform: scale(1.05);
+        }
+        
+        .price-tag {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .quantity-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .quantity-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .cart-badge {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        .payment-option input:checked + div {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        /* Cart at top styles */
+        .top-cart {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Item added animation */
+        .item-added {
+            animation: itemAdded 0.6s ease;
+        }
+        
+        @keyframes itemAdded {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); background-color: rgba(16, 185, 129, 0.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Floating cart button for mobile */
+        .floating-cart {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 30;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .cart-summary {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .cart-actions {
+                flex-direction: column;
+            }
+            
+            .category-filter {
+                padding-bottom: 8px;
+            }
+            
+            .category-pill {
+                padding: 6px 12px;
+                font-size: 14px;
+            }
+            
+            .floating-cart {
+                display: flex;
+            }
+        }
+        
+        @media (min-width: 641px) {
+            .floating-cart {
+                display: none;
+            }
+        }
+        
+        @media (min-width: 641px) and (max-width: 1024px) {
+            .menu-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (min-width: 1025px) {
+            .menu-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        /* Enhanced modal styles */
+        .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Enhanced button styles */
+        .btn-add {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            transition: all 0.2s ease;
+        }
+        
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+        }
+        
+        /* Enhanced card styles */
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-shadow:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* Enhanced input styles */
+        .input-focus {
+            transition: all 0.2s ease;
+        }
+        
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        /* Improved category scrolling for mobile */
+.category-scroll-container {
+    position: relative;
+    margin: 0 -1rem;
+    padding: 0 1rem;
+}
+
+.category-scroll-container::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to right, transparent, rgba(249, 250, 251, 1));
+    pointer-events: none;
+    z-index: 1;
+}
+
+.category-scroll-container::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    background: linear-gradient(to left, transparent, rgba(249, 250, 251, 1));
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Enhanced scrollbar for mobile */
+@media (max-width: 640px) {
+    .category-scroll-container::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    .category-scroll-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .category-scroll-container::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+    
+    .category-scroll-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+}
+    </style>
+
+
+<!--Kitchen page styles -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script> <!-- <-- ADD THIS -->
+
+    <!-- PASTE THE ENTIRE <style> BLOCK FROM kitchen.html HERE -->
+    <style>
+        .status-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .count-badge {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .order-card {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .order-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+        
+        .pending-indicator {
+            background-color: #f97316;
+        }
+        
+        .preparing-indicator {
+            background-color: #3b82f6;
+        }
+        
+        .ready-indicator {
+            background-color: #10b981;
+        }
+        
+        .delivered-indicator {
+            background-color: #6b7280;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            animation: bounce 1s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        
+        .stats-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .stats-label {
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        .order-time {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .filter-button {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .filter-button:hover {
+            transform: translateY(-1px);
+        }
+        
+        .filter-button.active {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-button .count {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: #1f2937;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: bold;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            
+            .stats-card {
+                padding: 12px;
+            }
+            
+            .stats-icon {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .stats-number {
+                font-size: 20px;
+            }
+            
+            .stats-label {
+                font-size: 11px;
+            }
+            
+            .filter-button {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+            
+            .filter-button .count {
+                width: 16px;
+                height: 16px;
+                font-size: 8px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-button {
+                flex: 1;
+                min-width: 0;
+                padding: 6px 8px;
+                font-size: 12px;
+            }
+        }
+        
+        /* Compact layout for smaller screens */
+        .compact-stats {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .compact-stats {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 16px;
+            }
+            
+            .compact-stat {
+                flex: 1;
+                text-align: center;
+                padding: 8px;
+                background: white;
+                border-radius: 6px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            
+            .compact-stat .number {
+                font-size: 18px;
+                font-weight: bold;
+            }
+            
+            .compact-stat .label {
+                font-size: 10px;
+                color: #6b7280;
+            }
+            
+            .stats-grid {
+                display: none;
+            }
+        }
+    </style>
+    <title>EndOfHunger</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>
