@@ -7,7 +7,7 @@ function QrCodesPage() {
     const [error, setError] = useState(null);
     const qrRefs = useRef({});
     const BASE_URL = window.location.origin;
-    const API_URL = 'http://localhost:5000'; // Force use of backend server
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000'; // Force use of backend server
 
     const loadTables = async () => {
         try {

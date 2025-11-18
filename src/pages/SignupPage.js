@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import './SignupPage.css';
 
+
 export default function SignupPage() {
   const [mode, setMode] = useState("signup");
   const [phase, setPhase] = useState("start");
@@ -20,7 +21,8 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [authError, setAuthError] = useState("");
-
+ 
+  const API_URL = 'https://dineflowbackend.onrender.com';
   // Generate floating food items for background
   useEffect(() => {
     const foods = ["🍕", "🍔", "🍟", "🌮", "🍱", "🥘", "🍜", "🍣", "🍗", "🥙"];
@@ -128,7 +130,7 @@ export default function SignupPage() {
         ? { fullName: formData.fullName, email: formData.email, password: formData.password }
         : { email: formData.email, password: formData.password };
       
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

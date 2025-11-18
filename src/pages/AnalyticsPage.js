@@ -10,6 +10,9 @@ const formatNumber = (value) => {
   return isNaN(num) ? '0' : num.toLocaleString();
 };
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
+
 function AnalyticsPage() {
     const [currentCurrency, setCurrentCurrency] = useState('INR');
     const [timePeriod, setTimePeriod] = useState('daily');
@@ -40,13 +43,13 @@ const fetchAnalyticsData = useCallback(async () => {
     try {
         // Fetch all required data
         const [summaryRes, revenueOrdersRes, topItemsRes, categoryRes, paymentRes, tableRes, hourlyRes] = await Promise.all([
-            fetch(`/api/analytics/summary?period=${timePeriod}&currency=${currentCurrency}`),
-            fetch(`/api/analytics/revenue-orders?period=${timePeriod}&currency=${currentCurrency}`),
-            fetch(`/api/analytics/top-items?period=${timePeriod}&currency=${currentCurrency}`),
-            fetch(`/api/analytics/category-performance?period=${timePeriod}&currency=${currentCurrency}`),
-            fetch(`/api/analytics/payment-methods?period=${timePeriod}`),
-            fetch(`/api/analytics/table-performance?period=${timePeriod}&currency=${currentCurrency}`),
-            fetch(`/api/analytics/hourly-orders?period=${timePeriod}`)
+            fetch(`${API_URL}/api/analytics/summary?period=${timePeriod}&currency=${currentCurrency}`),
+            fetch(`${API_URL}/api/analytics/revenue-orders?period=${timePeriod}&currency=${currentCurrency}`),
+            fetch(`${API_URL}/api/analytics/top-items?period=${timePeriod}&currency=${currentCurrency}`),
+            fetch(`${API_URL}/api/analytics/category-performance?period=${timePeriod}&currency=${currentCurrency}`),
+            fetch(`${API_URL}/api/analytics/payment-methods?period=${timePeriod}`),
+            fetch(`${API_URL}/api/analytics/table-performance?period=${timePeriod}&currency=${currentCurrency}`),
+            fetch(`${API_URL}/api/analytics/hourly-orders?period=${timePeriod}`)
         ]);
 
         // Check if responses are OK
