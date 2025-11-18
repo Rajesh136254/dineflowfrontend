@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import './SignupPage.css';
 
-
 export default function SignupPage() {
   const [mode, setMode] = useState("signup");
   const [phase, setPhase] = useState("start");
@@ -21,8 +20,10 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [authError, setAuthError] = useState("");
- 
-  const API_URL = 'https://dineflowbackend.onrender.com';
+  
+  // Use environment variable for API URL with fallback
+  const API_URL = process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com';
+
   // Generate floating food items for background
   useEffect(() => {
     const foods = ["🍕", "🍔", "🍟", "🌮", "🍱", "🥘", "🍜", "🍣", "🍗", "🥙"];
@@ -130,18 +131,30 @@ export default function SignupPage() {
         ? { fullName: formData.fullName, email: formData.email, password: formData.password }
         : { email: formData.email, password: formData.password };
       
+      // Enhanced fetch with proper CORS configuration
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        credentials: 'include', // Important for CORS
+        mode: 'cors', // Explicitly set CORS mode
       });
       
-      const data = await response.json();
+      // Handle non-JSON responses
+      const contentType = response.headers.get("content-type");
+      let data;
+      
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server returned non-JSON response: ${text}`);
+      }
       
       if (data.success) {
-        // Store user data in localStorage or context
+        // Store user data in localStorage
         localStorage.setItem("user", JSON.stringify(data.data));
         
         // Redirect based on mode
@@ -156,11 +169,19 @@ export default function SignupPage() {
           navigate("/homepage");
         }
       } else {
-        setAuthError(data.message);
+        setAuthError(data.message || "Authentication failed");
       }
     } catch (error) {
       console.error("Authentication error:", error);
-      setAuthError("Something went wrong. Please try again.");
+      
+      // More specific error messages
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        setAuthError("Network error. Please check your connection and try again.");
+      } else if (error.message.includes('CORS')) {
+        setAuthError("CORS error. Please contact support.");
+      } else {
+        setAuthError(error.message || "Something went wrong. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -469,8 +490,8 @@ export default function SignupPage() {
                       </div>
                     )}
                   </div>
-                    
-                  {/* Add this line here - right before the submit button */}
+                  
+                  {/* Authentication error message */}
                   {authError && <div className="signup-auth-error">{authError}</div>}
 
                   <button type="submit" className="signup-submit-button" disabled={isLoading}>
