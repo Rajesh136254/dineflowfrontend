@@ -11,10 +11,12 @@ import DashboardPage from './pages/DashboardPage';
 import CustomerAuthPage from './pages/CustomerAuthPage';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import DebugInfo from './components/DebugInfo';
 
 function App() {
   return (
     <AuthProvider>
+      <DebugInfo /> {/* ADD THIS LINE */}
       <Router>
         <Routes>
           {/* Admin routes - keep as they are */}

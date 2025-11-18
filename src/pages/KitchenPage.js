@@ -10,7 +10,7 @@ function KitchenPage() {
     // Refs for non-state values
     const audioRef = useRef(null);
     const prevOrdersRef = useRef([]);
-    const API_URL = 'http://localhost:5000'; // Force use of backend server
+    const API_URL = process.env.REACT_APP_API_URL; // Force use of backend server
 
     // --- Helper Functions ---
     const playNotificationSound = () => {

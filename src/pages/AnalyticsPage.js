@@ -10,7 +10,7 @@ const formatNumber = (value) => {
   return isNaN(num) ? '0' : num.toLocaleString();
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL;
 
 
 function AnalyticsPage() {
