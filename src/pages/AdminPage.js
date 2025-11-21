@@ -40,7 +40,8 @@ function AdminPage() {
   // Refs
   const qrRefs = useRef({});
   const BASE_URL = window.location.origin;
-  const API_URL = 'process.env.REACT_APP_API_URL';
+  const API_URL = process.env.REACT_APP_API_URL;
+  console.log('API URL:', API_URL);
 
   // ── Helpers ─────────────────────────────────────
   const showToast = (msg, type = 'success') => {
