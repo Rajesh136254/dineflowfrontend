@@ -1,41 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import SignupPage from './SignupPage';
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 function HomePage() {
-    const [activePage, setActivePage] = useState('home');
-    const [isFullPage, setIsFullPage] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // State for UI elements, not for page management
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const showPage = (page, fullPage = false) => {
-        setActivePage(page);
-        setIsFullPage(fullPage);
-        const titles = {
-            'home': 'EndOfHunger - Restaurant QR Ordering System',
-            'admin': 'Admin Panel - EndOfHunger',
-            'kitchen': 'Kitchen Dashboard - EndOfHunger',
-            'customer': 'Customer Order - EndOfHunger',
-            'analytics': 'Analytics Dashboard - EndOfHunger',
-            'qr-codes': 'QR Codes - EndOfHunger'
-        };
-        document.title = titles[page] || 'EndOfHunger';
+    // --- Navigation Handler ---
+    // This function uses React Router to navigate to different pages.
+    const handleNavigation = (path) => {
+        navigate(path);
     };
 
+    // --- Effects for UI ---
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 50);
         };
-
         window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
+    useEffect(() => {
         const observerOptions = {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
         };
-        
         const observer = new IntersectionObserver(function(entries) {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -48,20 +41,13 @@ function HomePage() {
             observer.observe(card);
         });
 
-        const supportBtn = document.querySelector('.floating button');
-        if (supportBtn) {
-            supportBtn.addEventListener('click', function() {
-                alert('Live chat would open here');
-            });
-        }
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-            if (supportBtn) {
-                supportBtn.removeEventListener('click', () => {});
-            }
-        };
+        return () => observer.disconnect();
     }, []);
+
+
+    // --- Render Logic ---
+    // We only show the main homepage content if we are on the home path.
+    const isHomePage = location.pathname === '/' || location.pathname === '/homepage';
 
     return (
         <>
@@ -192,13 +178,6 @@ function HomePage() {
                     width: 80%;
                 }
                 
-                .nav-item.active {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    transform: scale(1.05);
-                    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-                }
-                
                 .feature-card {
                     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
                     backdrop-filter: blur(10px);
@@ -230,26 +209,6 @@ function HomePage() {
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     background-clip: text;
-                }
-                
-                .page-section {
-                    display: none;
-                    animation: slideIn 0.5s ease-out;
-                }
-                
-                .page-section.active {
-                    display: block;
-                }
-                
-                @keyframes slideIn {
-                    from {
-                        opacity: 0;
-                        transform: translateX(30px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
                 }
                 
                 .pulse {
@@ -313,7 +272,6 @@ function HomePage() {
                 .fa-headset:before { content: "\\f590"; }
                 .fa-arrow-down:before { content: "\\f063"; }
                 .fa-times:before { content: "\\f00d"; }
-                .fa-arrow-left:before { content: "\\f060"; }
             `}</style>
 
             <div className="pattern-bg min-h-screen">
@@ -328,20 +286,20 @@ function HomePage() {
                                 <h1 className="text-3xl font-bold tracking-tight">EndOfHunger</h1>
                             </div>
                             
-                            {/* Desktop Navigation - Single Line */}
+                            {/* Desktop Navigation */}
                             <nav className="hidden lg:flex items-center space-x-2">
                                 {[
-                                    { id: 'home', icon: 'fa-home', label: 'Home' },
-                                    { id: 'admin', icon: 'fa-cog', label: 'Admin' },
-                                    { id: 'kitchen', icon: 'fa-chef-hat', label: 'Kitchen' },
-                                    { id: 'customer', icon: 'fa-user', label: 'Customer' },
-                                    { id: 'analytics', icon: 'fa-chart-line', label: 'Analytics' },
-                                    { id: 'qr-codes', icon: 'fa-qrcode', label: 'QR Codes' }
+                                    { id: 'home', path: '/homepage', icon: 'fa-home', label: 'Home' },
+                                    { id: 'admin', path: '/admin.html', icon: 'fa-cog', label: 'Admin' },
+                                    { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
+                                    { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
+                                    { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
+                                    { id: 'qr-codes', path: '/qr-codes.html', icon: 'fa-qrcode', label: 'QR Codes' }
                                 ].map((item) => (
                                     <button
                                         key={item.id}
-                                        onClick={() => showPage(item.id, false)}
-                                        className={`nav-item ${activePage === item.id ? 'active' : 'bg-white bg-opacity-20'} px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2 hover:shadow-xl`}
+                                        onClick={() => handleNavigation(item.path)}
+                                        className="nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2 hover:shadow-xl"
                                     >
                                         <i className={`fas ${item.icon}`}></i>
                                         <span>{item.label}</span>
@@ -362,20 +320,20 @@ function HomePage() {
                         {isMobileMenuOpen && (
                             <nav className="lg:hidden mt-4 pb-4 flex flex-wrap gap-2">
                                 {[
-                                    { id: 'home', icon: 'fa-home', label: 'Home' },
-                                    { id: 'admin', icon: 'fa-cog', label: 'Admin' },
-                                    { id: 'kitchen', icon: 'fa-chef-hat', label: 'Kitchen' },
-                                    { id: 'customer', icon: 'fa-user', label: 'Customer' },
-                                    { id: 'analytics', icon: 'fa-chart-line', label: 'Analytics' },
-                                    { id: 'qr-codes', icon: 'fa-qrcode', label: 'QR Codes' }
+                                    { id: 'home', path: '/homepage', icon: 'fa-home', label: 'Home' },
+                                    { id: 'admin', path: '/admin.html', icon: 'fa-cog', label: 'Admin' },
+                                    { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
+                                    { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
+                                    { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
+                                    { id: 'qr-codes', path: '/qr-codes.html', icon: 'fa-qrcode', label: 'QR Codes' }
                                 ].map((item) => (
                                     <button
                                         key={item.id}
                                         onClick={() => {
-                                            showPage(item.id, false);
+                                            handleNavigation(item.path);
                                             setIsMobileMenuOpen(false);
                                         }}
-                                        className={`nav-item ${activePage === item.id ? 'active' : 'bg-white bg-opacity-20'} px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2`}
+                                        className="nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2"
                                     >
                                         <i className={`fas ${item.icon}`}></i>
                                         <span>{item.label}</span>
@@ -386,10 +344,9 @@ function HomePage() {
                     </div>
                 </header>
 
-                {/* Content Container */}
-                <div id="content-container" className="container mx-auto px-4 py-8">
-                    {/* Home Section */}
-                    <div id="home-section" className={`page-section ${activePage === 'home' ? 'active' : ''}`}>
+                {/* Content Container - Only show on the home page */}
+                {isHomePage && (
+                    <div id="content-container" className="container mx-auto px-4 py-8">
                         {/* Hero Section */}
                         <div className="text-center mb-16 fade-in">
                             <h2 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -409,6 +366,7 @@ function HomePage() {
                             {[
                                 {
                                     id: 'customer',
+                                    path: '/customer.html',
                                     gradient: 'from-blue-500 to-cyan-500',
                                     icon: 'fa-user',
                                     title: 'Customer Order',
@@ -418,6 +376,7 @@ function HomePage() {
                                 },
                                 {
                                     id: 'kitchen',
+                                    path: '/kitchen.html',
                                     gradient: 'from-green-500 to-emerald-500',
                                     icon: 'fa-chef-hat',
                                     title: 'Kitchen Dashboard',
@@ -427,6 +386,7 @@ function HomePage() {
                                 },
                                 {
                                     id: 'admin',
+                                    path: '/admin.html',
                                     gradient: 'from-purple-500 to-pink-500',
                                     icon: 'fa-cog',
                                     title: 'Admin Panel',
@@ -436,6 +396,7 @@ function HomePage() {
                                 },
                                 {
                                     id: 'analytics',
+                                    path: '/analytics.html',
                                     gradient: 'from-orange-500 to-red-500',
                                     icon: 'fa-chart-line',
                                     title: 'Analytics Dashboard',
@@ -445,6 +406,7 @@ function HomePage() {
                                 },
                                 {
                                     id: 'qr-codes',
+                                    path: '/qr-codes.html',
                                     gradient: 'from-indigo-500 to-purple-500',
                                     icon: 'fa-qrcode',
                                     title: 'QR Codes',
@@ -454,6 +416,7 @@ function HomePage() {
                                 },
                                 {
                                     id: 'support',
+                                    path: '#', // Keep as a placeholder for now
                                     gradient: 'from-pink-500 to-rose-500',
                                     icon: 'fa-headset',
                                     title: 'Support',
@@ -478,7 +441,7 @@ function HomePage() {
                                                 {feature.demoText}
                                             </a>
                                         ) : (
-                                            <button onClick={() => showPage(feature.id, true)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
+                                            <button onClick={() => handleNavigation(feature.path)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
                                                 {feature.demoText}
                                             </button>
                                         )}
@@ -540,46 +503,10 @@ function HomePage() {
                             </div>
                         </div>
                     </div>
-
-                    {/* Other Sections with iframes - Full Page View */}
-                    {['admin', 'kitchen', 'customer', 'analytics', 'qr-codes'].map((section) => (
-                        <div key={section} id={`${section}-section`} className={`page-section ${activePage === section ? 'active' : ''}`}>
-                            {isFullPage ? (
-                                <div className="fixed inset-0 z-40 bg-white">
-                                    <div className="h-full flex flex-col">
-                                        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 flex items-center justify-between">
-                                            <h2 className="text-xl font-bold capitalize">{section} Dashboard</h2>
-                                            <button 
-                                                onClick={() => showPage('home', false)}
-                                                className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-300"
-                                            >
-                                                <i className="fas fa-arrow-left"></i>
-                                            </button>
-                                        </div>
-                                        <div className="flex-1 overflow-hidden">
-                                            <iframe 
-                                                src={`/${section}.html`} 
-                                                style={{ width: '100%', height: '100%', border: 'none' }} 
-                                                title={`${section.charAt(0).toUpperCase() + section.slice(1)} Panel`}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
-                                    <iframe 
-                                        src={`/${section}.html`} 
-                                        style={{ width: '100%', height: 'calc(100vh - 150px)', border: 'none' }} 
-                                        title={`${section.charAt(0).toUpperCase() + section.slice(1)} Panel`}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                )}
 
                 {/* Footer - Only show on home page */}
-                {activePage === 'home' && (
+                {isHomePage && (
                     <footer className="bg-gray-900 text-white py-12 px-4 mt-16">
                         <div className="container mx-auto">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -628,7 +555,7 @@ function HomePage() {
                 )}
 
                 {/* Floating Action Button - Only show on home page */}
-                {activePage === 'home' && (
+                {isHomePage && (
                     <div className="fixed bottom-8 right-8 floating">
                         <button className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-all duration-300 pulse">
                             <i className="fas fa-comment-dots text-2xl"></i>
