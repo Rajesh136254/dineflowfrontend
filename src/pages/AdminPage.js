@@ -2,9 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 function AdminPage() {
 
-  alert('AdminPage component is loading!');
-  console.log('AdminPage component is loading!');
-  console.log('REACT_APP_API_URL value is:', process.env.REACT_APP_API_URL);
   // ── State ───────────────────────────────────────
   const [activeTab, setActiveTab] = useState('menu');
   const [menuItems, setMenuItems] = useState([]);
