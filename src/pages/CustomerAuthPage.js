@@ -16,18 +16,8 @@ const CustomerAuthPage = () => {
         setIsSignup(searchParams.get('mode') !== 'login');
     }, [searchParams]);
 
-    // Check if user is already logged in
-    useEffect(() => {
-        if (currentUser) {
-            const tableNumber = searchParams.get('table') || '1';
-            // Check if user has the correct role
-            if (currentUser.role === 'user') {
-                navigate(`/customer.html?table=${tableNumber}`);
-            } else {
-                navigate('/dashboard'); // Redirect admins to dashboard
-            }
-        }
-    }, [currentUser, navigate, searchParams]);
+    // Removed automatic redirection useEffect to prevent conflicts
+    // Redirection is now handled by UserSignupPage (after signup) and LoginPage (after login)
 
     return (
         <div>
