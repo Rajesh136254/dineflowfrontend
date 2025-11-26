@@ -25,8 +25,8 @@ const LoginPage = ({ redirectUrl }) => {
 
         if (result.success) {
             // Check role and redirect accordingly
-            if (result.user && result.user.role === 'admin') {
-                navigate('/dashboard');
+            if (result.user && (result.user.role === 'admin' || result.user.role === 'user')) {
+                navigate(`/customer.html?table=${tableNumber}`);
             } else {
                 navigate(redirectTo);
             }
