@@ -245,13 +245,12 @@ function CustomerPage() {
 
     // --- useEffect Hooks ---
     useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const tableFromUrl = parseInt(urlParams.get('table') || '1');
+        const tableFromUrl = parseInt(searchParams.get('table') || '1');
         setTableNumber(tableFromUrl);
         loadTables();
         loadMenu();
         loadCategories();
-    }, [loadTables, loadMenu, loadCategories]);
+    }, [searchParams, loadTables, loadMenu, loadCategories]);
 
     useEffect(() => {
         if (isOrdersModalOpen) {
