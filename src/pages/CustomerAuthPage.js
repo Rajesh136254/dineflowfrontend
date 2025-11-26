@@ -11,6 +11,11 @@ const CustomerAuthPage = () => {
     const navigate = useNavigate();
     const { currentUser } = useAuth();
 
+    // Update isSignup when URL mode changes
+    useEffect(() => {
+        setIsSignup(searchParams.get('mode') !== 'login');
+    }, [searchParams]);
+
     // Check if user is already logged in
     useEffect(() => {
         if (currentUser) {

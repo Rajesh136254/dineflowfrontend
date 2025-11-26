@@ -21,27 +21,28 @@ const UserSignupPage = ({ redirectUrl }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        
+
         if (password !== confirmPassword) {
             setError('Passwords do not match');
             return;
         }
-        
+
         if (password.length < 6) {
             setError('Password must be at least 6 characters');
             return;
         }
-        
+
         setIsLoading(true);
 
         const result = await signup(fullName, email, password);
-        
+
         if (result.success) {
-            navigate(redirectTo);
+            // Redirect to login page with table number after successful signup
+            navigate(`/login?mode=login&table=${tableNumber}`);
         } else {
             setError(result.message);
         }
-        
+
         setIsLoading(false);
     };
 
@@ -58,7 +59,7 @@ const UserSignupPage = ({ redirectUrl }) => {
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     Or{' '}
-                    <Link to={`/login?table=${tableNumber}`} className="font-medium text-blue-600 hover:text-blue-500">
+                    <Link to={`/login?mode=login&table=${tableNumber}`} className="font-medium text-blue-600 hover:text-blue-500">
                         sign in to your existing account
                     </Link>
                 </p>
@@ -78,7 +79,7 @@ const UserSignupPage = ({ redirectUrl }) => {
                             </div>
                         </div>
                     )}
-                    
+
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
