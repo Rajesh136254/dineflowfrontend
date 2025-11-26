@@ -14,25 +14,30 @@ function QrCodesPage() {
             const response = await fetch(`${API_URL}/api/tables`);
             const data = await response.json();
             if (data.success) {
-                setTables(data.data || []);
+                // Update QR code data to point to login page with signup mode
+                const tablesWithQr = (data.data || []).map(table => ({
+                    ...table,
+                    qr_code_data: `${BASE_URL}/login?mode=signup&table=${table.table_number}`
+                }));
+                setTables(tablesWithQr);
             } else {
                 // Fallback to mock data if API fails
-                setTables(Array.from({ length: 12 }, (_, i) => ({ 
-                    id: i + 1, 
-                    table_number: i + 1, 
+                setTables(Array.from({ length: 12 }, (_, i) => ({
+                    id: i + 1,
+                    table_number: i + 1,
                     table_name: `Table ${i + 1}`,
-                    qr_code_data: `${BASE_URL}/customer.html?table=${i + 1}`
+                    qr_code_data: `${BASE_URL}/login?mode=signup&table=${i + 1}`
                 })));
             }
         } catch (err) {
             console.error("Failed to load tables:", err);
             setError("Failed to load tables.");
             // Fallback to mock data if API fails
-            setTables(Array.from({ length: 12 }, (_, i) => ({ 
-                id: i + 1, 
-                table_number: i + 1, 
+            setTables(Array.from({ length: 12 }, (_, i) => ({
+                id: i + 1,
+                table_number: i + 1,
                 table_name: `Table ${i + 1}`,
-                qr_code_data: `${BASE_URL}/customer.html?table=${i + 1}`
+                qr_code_data: `${BASE_URL}/login?mode=signup&table=${i + 1}`
             })));
         } finally {
             setIsLoading(false);
@@ -48,7 +53,7 @@ function QrCodesPage() {
             loadTables();
         };
         document.body.appendChild(script);
-        
+
         return () => {
             document.body.removeChild(script);
         };
@@ -63,7 +68,7 @@ function QrCodesPage() {
             const container = qrRefs.current[table.id];
             if (container && container.children.length === 0) {
                 new window.QRCode(container, {
-                    text: table.qr_code_data || `${BASE_URL}/customer.html?table=${table.table_number}`,
+                    text: table.qr_code_data,
                     width: 200,
                     height: 200,
                 });

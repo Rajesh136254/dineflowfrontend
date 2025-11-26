@@ -20,7 +20,7 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [authError, setAuthError] = useState("");
-  
+
   // Use environment variable for API URL with fallback
   const API_URL = process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com';
 
@@ -73,23 +73,23 @@ export default function SignupPage() {
   // Form validation
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (mode === "signup" && !formData.fullName.trim()) {
       newErrors.fullName = "Name is required";
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -111,7 +111,7 @@ export default function SignupPage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: "" }));
     }
@@ -119,18 +119,18 @@ export default function SignupPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
     setAuthError("");
-    
+
     try {
       const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login";
-      const payload = mode === "signup" 
-        ? { fullName: formData.fullName, email: formData.email, password: formData.password }
+      const payload = mode === "signup"
+        ? { fullName: formData.fullName, email: formData.email, password: formData.password, role: 'admin' }
         : { email: formData.email, password: formData.password };
-      
+
       // Enhanced fetch with proper CORS configuration
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "POST",
@@ -141,22 +141,22 @@ export default function SignupPage() {
         credentials: 'include', // Important for CORS
         mode: 'cors', // Explicitly set CORS mode
       });
-      
+
       // Handle non-JSON responses
       const contentType = response.headers.get("content-type");
       let data;
-      
+
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
         const text = await response.text();
         throw new Error(`Server returned non-JSON response: ${text}`);
       }
-      
+
       if (data.success) {
         // Store user data in localStorage
         localStorage.setItem("user", JSON.stringify(data.data));
-        
+
         // Redirect based on mode
         if (mode === "signup") {
           // After successful signup, switch to login mode
@@ -173,7 +173,7 @@ export default function SignupPage() {
       }
     } catch (error) {
       console.error("Authentication error:", error);
-      
+
       // More specific error messages
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         setAuthError("Network error. Please check your connection and try again.");
@@ -276,13 +276,13 @@ export default function SignupPage() {
                   {/* Hair */}
                   <div className="signup-hair"></div>
                 </div>
-                
+
                 {/* Body */}
                 <div className="signup-body">
                   {/* Shirt details */}
                   <div className="signup-shirt-details"></div>
                 </div>
-                
+
                 {/* Arms */}
                 <div className="signup-arms">
                   <div className="signup-arm signup-arm-left">
@@ -292,7 +292,7 @@ export default function SignupPage() {
                     <div className="signup-hand"></div>
                   </div>
                 </div>
-                
+
                 {/* Legs */}
                 <div className="signup-legs">
                   <div className="signup-leg signup-leg-left">
@@ -302,15 +302,15 @@ export default function SignupPage() {
                     <div className="signup-shoe"></div>
                   </div>
                 </div>
-                
+
                 {/* Stomach */}
                 <div className="signup-stomach signup-rumbling"></div>
-                
+
                 {/* Hunger Bubble */}
                 <div className="signup-hunger-bubble">
                   <div className="signup-hunger-text">🍔</div>
                 </div>
-                
+
                 {/* Interactive hint */}
                 {interactiveMode && (
                   <div className="signup-interactive-hint">Tap me!</div>
@@ -336,13 +336,13 @@ export default function SignupPage() {
                     {/* Hair */}
                     <div className="signup-hair"></div>
                   </div>
-                  
+
                   {/* Body */}
                   <div className="signup-body">
                     {/* Shirt details */}
                     <div className="signup-shirt-details"></div>
                   </div>
-                  
+
                   {/* Arms */}
                   <div className="signup-arms">
                     <div className="signup-arm signup-arm-left">
@@ -352,7 +352,7 @@ export default function SignupPage() {
                       <div className="signup-hand"></div>
                     </div>
                   </div>
-                  
+
                   {/* Legs */}
                   <div className="signup-legs">
                     <div className="signup-leg signup-leg-left">
@@ -362,12 +362,12 @@ export default function SignupPage() {
                       <div className="signup-shoe"></div>
                     </div>
                   </div>
-                  
+
                   {/* Stomach */}
                   <div className="signup-stomach"></div>
                 </div>
               </div>
-              
+
               {/* Briefcase */}
               <div className="signup-briefcase">
                 <div className="signup-briefcase-body"></div>
@@ -427,7 +427,7 @@ export default function SignupPage() {
                       {errors.fullName && <div className="signup-error-message">{errors.fullName}</div>}
                     </div>
                   )}
-                  
+
                   <div className="signup-input-group">
                     <label htmlFor="email">Email Address</label>
                     <div className="signup-input-wrapper">
@@ -447,7 +447,7 @@ export default function SignupPage() {
                     </div>
                     {errors.email && <div className="signup-error-message">{errors.email}</div>}
                   </div>
-                  
+
                   <div className="signup-input-group">
                     <label htmlFor="password">Password</label>
                     <div className="signup-input-wrapper">
@@ -477,7 +477,7 @@ export default function SignupPage() {
                       </button>
                     </div>
                     {errors.password && <div className="signup-error-message">{errors.password}</div>}
-                    
+
                     {mode === "signup" && (
                       <div className="signup-password-strength">
                         <div className="signup-strength-bar">
@@ -490,7 +490,7 @@ export default function SignupPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Authentication error message */}
                   {authError && <div className="signup-auth-error">{authError}</div>}
 

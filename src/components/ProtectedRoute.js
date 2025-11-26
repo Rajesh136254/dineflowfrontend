@@ -2,28 +2,24 @@ import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const ProtectedRoute = ({ children, adminOnly = false }) => {
-    const { isAuthenticated, isAdmin, isLoading } = useAuth();
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full border-blue-600 border-t-transparent" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        );
+const ProtectedRoute = ({ children, requiredRole = null }) => {
+  const { currentUser } = useAuth();
+  
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // If a specific role is required, check if user has that role
+  if (requiredRole && currentUser.role !== requiredRole) {
+    // Redirect based on user role
+    if (currentUser.role === 'user') {
+      return <Navigate to="/customer.html" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
     }
-
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    if (adminOnly && !isAdmin) {
-        return <Navigate to="/customer" replace />;
-    }
-
-    return children;
+  }
+  
+  return children;
 };
 
 export default ProtectedRoute;

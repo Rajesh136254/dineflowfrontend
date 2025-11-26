@@ -11,3 +11,31 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+
+/* to remove the black card which is there on top right corner of the page */
+
+/* Remove the API info panel from top-right corner */
+div.fixed.top-0.right-0 {
+    display: none !important;
+}
+
+/* If it has inline styles */
+div[style*="position: fixed"][style*="top: 0"][style*="right: 0"] {
+    display: none !important;
+}
+
+/* If it has a specific ID */
+#api-info, #dev-info {
+    display: none !important;
+}
+
+/* If it has a specific class */
+.api-info-panel, .dev-panel {
+    display: none !important;
+}
+
+/* More general selector for any fixed top-right element */
+div[style*="position: fixed"]:nth-child(1) {
+    display: none !important;
+}

@@ -1,3 +1,4 @@
+
 import React, { useState, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -21,13 +22,18 @@ const LoginPage = ({ redirectUrl }) => {
         setIsLoading(true);
 
         const result = await login(email, password);
-        
+
         if (result.success) {
-            navigate(redirectTo);
+            // Check role and redirect accordingly
+            if (result.user && result.user.role === 'admin') {
+                navigate('/dashboard');
+            } else {
+                navigate(redirectTo);
+            }
         } else {
             setError(result.message);
         }
-        
+
         setIsLoading(false);
     };
 
@@ -44,7 +50,7 @@ const LoginPage = ({ redirectUrl }) => {
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     Or{' '}
-                    <Link to={`/signup?table=${tableNumber}`} className="font-medium text-blue-600 hover:text-blue-500">
+                    <Link to={`/login?mode=signup&table=${tableNumber}`} className="font-medium text-blue-600 hover:text-blue-500">
                         create a new account
                     </Link>
                 </p>
@@ -64,7 +70,7 @@ const LoginPage = ({ redirectUrl }) => {
                             </div>
                         </div>
                     )}
-                    
+
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">

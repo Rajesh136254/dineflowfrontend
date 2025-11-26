@@ -5,14 +5,44 @@ function HomePage() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // State for UI elements, not for page management
+    // State for UI elements
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    
+    // State for frame navigation
+    const [activeFrame, setActiveFrame] = useState(null);
+    const [frameUrl, setFrameUrl] = useState('');
+    const [isFrameLoading, setIsFrameLoading] = useState(false);
 
-    // --- Navigation Handler ---
-    // This function uses React Router to navigate to different pages.
-    const handleNavigation = (path) => {
+    // --- Navigation Handlers ---
+    // This function opens the frame for top navigation items
+    const handleTopNavigation = (path) => {
+        // If we're already on the homepage, use frame navigation
+        if (location.pathname === '/' || location.pathname === '/homepage') {
+            setActiveFrame(path);
+            setFrameUrl(path);
+            setIsFrameLoading(true); // Start loading state
+        } else {
+            // Otherwise, navigate normally
+            navigate(path);
+        }
+    };
+
+    // This function navigates to full pages for feature cards
+    const handleCardNavigation = (path) => {
         navigate(path);
+    };
+
+    // Close the frame
+    const closeFrame = () => {
+        setActiveFrame(null);
+        setFrameUrl('');
+        setIsFrameLoading(false);
+    };
+
+    // Handle iframe load complete
+    const handleIframeLoad = () => {
+        setIsFrameLoading(false);
     };
 
     // --- Effects for UI ---
@@ -43,7 +73,6 @@ function HomePage() {
 
         return () => observer.disconnect();
     }, []);
-
 
     // --- Render Logic ---
     // We only show the main homepage content if we are on the home path.
@@ -243,6 +272,233 @@ function HomePage() {
                     }
                 }
                 
+                /* Frame Container Styles - Centered */
+                .frame-container {
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 90%;
+                    max-width: 1200px;
+                    height: 85vh;
+                    background-color: white;
+                    z-index: 1000;
+                    display: flex;
+                    flex-direction: column;
+                    border-radius: 16px;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    overflow: hidden;
+                    animation: frameAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                }
+                
+                @keyframes frameAppear {
+                    0% {
+                        opacity: 0;
+                        transform: translate(-50%, -50%) scale(0.9);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translate(-50%, -50%) scale(1);
+                    }
+                }
+                
+                .frame-header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 16px 24px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-radius: 16px 16px 0 0;
+                }
+                
+                .frame-content {
+                    flex: 1;
+                    background: white;
+                    width: 100%;
+                    height: calc(100% - 60px);
+                    overflow: auto;
+                    position: relative;
+                }
+                
+                .frame-content iframe {
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                }
+                
+                .close-btn {
+                    background: rgba(255, 255, 255, 0.2);
+                    border: none;
+                    color: white;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .close-btn:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                    transform: rotate(90deg);
+                }
+                
+                /* Loading Animation Styles */
+                .loading-container {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: white;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10;
+                }
+                
+                .loading-spinner {
+                    width: 60px;
+                    height: 60px;
+                    position: relative;
+                    margin-bottom: 24px;
+                }
+                
+                .loading-spinner-circle {
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                    border: 4px solid transparent;
+                    border-top-color: #667eea;
+                    animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+                }
+                
+                .loading-spinner-circle:nth-child(2) {
+                    width: 80%;
+                    height: 80%;
+                    top: 10%;
+                    left: 10%;
+                    border-top-color: #764ba2;
+                    animation: spin 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite reverse;
+                }
+                
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                .loading-text {
+                    font-size: 18px;
+                    font-weight: 500;
+                    color: #4a5568;
+                    margin-bottom: 8px;
+                }
+                
+                .loading-subtext {
+                    font-size: 14px;
+                    color: #718096;
+                    max-width: 300px;
+                    text-align: center;
+                }
+                
+                .loading-dots {
+                    display: inline-block;
+                    width: 40px;
+                    text-align: left;
+                }
+                
+                .loading-dots::after {
+                    content: '';
+                    animation: dots 1.5s steps(4, end) infinite;
+                }
+                
+                @keyframes dots {
+                    0% { content: ''; }
+                    25% { content: '.'; }
+                    50% { content: '..'; }
+                    75% { content: '...'; }
+                    100% { content: ''; }
+                }
+                
+                /* Overlay when frame is open */
+                .overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    z-index: 999;
+                    backdrop-filter: blur(4px);
+                }
+                
+                /* World Class Responsive Design */
+                @media (max-width: 1024px) {
+                    .frame-container {
+                        width: 95%;
+                        height: 90vh;
+                    }
+                }
+                
+                @media (max-width: 768px) {
+                    .frame-container {
+                        width: 98%;
+                        height: 95vh;
+                        border-radius: 12px;
+                    }
+                    
+                    .frame-header {
+                        padding: 12px 16px;
+                    }
+                    
+                    .close-btn {
+                        width: 32px;
+                        height: 32px;
+                    }
+                    
+                    .loading-spinner {
+                        width: 50px;
+                        height: 50px;
+                    }
+                    
+                    .loading-text {
+                        font-size: 16px;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .frame-container {
+                        width: 100%;
+                        height: 100vh;
+                        border-radius: 0;
+                    }
+                    
+                    .frame-header {
+                        border-radius: 0;
+                    }
+                }
+                
+                /* Enhanced mobile navigation */
+                .mobile-nav-item {
+                    transition: all 0.3s ease;
+                }
+                
+                .mobile-nav-item:hover {
+                    transform: translateX(5px);
+                }
+                
+                /* Enhanced feature cards for mobile */
+                @media (max-width: 768px) {
+                    .feature-card {
+                        margin-bottom: 16px;
+                    }
+                }
+                
                 /* FontAwesome Icons */
                 .fas {
                     display: inline-block;
@@ -298,7 +554,7 @@ function HomePage() {
                                 ].map((item) => (
                                     <button
                                         key={item.id}
-                                        onClick={() => handleNavigation(item.path)}
+                                        onClick={() => item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path)}
                                         className="nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2 hover:shadow-xl"
                                     >
                                         <i className={`fas ${item.icon}`}></i>
@@ -330,10 +586,10 @@ function HomePage() {
                                     <button
                                         key={item.id}
                                         onClick={() => {
-                                            handleNavigation(item.path);
+                                            item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path);
                                             setIsMobileMenuOpen(false);
                                         }}
-                                        className="nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2"
+                                        className="mobile-nav-item nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2"
                                     >
                                         <i className={`fas ${item.icon}`}></i>
                                         <span>{item.label}</span>
@@ -441,7 +697,7 @@ function HomePage() {
                                                 {feature.demoText}
                                             </a>
                                         ) : (
-                                            <button onClick={() => handleNavigation(feature.path)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
+                                            <button onClick={() => handleCardNavigation(feature.path)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
                                                 {feature.demoText}
                                             </button>
                                         )}
@@ -563,6 +819,55 @@ function HomePage() {
                     </div>
                 )}
             </div>
+
+            {/* Overlay when frame is open */}
+            {activeFrame && (
+                <div className="overlay" onClick={closeFrame}></div>
+            )}
+
+            {/* Frame Container for displaying pages - Centered */}
+            {activeFrame && (
+                <div className="frame-container">
+                    <div className="frame-header">
+                        <h3 className="text-xl font-semibold">
+                            {activeFrame === '/admin.html' && 'Admin Panel'}
+                            {activeFrame === '/kitchen.html' && 'Kitchen Dashboard'}
+                            {activeFrame === '/customer.html' && 'Customer Order'}
+                            {activeFrame === '/analytics.html' && 'Analytics Dashboard'}
+                            {activeFrame === '/qr-codes.html' && 'QR Codes'}
+                        </h3>
+                        <button className="close-btn" onClick={closeFrame}>
+                            <i className="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div className="frame-content">
+                        {/* Loading Animation */}
+                        {isFrameLoading && (
+                            <div className="loading-container">
+                                <div className="loading-spinner">
+                                    <div className="loading-spinner-circle"></div>
+                                    <div className="loading-spinner-circle"></div>
+                                </div>
+                                <div className="loading-text">Loading<span className="loading-dots"></span></div>
+                                <div className="loading-subtext">
+                                    {activeFrame === '/admin.html' && 'Preparing your admin dashboard...'}
+                                    {activeFrame === '/kitchen.html' && 'Setting up your kitchen view...'}
+                                    {activeFrame === '/customer.html' && 'Creating your ordering experience...'}
+                                    {activeFrame === '/analytics.html' && 'Gathering your business insights...'}
+                                    {activeFrame === '/qr-codes.html' && 'Generating QR codes for your tables...'}
+                                </div>
+                            </div>
+                        )}
+                        <iframe 
+                            src={frameUrl} 
+                            title="Content Frame"
+                            sandbox="allow-scripts allow-same-origin allow-forms"
+                            onLoad={handleIframeLoad}
+                            style={{ display: isFrameLoading ? 'none' : 'block' }}
+                        />
+                    </div>
+                </div>
+            )}
         </>
     );
 }

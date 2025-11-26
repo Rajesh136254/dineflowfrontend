@@ -16,7 +16,7 @@ import DebugInfo from './components/DebugInfo';
 function App() {
   return (
     <AuthProvider>
-      <DebugInfo /> {/* ADD THIS LINE */}
+      <DebugInfo />
       <Router>
         <Routes>
           {/* Admin routes - keep as they are */}
@@ -28,19 +28,14 @@ function App() {
           <Route path="/qr-codes.html" element={<QrCodesPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          
+
           {/* Customer authentication flow */}
-          <Route path="/signup" element={<CustomerAuthPage />} />
           <Route path="/login" element={<CustomerAuthPage />} />
-          
+
           {/* Protected customer route */}
-          <Route 
-            path="/customer.html" 
-            element={
-              <ProtectedRoute>
-                <CustomerPage />
-              </ProtectedRoute>
-            } 
+          <Route
+            path="/customer.html"
+            element={<CustomerPage />}
           />
         </Routes>
       </Router>
@@ -48,4 +43,4 @@ function App() {
   );
 }
 
-export default App;
+export default App; // This line was missing

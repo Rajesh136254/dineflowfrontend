@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import io from 'socket.io-client';
 
 function KitchenPage() {
     // State variables
@@ -6,11 +7,14 @@ function KitchenPage() {
     const [currentFilter, setCurrentFilter] = useState('pending');
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
     const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
+    const [authToken, setAuthToken] = useState(localStorage.getItem('token') || '');
+    const [deliveredDateFilter, setDeliveredDateFilter] = useState('today'); // New state for date filter
 
     // Refs for non-state values
     const audioRef = useRef(null);
     const prevOrdersRef = useRef([]);
-    const API_URL = process.env.REACT_APP_API_URL; // Force use of backend server
+    const initialLoadRef = useRef(true); // Track if it's the initial load
+    const API_URL = process.env.REACT_APP_API_URL;
 
     // --- Helper Functions ---
     const playNotificationSound = () => {
@@ -32,14 +36,62 @@ function KitchenPage() {
         return `${diffDays}d ${diffHours % 24}h`;
     };
 
+    // Function to get date range based on filter
+    const getDateRange = (filter) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        
+        switch (filter) {
+            case 'today':
+                return { start: today, end: tomorrow };
+            case 'yesterday':
+                return { start: yesterday, end: today };
+            case 'week':
+                return { start: weekAgo, end: tomorrow };
+            case 'month':
+                return { start: monthAgo, end: tomorrow };
+            default:
+                return { start: today, end: tomorrow };
+        }
+    };
+
     // --- Data Loading and Updating Functions ---
     const loadOrders = useCallback(async () => {
+        console.log('loadOrders function called');
+        console.log('API_URL:', API_URL);
         try {
             const response = await fetch(`${API_URL}/api/orders`);
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log('API Response:', data);
+            
             if (data.success) {
                 const newOrders = data.data;
-                if (newOrders.length > prevOrdersRef.current.length) {
+                
+                // Sort orders by creation time (oldest first) for FIFO queue
+                const sortedOrders = [...newOrders].sort((a, b) => 
+                    new Date(a.created_at) - new Date(b.created_at)
+                );
+                
+                // Only trigger notification for genuinely new orders (not on initial load)
+                if (!initialLoadRef.current && newOrders.length > prevOrdersRef.current.length) {
                     playNotificationSound();
                     if (notificationPermission === 'granted') {
                         new Notification('New Order Received!', {
@@ -47,13 +99,20 @@ function KitchenPage() {
                         });
                     }
                 }
-                setOrders(newOrders);
-                prevOrdersRef.current = newOrders;
+                
+                setOrders(sortedOrders);
+                prevOrdersRef.current = sortedOrders;
+                
+                // Set initial load to false after first load
+                if (initialLoadRef.current) {
+                    initialLoadRef.current = false;
+                }
             } else {
                 console.error('API Error:', data.message);
             }
         } catch (error) {
             console.error('Error loading orders:', error);
+            setConnectionStatus('🔴 Connection Error');
         }
     }, [notificationPermission]);
 
@@ -67,9 +126,15 @@ function KitchenPage() {
 
             const data = await response.json();
             if (data.success) {
-                setOrders(currentOrders => currentOrders.map(order => 
-                    order.id === orderId ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() } : order
-                ));
+                setOrders(currentOrders => {
+                    const updatedOrders = currentOrders.map(order => 
+                        order.id === orderId ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() } : order
+                    );
+                    // Re-sort to maintain FIFO order
+                    return updatedOrders.sort((a, b) => 
+                        new Date(a.created_at) - new Date(b.created_at)
+                    );
+                });
             } else {
                 console.error('API Error:', data.message);
             }
@@ -80,23 +145,103 @@ function KitchenPage() {
 
     // --- useEffect Hooks ---
     useEffect(() => {
+        // Initialize Socket.IO connection
+        const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
+        
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            setConnectionStatus('🟢 Connected');
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            setConnectionStatus('🔴 Disconnected');
+        });
+        
+        socket.on('new-order', (order) => {
+            console.log('New order received:', order);
+            setOrders(prevOrders => {
+                const updatedOrders = [order, ...prevOrders];
+                // Sort to maintain FIFO order
+                return updatedOrders.sort((a, b) => 
+                    new Date(a.created_at) - new Date(b.created_at)
+                );
+            });
+            playNotificationSound();
+            if (notificationPermission === 'granted') {
+                new Notification('New Order Received!', {
+                    body: `Order #${order.id} from Table ${order.table_number}`
+                });
+            }
+        });
+        
+        socket.on('order-status-updated', (order) => {
+            console.log('Order status updated:', order);
+            setOrders(prevOrders => {
+                const updatedOrders = prevOrders.map(o => 
+                    o.id === order.id ? { ...o, order_status: order.order_status, updated_at: order.updated_at } : o
+                );
+                // Re-sort to maintain FIFO order
+                return updatedOrders.sort((a, b) => 
+                    new Date(a.created_at) - new Date(b.created_at)
+                );
+            });
+        });
+        
+        // Request notification permission
         if (Notification.permission === 'default') {
             Notification.requestPermission().then(setNotificationPermission);
         }
-        setConnectionStatus('🟢 Connected');
+        
+        // Load initial orders
         loadOrders();
+        
+        // Set up interval to refresh orders
         const intervalId = setInterval(loadOrders, 30000);
-        return () => clearInterval(intervalId);
-    }, [loadOrders]);
+        
+        // Clean up
+        return () => {
+            clearInterval(intervalId);
+            socket.disconnect();
+        };
+    }, [loadOrders, notificationPermission]);
 
     // --- Derived State ---
+    // Calculate filtered orders based on current filter and date filter (for delivered orders)
+    const filteredOrders = (() => {
+        let filtered = orders.filter(o => o.order_status === currentFilter);
+        
+        // Apply date filter only for delivered orders
+        if (currentFilter === 'delivered') {
+            const { start, end } = getDateRange(deliveredDateFilter);
+            filtered = filtered.filter(order => {
+                const orderDate = new Date(order.created_at);
+                return orderDate >= start && orderDate < end;
+            });
+        }
+        
+        return filtered;
+    })();
+
+    // Calculate status counts based on filtered orders
     const statusCounts = {
         pending: orders.filter(o => o.order_status === 'pending').length,
         preparing: orders.filter(o => o.order_status === 'preparing').length,
         ready: orders.filter(o => o.order_status === 'ready').length,
-        delivered: orders.filter(o => o.order_status === 'delivered').length,
+        // For delivered, count based on the current date filter
+        delivered: (() => {
+            if (currentFilter === 'delivered') {
+                return filteredOrders.length;
+            }
+            // Default to today's delivered count
+            const { start, end } = getDateRange('today');
+            return orders.filter(o => {
+                if (o.order_status !== 'delivered') return false;
+                const orderDate = new Date(o.created_at);
+                return orderDate >= start && orderDate < end;
+            }).length;
+        })()
     };
-    const filteredOrders = orders.filter(o => o.order_status === currentFilter);
 
     // --- Render Logic ---
     return (
@@ -108,8 +253,13 @@ function KitchenPage() {
                         <p className="text-green-100 text-sm sm:text-base">Real-time Order Management</p>
                     </div>
                     <div className="mt-2 sm:mt-0 text-right">
-                        <p className="text-xl sm:text-3xl font-bold text-green-600">{orders.length}</p>
-                        <p className="text-xs sm:text-sm text-gray-200">Total Orders</p>
+                        <p className="text-xl sm:text-3xl font-bold text-green-600">{filteredOrders.length}</p>
+                        <p className="text-xs sm:text-sm text-gray-200">
+                            {currentFilter === 'delivered' 
+                                ? `${deliveredDateFilter === 'today' ? 'Today' : deliveredDateFilter === 'yesterday' ? 'Yesterday' : deliveredDateFilter === 'week' ? 'This Week' : 'This Month'} Orders`
+                                : `${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)} Orders`
+                            }
+                        </p>
                     </div>
                 </div>
             </div>
@@ -151,13 +301,41 @@ function KitchenPage() {
                             </button>
                         ))}
                     </div>
+                    
+                    {/* Date Filters for Delivered Orders */}
+                    {currentFilter === 'delivered' && (
+                        <div className="mt-3 p-3 bg-gray-100 rounded-lg">
+                            <h3 className="text-sm font-medium text-gray-700 mb-2">Filter by Date:</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { value: 'today', label: 'Today' },
+                                    { value: 'yesterday', label: 'Yesterday' },
+                                    { value: 'week', label: 'This Week' },
+                                    { value: 'month', label: 'This Month' }
+                                ].map(filter => (
+                                    <button 
+                                        key={filter.value} 
+                                        onClick={() => setDeliveredDateFilter(filter.value)} 
+                                        className={`px-3 py-1 rounded text-xs font-medium ${deliveredDateFilter === filter.value ? 'bg-green-600 text-white' : 'bg-white text-gray-700'}`}
+                                    >
+                                        {filter.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Orders Container */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {filteredOrders.length === 0 ? (
                         <div className="col-span-full text-center py-8 sm:py-12">
-                            <p className="text-gray-500 text-base sm:text-lg">No orders to display</p>
+                            <p className="text-gray-500 text-base sm:text-lg">
+                                {currentFilter === 'delivered' 
+                                    ? `No delivered orders for ${deliveredDateFilter === 'today' ? 'today' : deliveredDateFilter === 'yesterday' ? 'yesterday' : deliveredDateFilter === 'week' ? 'this week' : 'this month'}`
+                                    : `No ${currentFilter} orders to display`
+                                }
+                            </p>
                         </div>
                     ) : (
                         filteredOrders.map(order => {
@@ -199,7 +377,6 @@ function KitchenPage() {
                                         {order.order_status === 'preparing' && <button onClick={() => updateOrderStatus(order.id, 'ready')} className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold transition duration-200">Mark as Ready</button>}
                                         {order.order_status === 'ready' && <button onClick={() => updateOrderStatus(order.id, 'delivered')} className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold transition duration-200">Mark as Delivered</button>}
                                     </div>
-
                                 </div>
                             );
                         })

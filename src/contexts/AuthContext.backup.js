@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_API_URL || '';
 
@@ -15,11 +16,12 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
-
+    
     if (token && user) {
       setCurrentUser(JSON.parse(user));
     }
@@ -35,14 +37,14 @@ export const AuthProvider = ({ children }) => {
         },
         body: JSON.stringify({ email, password })
       });
-
+      
       const data = await response.json();
-
+      
       if (data.success) {
         localStorage.setItem('token', 'dummy-token'); // In a real app, use the actual token
         localStorage.setItem('user', JSON.stringify(data.data));
         setCurrentUser(data.data);
-        return { success: true, user: data.data };
+        return { success: true };
       } else {
         return { success: false, message: data.message };
       }
@@ -60,11 +62,11 @@ export const AuthProvider = ({ children }) => {
         },
         body: JSON.stringify({ fullName, email, password, role })
       });
-
+      
       const data = await response.json();
-
+      
       if (data.success) {
-        // Don't auto-login after signup, let user go to login page
+        // Don't automatically log in after signup
         return { success: true, message: 'Registration successful. Please login.' };
       } else {
         return { success: false, message: data.message };
@@ -78,8 +80,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setCurrentUser(null);
-    // Force a page reload to ensure clean state
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   const value = {
