@@ -128,7 +128,7 @@ export default function SignupPage() {
     try {
       const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login";
       const payload = mode === "signup"
-        ? { fullName: formData.fullName, email: formData.email, password: formData.password, role: 'admin' }
+        ? { fullName: formData.fullName, email: formData.email, password: formData.password, role: 'customer' }
         : { email: formData.email, password: formData.password };
 
       // Enhanced fetch with proper CORS configuration

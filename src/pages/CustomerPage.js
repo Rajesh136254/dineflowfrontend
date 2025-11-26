@@ -26,7 +26,7 @@ function CustomerPage() {
     const [categories, setCategories] = useState([]);
     const { currentUser, logout } = useAuth();
     const navigate = useNavigate();
-    
+
 
     const API_URL = process.env.REACT_APP_API_URL; // Backend server URL
 
@@ -41,7 +41,7 @@ function CustomerPage() {
             // If it's already a full URL, use it as is
             return imageUrl;
         }
-        
+
         // Fallback to placeholder images if no image_url is available
         const normalizedName = itemName.toLowerCase().trim();
         const foodImageMap = {
@@ -54,12 +54,12 @@ function CustomerPage() {
         };
         return foodImageMap[normalizedName] || `https://picsum.photos/seed/${normalizedName.replace(/\s+/g, '')}/400/300.jpg`;
     };
-    
+
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
-    
+
     const getAuthHeaders = () => {
         const token = localStorage.getItem('token');
         return token ? { 'Authorization': `Bearer ${token}` } : {};
@@ -84,7 +84,7 @@ function CustomerPage() {
             console.error('Error loading tables:', error);
         }
     }, []);
-    
+
     const loadCategories = useCallback(async () => {
         try {
             const response = await fetch(`${API_URL}/api/categories`, {
@@ -107,7 +107,7 @@ function CustomerPage() {
         }
     }, []);
 
-        const loadMenu = useCallback(async () => {
+    const loadMenu = useCallback(async () => {
         setIsLoading(true);
         try {
             const response = await fetch(`${API_URL}/api/menu`, {
@@ -116,13 +116,13 @@ function CustomerPage() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Menu error response:', errorText);
                 throw new Error(`Server responded with ${response.status}: ${errorText}`);
             }
-            
+
             const data = await response.json();
             if (data.success) {
                 setMenuItems(data.data);
@@ -138,7 +138,9 @@ function CustomerPage() {
 
     const loadCustomerOrders = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/orders?table_number=${tableNumber}`, {
+            // Include customer_id in the query if available
+            const customerIdParam = currentUser?.id ? `&customer_id=${currentUser.id}` : '';
+            const response = await fetch(`${API_URL}/api/orders?table_number=${tableNumber}${customerIdParam}`, {
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json'
@@ -153,7 +155,7 @@ function CustomerPage() {
         } catch (error) {
             console.error('Error loading customer orders:', error);
         }
-    }, [tableNumber]);
+    }, [tableNumber, currentUser]);
 
     // --- Cart Functions ---
     const addToCart = (itemId) => {
@@ -190,17 +192,18 @@ function CustomerPage() {
     const placeOrder = async () => {
         if (cart.length === 0) return;
         const paymentMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'cash';
-        const orderData = { 
-            table_number: tableNumber, 
-            items: cart.map(i => ({ 
-                id: i.id, 
-                quantity: i.quantity, 
-                price_inr: i.price_inr, 
+        const orderData = {
+            table_number: tableNumber,
+            items: cart.map(i => ({
+                id: i.id,
+                quantity: i.quantity,
+                price_inr: i.price_inr,
                 price_usd: i.price_usd,
                 name: i.name
-            })), 
-            currency: currentCurrency, 
-            payment_method: paymentMethod 
+            })),
+            currency: currentCurrency,
+            payment_method: paymentMethod,
+            customer_id: currentUser?.id
         };
         try {
             const response = await fetch(`${API_URL}/api/orders`, {
@@ -228,7 +231,7 @@ function CustomerPage() {
     };
 
     // --- Derived State ---
-    
+
     const filteredMenu = menuItems.filter(item => {
         const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
         const matchesSearch = item.name.toLowerCase().includes(searchTerm) || (item.description && item.description.toLowerCase().includes(searchTerm));
@@ -314,28 +317,26 @@ function CustomerPage() {
                         </select>
                     </div>
                     <div className="mb-4 sm:mb-6">
-                    <div className="flex gap-2 overflow-x-auto pb-2 px-1 -mx-1 scrollbar-hide">
-                        <button 
-                            onClick={() => setActiveCategory('all')} 
-                            className={`category-pill px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium whitespace-nowrap flex items-center text-xs sm:text-sm flex-shrink-0 ${
-                                activeCategory === 'all' ? 'active text-white' : 'bg-gray-200 text-gray-700'
-                            }`}
-                        >
-                            <i className="fas fa-border-all mr-1 sm:mr-2"></i>All
-                        </button>
-                        {categories.map(cat => (
-                            <button 
-                                key={cat} 
-                                onClick={() => setActiveCategory(cat)} 
-                                className={`category-pill px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium whitespace-nowrap flex items-center text-xs sm:text-sm flex-shrink-0 ${
-                                    activeCategory === cat ? 'active text-white' : 'bg-gray-200 text-gray-700'
-                                }`}
+                        <div className="flex gap-2 overflow-x-auto pb-2 px-1 -mx-1 scrollbar-hide">
+                            <button
+                                onClick={() => setActiveCategory('all')}
+                                className={`category-pill px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium whitespace-nowrap flex items-center text-xs sm:text-sm flex-shrink-0 ${activeCategory === 'all' ? 'active text-white' : 'bg-gray-200 text-gray-700'
+                                    }`}
                             >
-                                <i className="fas fa-utensils mr-1 sm:mr-2"></i>{cat}
+                                <i className="fas fa-border-all mr-1 sm:mr-2"></i>All
                             </button>
-                        ))}
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    onClick={() => setActiveCategory(cat)}
+                                    className={`category-pill px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium whitespace-nowrap flex items-center text-xs sm:text-sm flex-shrink-0 ${activeCategory === cat ? 'active text-white' : 'bg-gray-200 text-gray-700'
+                                        }`}
+                                >
+                                    <i className="fas fa-utensils mr-1 sm:mr-2"></i>{cat}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
                 </div>
 
                 {/* Menu Items */}
@@ -490,7 +491,7 @@ function CustomerPage() {
                                         </div>
                                         <div className="timeline flex justify-between items-center relative">
                                             <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-300 -translate-y-1/2"></div>
-                                            <div className="absolute top-1/2 left-0 w-full h-1 bg-blue-600 -translate-y-1/2" style={{width: `${(currentStep / 4) * 100}%`}}></div>
+                                            <div className="absolute top-1/2 left-0 w-full h-1 bg-blue-600 -translate-y-1/2" style={{ width: `${(currentStep / 4) * 100}%` }}></div>
                                             <div className={`step z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
                                                 <i className="fas fa-clock"></i>
                                             </div>

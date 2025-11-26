@@ -25,7 +25,8 @@ const LoginPage = ({ redirectUrl }) => {
 
         if (result.success) {
             // Check role and redirect accordingly
-            if (result.user && (result.user.role === 'admin' || result.user.role === 'user')) {
+            // For QR flow (LoginPage), everyone goes to CustomerPage
+            if (result.user && (['admin', 'user', 'customer'].includes(result.user.role))) {
                 navigate(`/customer.html?table=${tableNumber}`);
             } else {
                 navigate(redirectTo);
