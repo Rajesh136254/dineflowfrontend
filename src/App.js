@@ -35,7 +35,11 @@ function App() {
           {/* Protected customer route */}
           <Route
             path="/customer.html"
-            element={<CustomerPage />}
+            element={
+              <ProtectedRoute>
+                <CustomerPage />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </Router>
