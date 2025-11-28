@@ -2,6 +2,7 @@
 import React, { useState, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const UserSignupPage = ({ redirectUrl }) => {
     const [fullName, setFullName] = useState('');
@@ -14,6 +15,8 @@ const UserSignupPage = ({ redirectUrl }) => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const tableNumber = searchParams.get('table') || '1';
+    const { t, language, changeLanguage } = useLanguage();
+    const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
 
     // Use redirectUrl if provided, otherwise use default
     const redirectTo = redirectUrl || `/customer.html?table=${tableNumber}`;
@@ -23,12 +26,12 @@ const UserSignupPage = ({ redirectUrl }) => {
         setError('');
 
         if (password !== confirmPassword) {
-            setError('Passwords do not match');
+            setError(t('passwordsDoNotMatch'));
             return;
         }
 
         if (password.length < 6) {
-            setError('Password must be at least 6 characters');
+            setError(t('passwordLength'));
             return;
         }
 
@@ -47,7 +50,42 @@ const UserSignupPage = ({ redirectUrl }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+            {/* Language Selector */}
+            <div className="absolute top-4 right-4 z-10">
+                <div className="relative">
+                    <button
+                        onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                        className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 flex items-center gap-2 hover:bg-gray-50 transition"
+                    >
+                        <i className="fas fa-globe text-gray-500"></i>
+                        <span className="uppercase font-medium text-gray-700">{language}</span>
+                    </button>
+                    {showLanguageDropdown && (
+                        <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-50 py-1 text-gray-800 border border-gray-100">
+                            {['en', 'es', 'fr', 'hi', 'zh', 'ta', 'ml', 'te'].map((lang) => (
+                                <button
+                                    key={lang}
+                                    onClick={() => {
+                                        changeLanguage(lang);
+                                        setShowLanguageDropdown(false);
+                                    }}
+                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                                >
+                                    {lang === 'en' ? 'English' :
+                                        lang === 'es' ? 'Español' :
+                                            lang === 'fr' ? 'Français' :
+                                                lang === 'hi' ? 'हिंदी' :
+                                                    lang === 'zh' ? '中文' :
+                                                        lang === 'ta' ? 'தமிழ்' :
+                                                            lang === 'ml' ? 'മലയാളം' : 'తెలుగు'}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
                     <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
@@ -55,12 +93,12 @@ const UserSignupPage = ({ redirectUrl }) => {
                     </div>
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Create your account
+                    {t('createAccountTitle')}
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                    Or{' '}
+                    {t('or')}{' '}
                     <Link to={`/login?mode=login&table=${tableNumber}`} className="font-medium text-blue-600 hover:text-blue-500">
-                        sign in to your existing account
+                        {t('signInLink')}
                     </Link>
                 </p>
             </div>
@@ -83,7 +121,7 @@ const UserSignupPage = ({ redirectUrl }) => {
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
                             <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                                Full Name
+                                {t('fullName')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -100,7 +138,7 @@ const UserSignupPage = ({ redirectUrl }) => {
 
                         <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                                Email address
+                                {t('email')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -118,7 +156,7 @@ const UserSignupPage = ({ redirectUrl }) => {
 
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                                Password
+                                {t('password')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -135,7 +173,7 @@ const UserSignupPage = ({ redirectUrl }) => {
 
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                                Confirm Password
+                                {t('confirmPassword')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -159,7 +197,7 @@ const UserSignupPage = ({ redirectUrl }) => {
                                 {isLoading ? (
                                     <i className="fas fa-spinner fa-spin mr-2"></i>
                                 ) : null}
-                                Sign up
+                                {t('signUp')}
                             </button>
                         </div>
                     </form>

@@ -8,7 +8,7 @@ function HomePage() {
     // State for UI elements
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    
+
     // State for frame navigation
     const [activeFrame, setActiveFrame] = useState(null);
     const [frameUrl, setFrameUrl] = useState('');
@@ -59,14 +59,14 @@ function HomePage() {
             threshold: 0.1,
             rootMargin: '0px 0px -50px 0px'
         };
-        const observer = new IntersectionObserver(function(entries) {
+        const observer = new IntersectionObserver(function (entries) {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('fade-in');
                 }
             });
         }, observerOptions);
-        
+
         document.querySelectorAll('.feature-card').forEach(card => {
             observer.observe(card);
         });
@@ -541,7 +541,7 @@ function HomePage() {
                                 </div>
                                 <h1 className="text-3xl font-bold tracking-tight">EndOfHunger</h1>
                             </div>
-                            
+
                             {/* Desktop Navigation */}
                             <nav className="hidden lg:flex items-center space-x-2">
                                 {[
@@ -550,7 +550,7 @@ function HomePage() {
                                     { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
                                     { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
                                     { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
-                                    { id: 'qr-codes', path: '/qr-codes.html', icon: 'fa-qrcode', label: 'QR Codes' }
+                                    { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' }
                                 ].map((item) => (
                                     <button
                                         key={item.id}
@@ -562,16 +562,16 @@ function HomePage() {
                                     </button>
                                 ))}
                             </nav>
-                            
+
                             {/* Mobile Menu Button */}
-                            <button 
+                            <button
                                 className="lg:hidden hover:scale-110 transition-transform"
                                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             >
                                 <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
                             </button>
                         </div>
-                        
+
                         {/* Mobile Menu */}
                         {isMobileMenuOpen && (
                             <nav className="lg:hidden mt-4 pb-4 flex flex-wrap gap-2">
@@ -581,7 +581,7 @@ function HomePage() {
                                     { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
                                     { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
                                     { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
-                                    { id: 'qr-codes', path: '/qr-codes.html', icon: 'fa-qrcode', label: 'QR Codes' }
+                                    { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' }
                                 ].map((item) => (
                                     <button
                                         key={item.id}
@@ -622,75 +622,53 @@ function HomePage() {
                             {[
                                 {
                                     id: 'customer',
+                                    title: 'Customer Experience',
+                                    description: 'Seamless QR-based ordering, real-time tracking, and instant payments.',
                                     path: '/customer.html',
-                                    gradient: 'from-blue-500 to-cyan-500',
-                                    icon: 'fa-user',
-                                    title: 'Customer Order',
-                                    description: 'Place orders directly from your table using QR codes. Browse menu, customize items, and pay seamlessly.',
-                                    buttonColor: 'bg-blue-600 hover:bg-blue-700',
-                                    demoText: 'Try Demo (Table 1)'
+                                    buttonColor: 'bg-purple-600 hover:bg-purple-700',
+                                    demoText: 'View Customer App',
+                                    isLink: false
                                 },
                                 {
                                     id: 'kitchen',
+                                    title: 'Kitchen Display',
+                                    description: 'Efficient order management, status updates, and preparation tracking.',
                                     path: '/kitchen.html',
-                                    gradient: 'from-green-500 to-emerald-500',
-                                    icon: 'fa-chef-hat',
-                                    title: 'Kitchen Dashboard',
-                                    description: 'Real-time order management for kitchen staff. View orders, update status, and manage preparation time.',
-                                    buttonColor: 'bg-green-600 hover:bg-green-700',
-                                    demoText: 'Open Kitchen View'
+                                    buttonColor: 'bg-blue-600 hover:bg-blue-700',
+                                    demoText: 'View Kitchen Display',
+                                    isLink: false
                                 },
                                 {
                                     id: 'admin',
+                                    title: 'Admin Dashboard',
+                                    description: 'Comprehensive management of menu, tables, and restaurant settings.',
                                     path: '/admin.html',
-                                    gradient: 'from-purple-500 to-pink-500',
-                                    icon: 'fa-cog',
-                                    title: 'Admin Panel',
-                                    description: 'Manage menu items, tables, and system settings. Full control over your restaurant\'s digital operations.',
-                                    buttonColor: 'bg-purple-600 hover:bg-purple-700',
-                                    demoText: 'Access Admin'
+                                    buttonColor: 'bg-indigo-600 hover:bg-indigo-700',
+                                    demoText: 'View Admin Panel',
+                                    isLink: false
                                 },
                                 {
                                     id: 'analytics',
+                                    title: 'Analytics & Reports',
+                                    description: 'Deep insights into sales, popular items, and peak hours.',
                                     path: '/analytics.html',
-                                    gradient: 'from-orange-500 to-red-500',
-                                    icon: 'fa-chart-line',
-                                    title: 'Analytics Dashboard',
-                                    description: 'Track sales, popular items, and customer trends. Make data-driven decisions to grow your business.',
+                                    buttonColor: 'bg-green-600 hover:bg-green-700',
+                                    demoText: 'View Analytics',
+                                    isLink: false
+                                },
+                                {
+                                    id: 'ingredients',
+                                    title: 'Ingredients Management',
+                                    description: 'Track inventory, manage stock levels, and get low stock alerts.',
+                                    path: '/ingredients',
                                     buttonColor: 'bg-orange-600 hover:bg-orange-700',
-                                    demoText: 'View Analytics'
-                                },
-                                {
-                                    id: 'qr-codes',
-                                    path: '/qr-codes.html',
-                                    gradient: 'from-indigo-500 to-purple-500',
-                                    icon: 'fa-qrcode',
-                                    title: 'QR Codes',
-                                    description: 'Generate and print QR codes for each table. Easy setup with customizable designs and branding.',
-                                    buttonColor: 'bg-indigo-600 hover:bg-indigo-700',
-                                    demoText: 'Generate QR Codes'
-                                },
-                                {
-                                    id: 'support',
-                                    path: '#', // Keep as a placeholder for now
-                                    gradient: 'from-pink-500 to-rose-500',
-                                    icon: 'fa-headset',
-                                    title: 'Support',
-                                    description: 'Get help with setup, training, and troubleshooting. Our team is here to ensure your success.',
-                                    buttonColor: 'bg-pink-600 hover:bg-pink-700',
-                                    demoText: 'Contact Support',
-                                    isLink: true
+                                    demoText: 'Manage Ingredients',
+                                    isLink: false
                                 }
                             ].map((feature, index) => (
-                                <div key={index} className="feature-card bg-white rounded-3xl shadow-xl overflow-hidden fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                                    <div className={`bg-gradient-to-r ${feature.gradient} p-8 text-white relative overflow-hidden`}>
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-16 -mt-16"></div>
-                                        <div className="w-20 h-20 bg-white bg-opacity-20 rounded-2xl flex items-center justify-center mb-6 feature-icon backdrop-blur-sm">
-                                            <i className={`fas ${feature.icon} text-3xl`}></i>
-                                        </div>
-                                        <h3 className="text-2xl font-bold">{feature.title}</h3>
-                                    </div>
+                                <div key={index} className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition duration-300 transform hover:-translate-y-2 fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                                     <div className="p-8">
+                                        <h3 className="text-2xl font-bold mb-4 text-gray-800">{feature.title}</h3>
                                         <p className="text-gray-600 mb-6 leading-relaxed">{feature.description}</p>
                                         {feature.isLink ? (
                                             <a href="#" className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
@@ -706,7 +684,7 @@ function HomePage() {
                             ))}
                         </div>
 
-                        {/* Features Section */}
+                        {/* Why Choose Us Section */}
                         <div className="glass-effect rounded-3xl shadow-2xl p-10 mb-16 fade-in">
                             <h3 className="text-3xl font-bold text-gray-800 mb-10 text-center">Why Choose EndOfHunger?</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -834,7 +812,7 @@ function HomePage() {
                             {activeFrame === '/kitchen.html' && 'Kitchen Dashboard'}
                             {activeFrame === '/customer.html' && 'Customer Order'}
                             {activeFrame === '/analytics.html' && 'Analytics Dashboard'}
-                            {activeFrame === '/qr-codes.html' && 'QR Codes'}
+                            {activeFrame === '/ingredients' && 'Ingredients Management'}
                         </h3>
                         <button className="close-btn" onClick={closeFrame}>
                             <i className="fas fa-times"></i>
@@ -854,12 +832,12 @@ function HomePage() {
                                     {activeFrame === '/kitchen.html' && 'Setting up your kitchen view...'}
                                     {activeFrame === '/customer.html' && 'Creating your ordering experience...'}
                                     {activeFrame === '/analytics.html' && 'Gathering your business insights...'}
-                                    {activeFrame === '/qr-codes.html' && 'Generating QR codes for your tables...'}
+                                    {activeFrame === '/ingredients' && 'Loading ingredients inventory...'}
                                 </div>
                             </div>
                         )}
-                        <iframe 
-                            src={frameUrl} 
+                        <iframe
+                            src={frameUrl}
                             title="Content Frame"
                             sandbox="allow-scripts allow-same-origin allow-forms"
                             onLoad={handleIframeLoad}

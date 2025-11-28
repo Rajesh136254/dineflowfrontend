@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 function AdminPage() {
   // ── State ───────────────────────────────────────
@@ -10,7 +10,7 @@ function AdminPage() {
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('all');
-  
+
   // Modals
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
   const [isTableModalOpen, setIsTableModalOpen] = useState(false);
@@ -23,20 +23,20 @@ function AdminPage() {
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
-  
+
   // Category inline
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  
+
   // Form data
   const [currentMenuItem, setCurrentMenuItem] = useState({});
   const [currentTable, setCurrentTable] = useState({ group_id: null });
   const [currentGroup, setCurrentGroup] = useState({ name: '' });
   const [menuImagePreview, setMenuImagePreview] = useState(null);
   const [menuImageFile, setMenuImageFile] = useState(null);
-  
+
   // Loading & Filters
   const [isMenuLoading, setIsMenuLoading] = useState(false);
   const [isTablesLoading, setIsTablesLoading] = useState(false);
@@ -44,25 +44,27 @@ function AdminPage() {
   const [isOrdersLoading, setIsOrdersLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  
+
   // Toast
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-  
+  const { t, language, changeLanguage } = useLanguage();
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+
   // Refs
   const qrRefs = useRef({});
   const BASE_URL = window.location.origin;
   const API_URL = process.env.REACT_APP_API_URL || '';
-  
+
   // ── Helpers ─────────────────────────────────────
   const showToast = (msg, type = 'success') => {
     setToast({ show: true, message: msg, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
-  
+
   const openConfirm = (message, onYes) => {
     setConfirmModal({ show: true, message, onConfirm: onYes });
   };
-  
+
   const getTableCounts = useCallback((tableNumber) => {
     const tableOrders = orders.filter(o => o.table_number == tableNumber);
     return {
@@ -72,7 +74,7 @@ function AdminPage() {
       delivered: tableOrders.filter(o => o.order_status === 'delivered').length,
     };
   }, [orders]);
-  
+
   const updateOrderStatus = useCallback(async (orderId, newStatus) => {
     try {
       const res = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
@@ -91,9 +93,9 @@ function AdminPage() {
       showToast('Update failed', 'error');
     }
   }, [API_URL]);
-  
+
   const getGroupName = (groupId, groupName) => groupName || 'Non AC';
-  
+
   // ── Load QRCode lib ─────────────────────────────
   useEffect(() => {
     const script = document.createElement('script');
@@ -104,7 +106,7 @@ function AdminPage() {
       if (document.body.contains(script)) document.body.removeChild(script);
     };
   }, []);
-  
+
   // ── Load data ───────────────────────────────────
   useEffect(() => {
     loadMenu();
@@ -112,20 +114,20 @@ function AdminPage() {
     loadCategories();
     loadTableGroups();
   }, []);
-  
+
   useEffect(() => {
     if (activeTab === 'tables') loadOrders();
   }, [activeTab]);
-  
+
   // ── Generate QR ───────────────────────────
   const generateQRCode = (tableId, tableNumber) => {
     if (typeof window.QRCode === 'undefined') return;
-    
+
     const el = qrRefs.current[tableId];
     if (el) {
       // Clear previous QR code if exists
       el.innerHTML = '';
-      
+
       new window.QRCode(el, {
         text: `${BASE_URL}/customer.html?table=${tableNumber}`,
         width: 200,
@@ -136,7 +138,7 @@ function AdminPage() {
       });
     }
   };
-  
+
   // ── API Calls ───────────────────────────────────
   const loadMenu = useCallback(async () => {
     setIsMenuLoading(true);
@@ -150,7 +152,7 @@ function AdminPage() {
       setIsMenuLoading(false);
     }
   }, [API_URL]);
-  
+
   const loadTables = useCallback(async () => {
     setIsTablesLoading(true);
     try {
@@ -174,7 +176,7 @@ function AdminPage() {
       setIsTablesLoading(false);
     }
   }, [API_URL]);
-  
+
   const loadCategories = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/categories`);
@@ -186,7 +188,7 @@ function AdminPage() {
       setCategories(['Appetizer', 'Main Course', 'Dessert', 'Beverage', 'Salad']);
     }
   }, [API_URL]);
-  
+
   const loadOrders = useCallback(async () => {
     setIsOrdersLoading(true);
     try {
@@ -199,7 +201,7 @@ function AdminPage() {
       setIsOrdersLoading(false);
     }
   }, [API_URL]);
-  
+
   const loadTableGroups = useCallback(async () => {
     setIsGroupsLoading(true);
     try {
@@ -220,7 +222,7 @@ function AdminPage() {
       setIsGroupsLoading(false);
     }
   }, [API_URL]);
-  
+
   // ── Add Category ────────────────────────────
   const addNewCategory = async () => {
     const name = newCategoryName.trim();
@@ -247,7 +249,7 @@ function AdminPage() {
       showToast('Network error', 'error');
     }
   };
-  
+
   // ── Group Submit ───────────────────────────
   const handleGroupSubmit = async (e) => {
     e.preventDefault();
@@ -273,7 +275,7 @@ function AdminPage() {
       showToast('Save failed', 'error');
     }
   };
-  
+
   // ── Delete Group ───────────────────────────
   const deleteGroup = (id) => {
     openConfirm('Delete group? Tables in this group will be set to Non AC.', async () => {
@@ -293,7 +295,7 @@ function AdminPage() {
       setConfirmModal({ show: false });
     });
   };
-  
+
   // ── Handlers ───────────────────────────────────
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -303,7 +305,7 @@ function AdminPage() {
     reader.onloadend = () => setMenuImagePreview(reader.result);
     reader.readAsDataURL(file);
   };
-  
+
   // ── Submit Handlers ─────────────────────────────
   const handleMenuSubmit = async (e) => {
     e.preventDefault();
@@ -326,6 +328,8 @@ function AdminPage() {
       category,
       is_available: f.get('is_available') === 'on',
       image_url,
+      nutritional_info: f.get('nutritional_info'),
+      vitamins: f.get('vitamins'),
     };
     try {
       const url = id ? `${API_URL}/api/menu/${id}` : `${API_URL}/api/menu`;
@@ -347,7 +351,7 @@ function AdminPage() {
       showToast('Save failed', 'error');
     }
   };
-  
+
   const handleTableSubmit = async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
@@ -359,7 +363,7 @@ function AdminPage() {
       table_name: f.get('table_name') || null,
       group_id: groupId,
     };
-    
+
     try {
       const url = id ? `${API_URL}/api/tables/${id}` : `${API_URL}/api/tables`;
       const res = await fetch(url, {
@@ -367,9 +371,9 @@ function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      
+
       const json = await res.json();
-      
+
       if (res.ok) {
         if (json.success) {
           closeTableModal();
@@ -395,7 +399,7 @@ function AdminPage() {
       showToast('Network error', 'error');
     }
   };
-  
+
   // ── DELETE ─────────
   const deleteMenuItem = (id) => {
     openConfirm('Delete item?', async () => {
@@ -415,7 +419,7 @@ function AdminPage() {
       setConfirmModal({ show: false });
     });
   };
-  
+
   const deleteTable = (id) => {
     openConfirm('Delete table & QR?', async () => {
       try {
@@ -431,7 +435,7 @@ function AdminPage() {
       }
     });
   };
-  
+
   // ── Modals ─────────────────────────────
   const showAddMenuModal = () => {
     setCurrentMenuItem({});
@@ -441,7 +445,7 @@ function AdminPage() {
     setNewCategoryName('');
     setIsMenuModalOpen(true);
   };
-  
+
   const editMenuItem = (item) => {
     setCurrentMenuItem(item);
     setMenuImagePreview(item.image_url || null);
@@ -450,72 +454,72 @@ function AdminPage() {
     setNewCategoryName('');
     setIsMenuModalOpen(true);
   };
-  
+
   const closeMenuModal = () => setIsMenuModalOpen(false);
   const closeTableModal = () => setIsTableModalOpen(false);
-  
-  const showAddTableModal = () => { 
-    setCurrentTable({ group_id: null }); 
-    setIsTableModalOpen(true); 
+
+  const showAddTableModal = () => {
+    setCurrentTable({ group_id: null });
+    setIsTableModalOpen(true);
   };
-  
-  const editTable = (t) => { 
-    setCurrentTable(t); 
-    setIsTableModalOpen(true); 
+
+  const editTable = (t) => {
+    setCurrentTable(t);
+    setIsTableModalOpen(true);
   };
-  
+
   const showAddGroupModal = () => {
     setCurrentGroup({ name: '' });
     setIsGroupModalOpen(true);
   };
-  
+
   const editGroup = (g) => {
     setCurrentGroup(g);
     setIsGroupModalOpen(true);
   };
-  
+
   const closeGroupModal = () => {
     setIsGroupModalOpen(false);
     setCurrentGroup({ name: '' });
   };
-  
-  const showQRModal = (t) => { 
-    setSelectedTableForQR(t); 
-    setIsQRModalOpen(true); 
-    
+
+  const showQRModal = (t) => {
+    setSelectedTableForQR(t);
+    setIsQRModalOpen(true);
+
     // Generate QR code after modal opens
     setTimeout(() => {
       generateQRCode(t.id, t.table_number);
     }, 100);
   };
-  
+
   const closeQRModal = () => {
     setIsQRModalOpen(false);
     setSelectedTableForQR(null);
   };
-  
+
   const showOrdersForTable = (t) => {
     const tableOrders = orders.filter(o => o.table_number === t.table_number);
     setSelectedTableOrders(tableOrders);
     setSelectedTableNum(t.table_number);
     setShowOrdersModal(true);
   };
-  
+
   const closeOrdersModal = () => {
     setShowOrdersModal(false);
     setSelectedTableOrders([]);
     setSelectedTableNum(null);
   };
-  
+
   // ── Print QR ─────────────────────────────
   const printQR = (id) => {
     const el = document.getElementById(`qr-modal-${id}`) || document.getElementById(`qr-${id}`);
     if (!el?.parentElement) return showToast('QR not found', 'error');
-    
+
     try {
       // Create a new window for printing
       const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
-      
+
       if (!printWindow) {
         // If popup is blocked, use an alternative method
         const printContent = document.createElement('div');
@@ -536,7 +540,7 @@ function AdminPage() {
         showToast('Printed (popup blocked)', 'info');
         return;
       }
-      
+
       // Write content to new window
       printWindow.document.write(`
         <html>
@@ -593,23 +597,23 @@ function AdminPage() {
           </body>
         </html>
       `);
-      
+
       printWindow.document.close();
       printWindow.focus();
-      
+
       // Wait for content to load before printing
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
       }, 500);
-      
+
       showToast('QR sent to printer', 'success');
     } catch (err) {
       console.error('Print error:', err);
       showToast('Print failed', 'error');
     }
   };
-  
+
   // ── Filters ───────────────────────────────────
   const filtered = menuItems.filter((i) => {
     const s = searchTerm.toLowerCase();
@@ -618,13 +622,13 @@ function AdminPage() {
     const catOk = !selectedCategory || i.category === selectedCategory;
     return (nameOk || descOk) && catOk;
   });
-  
+
   const filteredTables = tables.filter((t) => {
     if (selectedGroupFilter === 'all') return true;
     if (selectedGroupFilter === 'non_ac') return !t.group_id;
     return t.group_id == selectedGroupFilter;
   });
-  
+
   const getCategoryColor = (c) => {
     const map = {
       Appetizer: 'bg-yellow-100 text-yellow-800',
@@ -635,660 +639,361 @@ function AdminPage() {
     };
     return map[c] || 'bg-gray-100 text-gray-800';
   };
-  
+
   // ── Render ─────────────────────────────────────
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
-        * {
-          font-family: 'Inter', sans-serif;
-        }
-        
-        @keyframes fade {
-          from { opacity:0; transform:translateY(10px); }
-          to { opacity:1; transform:none; }
-        }
-        
-        .fade {
-          animation:fade .3s ease-out;
-        }
-        
-        .card {
-          transition:all .3s;
-          border-radius: 12px;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-        
-        .card:hover {
-          transform:translateY(-5px);
-          box-shadow:0 10px 20px rgba(0,0,0,.1);
-        }
-        
-        .btn {
-          transition:all .2s;
-          cursor:pointer;
-          border-radius: 8px;
-          font-weight: 500;
-        }
-        
-        .btn:hover {
-          transform:scale(1.02);
-        }
-        
-        .toast {
-          position:fixed;
-          bottom:20px;
-          right:20px;
-          padding:16px 24px;
-          background:white;
-          border-radius:8px;
-          box-shadow:0 4px 12px rgba(0,0,0,.15);
-          display:flex;
-          align-items:center;
-          z-index:1000;
-          transform:translateX(400px);
-          transition:transform .3s;
-          color:#333;
-          max-width: 300px;
-        }
-        
-        .toast.show {
-          transform:translateX(0);
-        }
-        
-        .toast.success {
-          border-left:4px solid #10b981;
-        }
-        
-        .toast.error {
-          border-left:4px solid #ef4444;
-          background:#fef2f2;
-          color:#991b1b;
-        }
-        
-        .toast.info {
-          border-left:4px solid #3b82f6;
-        }
-        
-        .loader {
-          border:4px solid #f3f3f3;
-          border-top:4px solid #9333ea;
-          border-radius:50%;
-          width:40px;
-          height:40px;
-          animation:spin 1s linear infinite;
-          margin:20px auto;
-        }
-        
-        @keyframes spin {
-          to { transform:rotate(360deg); }
-        }
-        
-        .gradient-bg {
-          background:linear-gradient(135deg,#667eea,#764ba2);
-        }
-        
-        .cat-badge {
-          padding:4px 8px;
-          border-radius:4px;
-          font-size:.75rem;
-          font-weight:600;
-        }
-        
-        .status-badge {
-          padding:2px 6px;
-          border-radius:4px;
-          font-size:.7rem;
-          font-weight:500;
-          text-transform:uppercase;
-        }
-        
-        .status-pending {
-          background-color:#fef3c7;
-          color:#92400e;
-        }
-        
-        .status-preparing {
-          background-color:#dbeafe;
-          color:#1e40af;
-        }
-        
-        .status-ready {
-          background-color:#d1fae5;
-          color:#065f46;
-        }
-        
-        .status-delivered {
-          background-color:#f3f4f6;
-          color:#374151;
-        }
-        
-        .qr-container {
-          border:1px solid #e5e7eb;
-          border-radius:8px;
-          padding:8px;
-          background:white;
-          margin:0 auto;
-          display:block;
-          width: fit-content;
-        }
-        
-        .group-badge {
-          padding:6px 12px;
-          border-radius:8px;
-          font-size:.8rem;
-          font-weight:600;
-          background:#f3f4f6;
-          color:#374151;
-          cursor:pointer;
-          transition:all .2s;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          margin: 0 8px 8px 0;
-        }
-        
-        .group-badge:hover {
-          background:#e5e7eb;
-        }
-        
-        .group-badge.active {
-          background:#6366f1;
-          color:white;
-        }
-        
-        .group-edit, .group-delete {
-          padding: 4px;
-          border-radius: 4px;
-          transition: background-color 0.2s;
-        }
-        
-        .group-edit:hover {
-          background-color: rgba(59, 130, 246, 0.1);
-        }
-        
-        .group-delete:hover {
-          background-color: rgba(239, 68, 68, 0.1);
-        }
-        
-        .filter-select {
-          padding:4px 8px;
-          border:1px solid #d1d5db;
-          border-radius:4px;
-        }
-        
-        @media print {
-          body * { visibility:hidden; }
-          #print-content, #print-content * { visibility:visible; }
-          #print-content { position:absolute; left:0; top:0; }
-        }
-        
-        .modal-overlay {
-          background-color: rgba(0, 0, 0, 0.5);
-          backdrop-filter: blur(4px);
-        }
-        
-        .modal-content {
-          border-radius: 16px;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .input-field {
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          padding: 10px 12px;
-          transition: border-color 0.2s;
-        }
-        
-        .input-field:focus {
-          outline: none;
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-        
-        .btn-primary {
-          background-color: #6366f1;
-          color: white;
-        }
-        
-        .btn-primary:hover {
-          background-color: #5558e3;
-        }
-        
-        .btn-secondary {
-          background-color: #f3f4f6;
-          color: #374151;
-        }
-        
-        .btn-secondary:hover {
-          background-color: #e5e7eb;
-        }
-        
-        .btn-danger {
-          background-color: #ef4444;
-          color: white;
-        }
-        
-        .btn-danger:hover {
-          background-color: #dc2626;
-        }
+        * { font-family: 'Inter', sans-serif; }
+        @keyframes fade { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+        .fade { animation:fade .3s ease-out; }
+        .card { transition:all .3s; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .card:hover { transform:translateY(-5px); box-shadow:0 10px 20px rgba(0,0,0,.1); }
+        .btn { transition:all .2s; cursor:pointer; border-radius: 8px; font-weight: 500; }
+        .btn:hover { transform:scale(1.02); }
+        .toast { position:fixed; bottom:20px; right:20px; padding:16px 24px; background:white; color:#1f2937; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.15); display:flex; align-items:center; z-index:1000; transform:translateX(400px); transition: transform 0.3s ease-in-out; }
+        .toast.show { transform:translateX(0); }
+        .toast.success { border-left: 4px solid #10B981; }
+        .toast.error { border-left: 4px solid #EF4444; }
+        .toast.info { border-left: 4px solid #3B82F6; }
+        .input-field { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; outline: none; transition: border-color 0.2s; }
+        .input-field:focus { border-color: #4f46e5; }
+        .btn-primary { background-color: #4f46e5; color: white; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #f3f4f6; color: #374151; }
+        .btn-secondary:hover { background-color: #e5e7eb; }
+        .btn-danger { background-color: #ef4444; color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+        .modal-overlay { background-color: rgba(0,0,0,0.5); }
+        .modal-content { color: #1f2937; }
       `}</style>
-      
-      <div className="min-h-screen bg-gray-50">
-        <header className="gradient-bg text-white p-6 shadow-lg">
-          <div className="container mx-auto">
-            <h1 className="text-3xl font-bold">Admin Panel</h1>
-            <p className="text-purple-200 mt-1">Manage Menu & Tables</p>
-          </div>
-        </header>
-        
-        <div className="container mx-auto px-4 mt-6">
-          <div className="flex border-b">
-            <button 
-              onClick={() => setActiveTab('menu')} 
-              className={`px-6 py-3 font-semibold ${activeTab === 'menu' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-600'}`}
+
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
+          <div className="relative">
+            <button
+              onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+              className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition"
             >
-              Menu
+              <i className="fas fa-globe text-indigo-600"></i>
+              <span className="uppercase font-medium">{language}</span>
+              <i className={`fas fa-chevron-down text-xs transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
             </button>
-            <button 
-              onClick={() => setActiveTab('tables')} 
-              className={`px-6 py-3 font-semibold ${activeTab === 'tables' ? 'text-purple-600 border-b-2 border-purple-600' : 'text-gray-600'}`}
-            >
-              Tables
-            </button>
-          </div>
-          
-          {/* MENU TAB */}
-          {activeTab === 'menu' && (
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Menu Items</h2>
-                <button 
-                  onClick={showAddMenuModal} 
-                  className="btn btn-primary px-4 py-2"
-                >
-                  Add Item
-                </button>
+
+            {showLanguageDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-fade-in">
+                {[
+                  { code: 'en', label: 'English' },
+                  { code: 'es', label: 'Español' },
+                  { code: 'fr', label: 'Français' },
+                  { code: 'hi', label: 'हिन्दी' },
+                  { code: 'zh', label: '中文' },
+                  { code: 'ta', label: 'தமிழ்' },
+                  { code: 'ml', label: 'മലയാളം' },
+                  { code: 'te', label: 'తెలుగు' }
+                ].map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => {
+                      changeLanguage(lang.code);
+                      setShowLanguageDropdown(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition flex items-center justify-between ${language === lang.code ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-700'}`}
+                  >
+                    <span>{lang.label}</span>
+                    {language === lang.code && <i className="fas fa-check text-xs"></i>}
+                  </button>
+                ))}
               </div>
-              
-              <div className="flex gap-4 mb-6">
-                <input 
-                  type="text" 
-                  placeholder="Search..." 
-                  value={searchTerm} 
-                  onChange={(e) => setSearchTerm(e.target.value)} 
-                  className="input-field flex-1" 
-                />
-                <select 
-                  value={selectedCategory} 
-                  onChange={(e) => setSelectedCategory(e.target.value)} 
-                  className="input-field"
-                >
+            )}
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto mb-6 flex gap-4 border-b overflow-x-auto">
+          {['menu', 'tables', 'groups'].map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-2 px-4 capitalize whitespace-nowrap ${activeTab === tab ? 'border-b-2 border-indigo-600 text-indigo-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'menu' && (
+          <div className="max-w-7xl mx-auto fade">
+            <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between">
+              <div className="flex gap-2 flex-1">
+                <input placeholder={t('search') || "Search..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input-field max-w-xs" />
+                <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="input-field max-w-xs">
                   <option value="">All Categories</option>
-                  {categories.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              
-              {isMenuLoading ? (
-                <div className="loader"></div>
-              ) : filtered.length === 0 ? (
-                <p className="text-center text-gray-500 py-12">No items found</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filtered.map((item) => (
-                    <div key={item.id} className="bg-white rounded-lg shadow overflow-hidden card">
-                      {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-48 object-cover" />}
-                      <div className="p-5">
-                        <h3 className="font-bold text-lg">{item.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{item.description || 'No description'}</p>
-                        <div className="flex justify-between items-center mt-3">
-                          <span className="text-xl font-bold text-purple-600">₹{item.price_inr}</span>
-                          <span className={`cat-badge ${getCategoryColor(item.category)}`}>{item.category}</span>
-                        </div>
-                        <div className="flex gap-2 mt-4">
-                          <button 
-                            onClick={() => editMenuItem(item)} 
-                            className="btn btn-primary flex-1 py-2 text-sm"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => deleteMenuItem(item.id)} 
-                            className="btn btn-danger flex-1 py-2 text-sm"
-                          >
-                            Delete
-                          </button>
-                        </div>
+              <button onClick={showAddMenuModal} className="btn btn-primary px-4 py-2">+ {t('addItem')}</button>
+            </div>
+            {isMenuLoading ? <div className="text-center py-10">Loading menu...</div> : (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {filtered.map(item => (
+                  <div key={item.id} className="card bg-white overflow-hidden flex flex-col">
+                    <div className="h-48 bg-gray-200 relative">
+                      {item.image_url ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-gray-400">No Image</div>}
+                      <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold ${getCategoryColor(item.category)}`}>{item.category}</span>
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="flex justify-between items-start mb-2"><h3 className="font-bold text-lg">{item.name}</h3><span className="font-bold text-indigo-600">₹{item.price_inr}</span></div>
+                      <p className="text-gray-500 text-sm mb-4 flex-1 line-clamp-2">{item.description}</p>
+                      <div className="flex gap-2 mt-auto">
+                        <button onClick={() => editMenuItem(item)} className="btn btn-secondary flex-1 py-1 text-sm">Edit</button>
+                        <button onClick={() => deleteMenuItem(item.id)} className="btn btn-danger flex-1 py-1 text-sm">Delete</button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* TABLES TAB */}
-          {activeTab === 'tables' && (
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Tables</h2>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={showAddGroupModal} 
-                    className="btn bg-orange-600 hover:bg-orange-700 text-white px-4 py-2"
-                  >
-                    Add Group
-                  </button>
-                  <button 
-                    onClick={showAddTableModal} 
-                    className="btn btn-primary px-4 py-2"
-                  >
-                    Add Table
-                  </button>
-                </div>
+                  </div>
+                ))}
               </div>
-              
-              {/* Groups List with Filter Buttons */}
-              {isGroupsLoading ? (
-                <div className="loader"></div>
-              ) : (
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3">Filter by Group</h3>
-                  <div className="flex flex-wrap">
-                    <button 
-                      className={`group-badge ${selectedGroupFilter === 'all' ? 'active' : ''}`}
-                      onClick={() => setSelectedGroupFilter('all')}
-                    >
-                      All Tables
-                    </button>
-                    <button 
-                      className={`group-badge ${selectedGroupFilter === 'non_ac' ? 'active' : ''}`}
-                      onClick={() => setSelectedGroupFilter('non_ac')}
-                    >
-                      Non AC
-                    </button>
-                    {tableGroups.filter(g => g.name !== 'Non AC').map((g) => (
-                      <button 
-                        key={g.id} 
-                        className={`group-badge ${selectedGroupFilter == g.id ? 'active' : ''}`}
-                        onClick={() => setSelectedGroupFilter(g.id.toString())}
-                      >
-                        {g.name}
-                        <span 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            editGroup(g);
-                          }} 
-                          className="group-edit" 
-                          title="Edit"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </span>
-                        <span 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteGroup(g.id);
-                          }} 
-                          className="group-delete" 
-                          title="Delete"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </span>
-                      </button>
-                    ))}
+            )}
+          </div>
+        )}
+
+        {activeTab === 'tables' && (
+          <div className="max-w-7xl mx-auto fade">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex gap-2">
+                <select value={selectedGroupFilter} onChange={e => setSelectedGroupFilter(e.target.value)} className="input-field">
+                  <option value="all">All Groups</option>
+                  <option value="non_ac">Non AC</option>
+                  {tableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                </select>
+              </div>
+              <button onClick={showAddTableModal} className="btn btn-primary px-4 py-2">+ Add Table</button>
+            </div>
+            {isTablesLoading ? <div className="text-center py-10">Loading tables...</div> : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {filteredTables.map(t => {
+                  const counts = getTableCounts(t.table_number);
+                  const activeCount = counts.pending + counts.preparing + counts.ready;
+                  return (
+                    <div key={t.id} className="card bg-white p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div><h3 className="text-lg font-bold">Table {t.table_number}</h3><p className="text-gray-500 text-sm">{t.table_name || 'No Name'}</p><span className="text-xs bg-gray-100 px-2 py-1 rounded mt-1 inline-block">{getGroupName(t.group_id, tableGroups.find(g => g.id === t.group_id)?.name)}</span></div>
+                        <div className={`w-3 h-3 rounded-full ${activeCount > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1 text-center mb-4 text-xs">
+                        <div className="bg-yellow-50 p-1 rounded border border-yellow-100">
+                          <div className="font-bold text-yellow-700">{counts.pending}</div>
+                          <div className="text-yellow-600 text-[10px] uppercase">P</div>
+                        </div>
+                        <div className="bg-blue-50 p-1 rounded border border-blue-100">
+                          <div className="font-bold text-blue-700">{counts.preparing}</div>
+                          <div className="text-blue-600 text-[10px] uppercase">Prep</div>
+                        </div>
+                        <div className="bg-green-50 p-1 rounded border border-green-100">
+                          <div className="font-bold text-green-700">{counts.ready}</div>
+                          <div className="text-green-600 text-[10px] uppercase">R</div>
+                        </div>
+                        <div className="bg-gray-50 p-1 rounded border border-gray-100">
+                          <div className="font-bold text-gray-700">{counts.delivered}</div>
+                          <div className="text-gray-600 text-[10px] uppercase">D</div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button onClick={() => editTable(t)} className="btn btn-primary flex-1 py-2 text-sm">Edit</button>
+                        <button onClick={() => showQRModal(t)} className="btn bg-indigo-600 hover:bg-indigo-700 text-white flex-1 py-2 text-sm">QR</button>
+                        <button onClick={() => deleteTable(t.id)} className="btn btn-danger flex-1 py-2 text-sm">Del</button>
+                      </div>
+                      <button onClick={() => showOrdersForTable(t)} className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm disabled:opacity-50" disabled={activeCount === 0}>Show Orders ({activeCount})</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'groups' && (
+          <div className="max-w-7xl mx-auto fade">
+            <div className="flex justify-end mb-6"><button onClick={showAddGroupModal} className="btn btn-primary px-4 py-2">+ Add Group</button></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {tableGroups.map(g => (
+                <div key={g.id} className="card bg-white p-4 flex justify-between items-center">
+                  <span className="font-bold text-lg">{g.name}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => editGroup(g)} className="btn btn-secondary px-3 py-1 text-sm">Edit</button>
+                    <button onClick={() => deleteGroup(g.id)} className="btn btn-danger px-3 py-1 text-sm">Delete</button>
                   </div>
                 </div>
-              )}
-              
-              {(isTablesLoading || isOrdersLoading) ? (
-                <div className="loader"></div>
-              ) : filteredTables.length === 0 ? (
-                <p className="text-center text-gray-500 py-12">
-                  No tables in {selectedGroupFilter === 'all' ? '' : selectedGroupFilter === 'non_ac' ? 'Non AC' : tableGroups.find(g => g.id == selectedGroupFilter)?.name}
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {filteredTables.map((t) => {
-                    const counts = getTableCounts(t.table_number);
-                    const activeCount = counts.pending + counts.preparing + counts.ready;
-                    const groupName = getGroupName(t.group_id, t.group_name);
-                    
-                    return (
-                      <div key={t.id} className="bg-white rounded-lg shadow p-6 text-center card">
-                        <h3 className="font-bold text-xl">{t.table_name || `Table ${t.table_number}`}</h3>
-                        <span className="group-badge block mb-2">{groupName}</span>
-                        
-                        <div className="flex justify-around mt-2 mb-4 text-xs">
-                          <span className="status-badge status-pending">P: {counts.pending}</span>
-                          <span className="status-badge status-preparing">Prep: {counts.preparing}</span>
-                          <span className="status-badge status-ready">R: {counts.ready}</span>
-                          <span className="status-badge status-delivered">D: {counts.delivered}</span>
-                        </div>
-                        
-                        <div className="flex gap-2 mt-4">
-                          <button 
-                            onClick={() => editTable(t)} 
-                            className="btn btn-primary flex-1 py-2 text-sm"
-                          >
-                            Edit
-                          </button>
-                          <button 
-                            onClick={() => showQRModal(t)} 
-                            className="btn bg-indigo-600 hover:bg-indigo-700 text-white flex-1 py-2 text-sm"
-                          >
-                            QR
-                          </button>
-                          <button 
-                            onClick={() => deleteTable(t.id)} 
-                            className="btn btn-danger flex-1 py-2 text-sm"
-                          >
-                            Del
-                          </button>
-                        </div>
-                        
-                        <button 
-                          onClick={() => showOrdersForTable(t)} 
-                          className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white py-2 rounded text-sm disabled:opacity-50"
-                          disabled={activeCount === 0}
-                        >
-                          Show Orders ({activeCount})
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        
-        {/* MENU MODAL */}
-        {isMenuModalOpen && (
-          <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeMenuModal}>
-            <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-xl font-bold mb-4">{currentMenuItem.id ? 'Edit' : 'Add'} Item</h3>
-              <form onSubmit={handleMenuSubmit}>
-                <input type="hidden" name="id" value={currentMenuItem.id || ''} />
-                {menuImagePreview && <img src={menuImagePreview} alt="prev" className="w-full h-48 object-cover rounded mb-3" />}
-                <input type="file" accept="image/*" onChange={handleImageChange} className="w-full mb-3" />
-                <input name="name" defaultValue={currentMenuItem.name} placeholder="Name" required className="input-field w-full mb-3" />
-                <textarea name="description" defaultValue={currentMenuItem.description} placeholder="Description" className="input-field w-full mb-3" rows="2" />
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <input name="price_inr" type="number" step="0.01" defaultValue={currentMenuItem.price_inr} placeholder="INR" required className="input-field" />
-                  <input name="price_usd" type="number" step="0.01" defaultValue={currentMenuItem.price_usd} placeholder="USD" required className="input-field" />
-                </div>
-                <div className="mb-3">
-                  <select
-                    name="category"
-                    defaultValue={currentMenuItem.category || ''}
-                    required
-                    className="input-field w-full"
-                    onChange={(e) => e.target.value === 'add-new' && setShowNewCategoryInput(true)}
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                    <option value="add-new">➕ Add New</option>
-                  </select>
-                  {showNewCategoryInput && (
-                    <div className="flex gap-2 mt-2">
-                      <input
-                        type="text"
-                        placeholder="New category name"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        className="input-field flex-1"
-                        autoFocus
-                      />
-                      <button type="button" onClick={addNewCategory} className="btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">
-                        Add
-                      </button>
-                      <button type="button" onClick={() => { setShowNewCategoryInput(false); setNewCategoryName(''); }} className="btn btn-secondary px-3 py-2 rounded text-sm">
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <label className="flex items-center mb-4">
-                  <input type="checkbox" name="is_available" defaultChecked={currentMenuItem.is_available !== false} className="mr-2" />
-                  Available
-                </label>
-                <div className="flex gap-3">
-                  <button type="submit" className="btn btn-primary flex-1 py-2">Save</button>
-                  <button type="button" onClick={closeMenuModal} className="btn btn-secondary flex-1 py-2">Cancel</button>
-                </div>
-              </form>
+              ))}
             </div>
           </div>
         )}
-        
-        {/* GROUP MODAL */}
-        {isGroupModalOpen && (
-          <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeGroupModal}>
-            <div className="bg-white rounded-lg max-w-md w-full p-6 modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-xl font-bold mb-4">{currentGroup.id ? 'Edit' : 'Add'} Group</h3>
-              <form onSubmit={handleGroupSubmit}>
-                <input type="hidden" name="id" value={currentGroup.id || ''} />
-                <input name="name" defaultValue={currentGroup.name} placeholder="Group Name (e.g., AC, Garden)" required className="input-field w-full mb-3" />
-                <div className="flex gap-3">
-                  <button type="submit" className="btn btn-primary flex-1 py-2">Save</button>
-                  <button type="button" onClick={closeGroupModal} className="btn btn-secondary flex-1 py-2">Cancel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-        
-        {/* TABLE MODAL */}
-        {isTableModalOpen && (
-          <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeTableModal}>
-            <div className="bg-white rounded-lg max-w-md w-full p-6 modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-xl font-bold mb-4">{currentTable.id ? 'Edit' : 'Add'} Table</h3>
-              <form onSubmit={handleTableSubmit}>
-                <input type="hidden" name="id" value={currentTable.id || ''} />
-                <input name="table_number" type="number" defaultValue={currentTable.table_number} placeholder="Number" required className="input-field w-full mb-3" />
-                <input name="table_name" defaultValue={currentTable.table_name} placeholder="Name (optional)" className="input-field w-full mb-3" />
-                <select name="group_id" defaultValue={currentTable.group_id || ''} className="input-field w-full mb-3">
-                  <option value="">Non AC (Default)</option>
-                  {tableGroups.map((g) => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
+      </div>
+
+      {isMenuModalOpen && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeMenuModal}>
+          <div className="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">{currentMenuItem.id ? t('edit') : t('addItem')}</h3>
+            <form onSubmit={handleMenuSubmit}>
+              <input type="hidden" name="id" value={currentMenuItem.id || ''} />
+              {menuImagePreview && <img src={menuImagePreview} alt="prev" className="w-full h-48 object-cover rounded mb-3" />}
+              <input type="file" accept="image/*" onChange={handleImageChange} className="w-full mb-3" />
+              <input name="name" defaultValue={currentMenuItem.name} placeholder={t('name') || "Name"} required className="input-field w-full mb-3" />
+              <div className="relative mb-3">
+                <textarea name="description" defaultValue={currentMenuItem.description} placeholder={t('description') || "Description"} className="input-field w-full" rows="2" />
+                <button type="button" onClick={async () => {
+                  const name = document.querySelector('input[name="name"]').value;
+                  const desc = document.querySelector('textarea[name="description"]').value;
+                  if (!name) { showToast(t('name') + ' required', 'error'); return; }
+                  showToast(t('generating'), 'info');
+                  try {
+                    const res = await fetch(`${API_URL}/api/ai/nutrition`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, description: desc }) });
+                    const json = await res.json();
+                    if (json.success) {
+                      document.querySelector('input[name="nutritional_info"]').value = json.data.nutritional_info;
+                      document.querySelector('input[name="vitamins"]').value = json.data.vitamins;
+                      showToast(t('aiSuccess'), 'success');
+                    } else { showToast(json.message || 'Generation failed', 'error'); }
+                  } catch (error) { console.error(error); showToast('Network error', 'error'); }
+                }} className="absolute right-2 bottom-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200">✨ {t('aiRecommendation')}</button>
+              </div>
+              <input name="nutritional_info" defaultValue={currentMenuItem.nutritional_info} placeholder={t('nutritionalInfo') || "Nutritional Info"} className="input-field w-full mb-3" />
+              <input name="vitamins" defaultValue={currentMenuItem.vitamins} placeholder={t('vitamins') || "Vitamins"} className="input-field w-full mb-3" />
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <input name="price_inr" type="number" step="0.01" defaultValue={currentMenuItem.price_inr} placeholder="INR" required className="input-field" />
+                <input name="price_usd" type="number" step="0.01" defaultValue={currentMenuItem.price_usd} placeholder="USD" required className="input-field" />
+              </div>
+              <div className="mb-3">
+                <select name="category" defaultValue={currentMenuItem.category || ''} required className="input-field w-full" onChange={(e) => e.target.value === 'add-new' && setShowNewCategoryInput(true)}>
+                  <option value="">{t('allCategories')}</option>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  <option value="add-new">➕ Add New</option>
                 </select>
-                <div className="flex gap-3">
-                  <button type="submit" className="btn btn-primary flex-1 py-2">Save</button>
-                  <button type="button" onClick={closeTableModal} className="btn btn-secondary flex-1 py-2">Cancel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-        
-        {/* QR MODAL */}
-        {isQRModalOpen && selectedTableForQR && (
-          <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeQRModal}>
-            <div className="bg-white rounded-lg max-w-md w-full p-6 text-center modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-xl font-bold mb-4">QR – Table {selectedTableForQR.table_number}</h3>
-              <div className="flex justify-center items-center">
-                <div id={`qr-modal-${selectedTableForQR.id}`} className="qr-container" ref={(el) => (qrRefs.current[selectedTableForQR.id] = el)}></div>
+                {showNewCategoryInput && (
+                  <div className="flex gap-2 mt-2">
+                    <input type="text" placeholder="New category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} className="input-field flex-1" autoFocus />
+                    <button type="button" onClick={addNewCategory} className="btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm">Add</button>
+                    <button type="button" onClick={() => { setShowNewCategoryInput(false); setNewCategoryName(''); }} className="btn btn-secondary px-3 py-2 rounded text-sm">✕</button>
+                  </div>
+                )}
               </div>
-              <div className="flex gap-3 mt-6">
-                <button onClick={() => printQR(selectedTableForQR.id)} className="btn bg-indigo-600 hover:bg-indigo-700 text-white flex-1 py-2">Print</button>
-                <button onClick={closeQRModal} className="btn btn-secondary flex-1 py-2">Close</button>
-              </div>
-            </div>
+              <label className="flex items-center mb-4"><input type="checkbox" name="is_available" defaultChecked={currentMenuItem.id ? !!currentMenuItem.is_available : true} className="mr-2" />{t('available')}</label>
+              <div className="flex gap-3"><button type="submit" className="btn btn-primary flex-1 py-2">{t('save')}</button><button type="button" onClick={closeMenuModal} className="btn btn-secondary flex-1 py-2">{t('cancel')}</button></div>
+            </form>
           </div>
-        )}
-        
-        {/* ORDERS MODAL */}
-        {showOrdersModal && (
-          <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeOrdersModal}>
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-xl font-bold mb-4">Orders for Table #{selectedTableNum}</h3>
-              {selectedTableOrders.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No orders</p>
-              ) : (
-                <div className="space-y-4">
-                  {selectedTableOrders.map((order) => (
-                    <div key={order.id} className="border rounded-lg p-4 bg-gray-50">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-bold">Order #{order.id}</h4>
-                        <span className="text-sm text-gray-500">{new Date(order.created_at).toLocaleString()}</span>
-                      </div>
-                      <div className="mb-2 text-sm">
-                        {order.items.map((item, idx) => (
-                          <div key={idx}>{item.quantity}x {item.item_name} - ₹{parseFloat(item.price_inr * item.quantity).toFixed(2)}</div>
-                        ))}
-                      </div>
-                      <div className="flex justify-between mb-2 text-sm">
-                        <span>Total: ₹{parseFloat(order.total_amount_inr || 0).toFixed(2)}</span>
-                        <span>Payment: {order.payment_method}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Status:</span>
-                        <select value={order.order_status} onChange={(e) => updateOrderStatus(order.id, e.target.value)} className="input-field px-3 py-1 text-sm">
-                          <option value="pending">Pending</option>
-                          <option value="preparing">Preparing</option>
-                          <option value="ready">Ready</option>
-                          <option value="delivered">Delivered</option>
-                        </select>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-3 mt-6">
-                <button onClick={closeOrdersModal} className="btn btn-secondary flex-1 py-2">Close</button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* CONFIRM MODAL */}
-        {confirmModal.show && (
-          <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg p-6 max-w-sm w-full modal-content">
-              <p className="text-lg mb-6">{confirmModal.message}</p>
-              <div className="flex gap-3">
-                <button onClick={() => { confirmModal.onConfirm(); setConfirmModal({ show: false }); }} className="btn btn-danger flex-1 py-2">Yes, Delete</button>
-                <button onClick={() => setConfirmModal({ show: false })} className="btn btn-secondary flex-1 py-2">Cancel</button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* TOAST */}
-        <div className={`toast ${toast.show ? 'show' : ''} ${toast.type}`}>
-          {toast.message}
         </div>
+      )}
+
+      {isGroupModalOpen && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeGroupModal}>
+          <div className="bg-white rounded-lg max-w-md w-full p-6 modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">{currentGroup.id ? 'Edit' : 'Add'} Group</h3>
+            <form onSubmit={handleGroupSubmit}>
+              <input type="hidden" name="id" value={currentGroup.id || ''} />
+              <input name="name" defaultValue={currentGroup.name} placeholder="Group Name (e.g., AC, Garden)" required className="input-field w-full mb-3" />
+              <div className="flex gap-3">
+                <button type="submit" className="btn btn-primary flex-1 py-2">Save</button>
+                <button type="button" onClick={closeGroupModal} className="btn btn-secondary flex-1 py-2">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isTableModalOpen && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeTableModal}>
+          <div className="bg-white rounded-lg max-w-md w-full p-6 modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">{currentTable.id ? 'Edit' : 'Add'} Table</h3>
+            <form onSubmit={handleTableSubmit}>
+              <input type="hidden" name="id" value={currentTable.id || ''} />
+              <input name="table_number" type="number" defaultValue={currentTable.table_number} placeholder="Number" required className="input-field w-full mb-3" />
+              <input name="table_name" defaultValue={currentTable.table_name} placeholder="Name (optional)" className="input-field w-full mb-3" />
+              <select name="group_id" defaultValue={currentTable.group_id || ''} className="input-field w-full mb-3">
+                <option value="">Non AC (Default)</option>
+                {tableGroups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+              <div className="flex gap-3">
+                <button type="submit" className="btn btn-primary flex-1 py-2">Save</button>
+                <button type="button" onClick={closeTableModal} className="btn btn-secondary flex-1 py-2">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isQRModalOpen && selectedTableForQR && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeQRModal}>
+          <div className="bg-white rounded-lg max-w-md w-full p-6 text-center modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">QR – Table {selectedTableForQR.table_number}</h3>
+            <div className="flex justify-center items-center">
+              <div id={`qr-modal-${selectedTableForQR.id}`} className="qr-container" ref={(el) => (qrRefs.current[selectedTableForQR.id] = el)}></div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => printQR(selectedTableForQR.id)} className="btn bg-indigo-600 hover:bg-indigo-700 text-white flex-1 py-2">Print</button>
+              <button onClick={closeQRModal} className="btn btn-secondary flex-1 py-2">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOrdersModal && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeOrdersModal}>
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">Orders for Table #{selectedTableNum}</h3>
+            {selectedTableOrders.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">No orders</p>
+            ) : (
+              <div className="space-y-4">
+                {selectedTableOrders.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold">Order #{order.id}</h4>
+                      <span className="text-sm text-gray-500">{new Date(order.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="mb-2 text-sm">
+                      {order.items.map((item, idx) => (
+                        <div key={idx}>{item.quantity}x {item.item_name} - ₹{parseFloat(item.price_inr * item.quantity).toFixed(2)}</div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between mb-2 text-sm">
+                      <span>Total: ₹{parseFloat(order.total_amount_inr || 0).toFixed(2)}</span>
+                      <span>Payment: {order.payment_method}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Status:</span>
+                      <select value={order.order_status} onChange={(e) => updateOrderStatus(order.id, e.target.value)} className="input-field px-3 py-1 text-sm">
+                        <option value="pending">Pending</option>
+                        <option value="preparing">Preparing</option>
+                        <option value="ready">Ready</option>
+                        <option value="delivered">Delivered</option>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-3 mt-6">
+              <button onClick={closeOrdersModal} className="btn btn-secondary flex-1 py-2">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmModal.show && (
+        <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full modal-content">
+            <p className="text-lg mb-6">{confirmModal.message}</p>
+            <div className="flex gap-3">
+              <button onClick={() => { confirmModal.onConfirm(); setConfirmModal({ show: false }); }} className="btn btn-danger flex-1 py-2">Yes, Delete</button>
+              <button onClick={() => setConfirmModal({ show: false })} className="btn btn-secondary flex-1 py-2">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`toast ${toast.show ? 'show' : ''} ${toast.type}`}>
+        {toast.message}
       </div>
     </>
   );

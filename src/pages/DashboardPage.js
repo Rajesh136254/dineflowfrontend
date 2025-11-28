@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
 import './DashboardPage.css';
 
 function DashboardPage() {
-    const [activeSection, setActiveSection] = useState('home');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [pricingPlan, setPricingPlan] = useState('monthly');
@@ -13,8 +13,10 @@ function DashboardPage() {
     const [activeFeature, setActiveFeature] = useState(0);
     const [currency, setCurrency] = useState('INR');
     const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+    const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const navigate = useNavigate();
-    
+    const { t, language, changeLanguage } = useLanguage();
+
     const heroRef = useRef(null);
     const featuresRef = useRef(null);
     const pricingRef = useRef(null);
@@ -135,7 +137,7 @@ function DashboardPage() {
         const handleScroll = () => {
             setScrolled(window.scrollY > 50);
         };
-        
+
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -168,10 +170,10 @@ function DashboardPage() {
             },
             { threshold: 0.1 }
         );
-        
+
         const elements = document.querySelectorAll('.animate-on-scroll');
         elements.forEach(el => observer.observe(el));
-        
+
         return () => {
             elements.forEach(el => observer.unobserve(el));
         };
@@ -184,7 +186,7 @@ function DashboardPage() {
                 setShowCurrencyDropdown(false);
             }
         };
-        
+
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showCurrencyDropdown]);
@@ -230,29 +232,60 @@ function DashboardPage() {
                             </div>
                             <span className="logo-text">EndOfHunger</span>
                         </div>
-                        
+
                         <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
                             <ul className="nav-list">
-                                <li><a href="#home" onClick={(e) => { e.preventDefault(); scrollToSection(heroRef); }}>Home</a></li>
-                                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>Features</a></li>
-                                <li><a href="#pricing" onClick={(e) => { e.preventDefault(); scrollToSection(pricingRef); }}>Pricing</a></li>
-                                <li><a href="#contact">Contact</a></li>
+                                <li><a href="#home" onClick={(e) => { e.preventDefault(); scrollToSection(heroRef); }}>{t('home')}</a></li>
+                                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>{t('features')}</a></li>
+                                <li><a href="#pricing" onClick={(e) => { e.preventDefault(); scrollToSection(pricingRef); }}>{t('pricing')}</a></li>
+                                <li><a href="#contact" onClick={(e) => e.preventDefault()}>{t('contact')}</a></li>
                             </ul>
                         </nav>
-                        
+
                         <div className="header-actions">
+                            <div className="relative inline-block text-left mr-2">
+                                <button
+                                    onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                                    className="btn btn-secondary flex items-center gap-2"
+                                >
+                                    <i className="fas fa-globe"></i>
+                                    {language.toUpperCase()}
+                                </button>
+                                {showLanguageDropdown && (
+                                    <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-50 py-1">
+                                        {['en', 'es', 'fr', 'hi', 'zh', 'ta', 'ml', 'te'].map((lang) => (
+                                            <button
+                                                key={lang}
+                                                onClick={() => {
+                                                    changeLanguage(lang);
+                                                    setShowLanguageDropdown(false);
+                                                }}
+                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                            >
+                                                {lang === 'en' ? 'English' :
+                                                    lang === 'es' ? 'Español' :
+                                                        lang === 'fr' ? 'Français' :
+                                                            lang === 'hi' ? 'हिंदी' :
+                                                                lang === 'zh' ? '中文' :
+                                                                    lang === 'ta' ? 'தமிழ்' :
+                                                                        lang === 'ml' ? 'മലയാളം' : 'తెలుగు'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             <button className="btn btn-secondary" onClick={() => navigate('/signup')}>
-                                Log In
+                                {t('login')}
                             </button>
                             <button className="btn btn-primary" onClick={goToSignup} disabled={isLoading}>
                                 {isLoading ? (
                                     <div className="spinner"></div>
                                 ) : (
-                                    'Get Started'
+                                    t('getStarted')
                                 )}
                             </button>
-                            <button 
-                                className="mobile-menu-toggle" 
+                            <button
+                                className="mobile-menu-toggle"
                                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                             >
                                 <span className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}>
@@ -274,16 +307,15 @@ function DashboardPage() {
                             <div className="hero-badge animate-on-scroll">
                                 <span>🎉 Revolutionize Your Restaurant Experience</span>
                             </div>
-                            
+
                             <h1 className="hero-title animate-on-scroll">
-                                End Hunger, <span className="highlight">Start Ordering</span>
+                                {t('heroTitle')}
                             </h1>
-                            
+
                             <p className="hero-description animate-on-scroll">
-                                The most advanced QR-based ordering system that transforms how restaurants operate. 
-                                Increase efficiency, reduce errors, and boost revenue by up to 40%.
+                                {t('heroSubtitle')}
                             </p>
-                            
+
                             <div className="hero-actions animate-on-scroll">
                                 <button className="btn btn-hero-primary" onClick={goToSignup}>
                                     Start Free Trial
@@ -293,7 +325,7 @@ function DashboardPage() {
                                     Watch Demo
                                 </button>
                             </div>
-                            
+
                             <div className="hero-stats animate-on-scroll">
                                 <div className="stat">
                                     <div className="stat-number">40%</div>
@@ -309,7 +341,7 @@ function DashboardPage() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="hero-visual animate-on-scroll">
                             <div className="phone-mockup">
                                 <div className="phone-frame">
@@ -389,7 +421,7 @@ function DashboardPage() {
                         <h2 className="section-title">Powerful Features</h2>
                         <p className="section-subtitle">Everything you need to streamline operations</p>
                     </div>
-                    
+
                     <div className="features-showcase">
                         <div className="feature-tabs">
                             {features.map((feature, index) => (
@@ -404,7 +436,7 @@ function DashboardPage() {
                                 </button>
                             ))}
                         </div>
-                        
+
                         <div className="feature-content animate-on-scroll">
                             <div className="feature-image">
                                 <img src={features[activeFeature].image} alt={features[activeFeature].title} />
@@ -426,25 +458,25 @@ function DashboardPage() {
                         <h2 className="section-title">Simple Pricing</h2>
                         <p className="section-subtitle">One plan, unlimited possibilities</p>
                     </div>
-                    
+
                     <div className="pricing-controls animate-on-scroll">
                         <div className="pricing-toggle">
-                            <button 
+                            <button
                                 className={`toggle-btn ${pricingPlan === 'monthly' ? 'active' : ''}`}
                                 onClick={() => setPricingPlan('monthly')}
                             >
                                 Monthly
                             </button>
-                            <button 
+                            <button
                                 className={`toggle-btn ${pricingPlan === 'yearly' ? 'active' : ''}`}
                                 onClick={() => setPricingPlan('yearly')}
                             >
                                 Yearly <span className="discount">Save 20%</span>
                             </button>
                         </div>
-                        
+
                         <div className="currency-selector" ref={currencyDropdownRef}>
-                            <button 
+                            <button
                                 className="currency-btn"
                                 onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
                             >
@@ -452,7 +484,7 @@ function DashboardPage() {
                                 <span>{currency}</span>
                                 <i className={`fas fa-chevron-${showCurrencyDropdown ? 'up' : 'down'}`}></i>
                             </button>
-                            
+
                             {showCurrencyDropdown && (
                                 <div className="currency-dropdown">
                                     {Object.keys(currencyRates).map(curr => (
@@ -472,7 +504,7 @@ function DashboardPage() {
                             )}
                         </div>
                     </div>
-                    
+
                     <div className="pricing-card animate-on-scroll">
                         <div className="pricing-header">
                             <h3 className="pricing-title">Complete Solution</h3>
@@ -483,7 +515,7 @@ function DashboardPage() {
                             </div>
                             <p className="pricing-description">Everything you need to run your restaurant efficiently</p>
                         </div>
-                        
+
                         <div className="pricing-features">
                             <div className="feature-group">
                                 <h4>Core Features</h4>
@@ -494,7 +526,7 @@ function DashboardPage() {
                                     <li><i className="fas fa-check"></i>Real-time analytics</li>
                                 </ul>
                             </div>
-                            
+
                             <div className="feature-group">
                                 <h4>Advanced Features</h4>
                                 <ul>
@@ -505,11 +537,11 @@ function DashboardPage() {
                                 </ul>
                             </div>
                         </div>
-                        
+
                         <button className="btn btn-primary pricing-btn" onClick={goToSignup}>
                             Start Free Trial
                         </button>
-                        
+
                         <div className="pricing-guarantee">
                             <i className="fas fa-shield-alt"></i>
                             <span>14-day money-back guarantee</span>
@@ -525,7 +557,7 @@ function DashboardPage() {
                         <h2 className="section-title">Customer Success Stories</h2>
                         <p className="section-subtitle">Join thousands of restaurants using EndOfHunger</p>
                     </div>
-                    
+
                     <div className="testimonial-slider animate-on-scroll">
                         <div className="testimonial-card">
                             <div className="testimonial-content">
@@ -544,11 +576,11 @@ function DashboardPage() {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="testimonial-dots">
                             {testimonials.map((_, index) => (
-                                <button 
-                                    key={index} 
+                                <button
+                                    key={index}
                                     className={`dot ${index === testimonialIndex ? 'active' : ''}`}
                                     onClick={() => setTestimonialIndex(index)}
                                 ></button>
@@ -566,11 +598,11 @@ function DashboardPage() {
                         <p className="cta-description">
                             Start your free 14-day trial today. No credit card required.
                         </p>
-                        
+
                         <form className="cta-form" onSubmit={handleEmailSubmit}>
                             <div className="input-group">
-                                <input 
-                                    type="email" 
+                                <input
+                                    type="email"
                                     placeholder="Enter your email address"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -585,7 +617,7 @@ function DashboardPage() {
                                 </button>
                             </div>
                         </form>
-                        
+
                         <div className="cta-features">
                             <div className="cta-feature">
                                 <i className="fas fa-check-circle"></i>
@@ -619,57 +651,57 @@ function DashboardPage() {
                                 The most advanced QR-based restaurant ordering system for enhanced dining experiences.
                             </p>
                             <div className="social-links">
-                                <a href="#" className="social-link">
+                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
                                     <i className="fab fa-facebook-f"></i>
                                 </a>
-                                <a href="#" className="social-link">
+                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
                                     <i className="fab fa-twitter"></i>
                                 </a>
-                                <a href="#" className="social-link">
+                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
                                     <i className="fab fa-instagram"></i>
                                 </a>
-                                <a href="#" className="social-link">
+                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
                                     <i className="fab fa-linkedin-in"></i>
                                 </a>
                             </div>
                         </div>
-                        
+
                         <div className="footer-section">
                             <h3 className="footer-title">Product</h3>
                             <ul className="footer-links">
-                                <li><a href="#features">Features</a></li>
-                                <li><a href="#pricing">Pricing</a></li>
-                                <li><a href="#">FAQ</a></li>
-                                <li><a href="#">Integrations</a></li>
+                                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>Features</a></li>
+                                <li><a href="#pricing" onClick={(e) => { e.preventDefault(); scrollToSection(pricingRef); }}>Pricing</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>FAQ</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>Integrations</a></li>
                             </ul>
                         </div>
-                        
+
                         <div className="footer-section">
                             <h3 className="footer-title">Company</h3>
                             <ul className="footer-links">
-                                <li><a href="#">About</a></li>
-                                <li><a href="#">Blog</a></li>
-                                <li><a href="#">Careers</a></li>
-                                <li><a href="#">Contact</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>About</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>Blog</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>Careers</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>Contact</a></li>
                             </ul>
                         </div>
-                        
+
                         <div className="footer-section">
                             <h3 className="footer-title">Support</h3>
                             <ul className="footer-links">
-                                <li><a href="#">Help Center</a></li>
-                                <li><a href="#">Documentation</a></li>
-                                <li><a href="#">API Reference</a></li>
-                                <li><a href="#">Status</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>Help Center</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>Documentation</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>API Reference</a></li>
+                                <li><a href="/" onClick={(e) => e.preventDefault()}>Status</a></li>
                             </ul>
                         </div>
                     </div>
-                    
+
                     <div className="footer-bottom">
                         <p>&copy; 2023 EndOfHunger. All rights reserved.</p>
                         <div className="footer-legal">
-                            <a href="#">Privacy Policy</a>
-                            <a href="#">Terms of Service</a>
+                            <a href="/" onClick={(e) => e.preventDefault()}>Privacy Policy</a>
+                            <a href="/" onClick={(e) => e.preventDefault()}>Terms of Service</a>
                         </div>
                     </div>
                 </div>
