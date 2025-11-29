@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import './SignupPage.css';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 export default function SignupPage() {
   const [mode, setMode] = useState("signup");
@@ -17,6 +18,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [foodItems, setFoodItems] = useState([]);
   const [interactiveMode, setInteractiveMode] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [authError, setAuthError] = useState("");
@@ -489,6 +491,12 @@ export default function SignupPage() {
                         <div className="signup-strength-text">{getPasswordStrengthText()}</div>
                       </div>
                     )}
+
+                    {mode === "login" && (
+                      <div className="signup-forgot-password">
+                        <span onClick={() => setShowForgotPassword(true)}>Forgot Password?</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Authentication error message */}
@@ -518,6 +526,13 @@ export default function SignupPage() {
           </div>
         )}
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        API_URL={API_URL}
+      />
     </div>
   );
 }

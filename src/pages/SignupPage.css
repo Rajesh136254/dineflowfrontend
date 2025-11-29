@@ -1236,3 +1236,20 @@ body {
         color: var(--signup-primary);
     }
 }
+.signup-forgot-password {
+    text-align: right;
+    margin-top: 0.5rem;
+}
+
+.signup-forgot-password span {
+    color: var(--signup-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--signup-transition);
+}
+
+.signup-forgot-password span:hover {
+    color: var(--signup-primary-dark);
+    text-decoration: underline;
+}

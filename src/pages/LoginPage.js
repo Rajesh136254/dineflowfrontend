@@ -3,6 +3,7 @@ import React, { useState, useContext } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 const LoginPage = ({ redirectUrl }) => {
     const [email, setEmail] = useState('');
@@ -15,6 +16,10 @@ const LoginPage = ({ redirectUrl }) => {
     const tableNumber = searchParams.get('table') || '1';
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+    // Use environment variable for API URL with fallback
+    const API_URL = process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com';
 
     // Use redirectUrl if provided, otherwise use default
     const redirectTo = redirectUrl || `/customer.html?table=${tableNumber}`;
@@ -145,6 +150,17 @@ const LoginPage = ({ redirectUrl }) => {
                                     className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                                 />
                             </div>
+                            <div className="flex items-center justify-end mt-1">
+                                <div className="text-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowForgotPassword(true)}
+                                        className="font-medium text-blue-600 hover:text-blue-500"
+                                    >
+                                        {t('forgotPassword') || "Forgot your password?"}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div>
@@ -162,6 +178,13 @@ const LoginPage = ({ redirectUrl }) => {
                     </form>
                 </div>
             </div>
+
+            {/* Forgot Password Modal */}
+            <ForgotPasswordModal
+                isOpen={showForgotPassword}
+                onClose={() => setShowForgotPassword(false)}
+                API_URL={API_URL}
+            />
         </div>
     );
 };
