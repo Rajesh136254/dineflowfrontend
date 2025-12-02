@@ -2,8 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import './SignupPage.css';
 import ForgotPasswordModal from '../components/ForgotPasswordModal';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function SignupPage() {
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
+
   const [mode, setMode] = useState("signup");
   const [phase, setPhase] = useState("start");
   const [showForm, setShowForm] = useState(false);
@@ -22,9 +27,136 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const formRef = useRef(null);
   const [authError, setAuthError] = useState("");
+  const [authSuccess, setAuthSuccess] = useState("");
+  const { login } = useAuth();
 
-  // Use environment variable for API URL with fallback
-  const API_URL = process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com';
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength <= 25) return "weak";
+    if (passwordStrength <= 50) return "fair";
+    if (passwordStrength <= 75) return "good";
+    return "strong";
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    setAuthError("");
+    setAuthSuccess("");
+
+    try {
+      const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login";
+      const payload = mode === "signup"
+        ? { fullName: formData.fullName, email: formData.email, password: formData.password, role: 'admin' }
+        : { email: formData.email, password: formData.password };
+
+      // Enhanced fetch with proper CORS configuration
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include', // Important for CORS
+        mode: 'cors', // Explicitly set CORS mode
+      });
+
+      // Handle non-JSON responses
+      const contentType = response.headers.get("content-type");
+      let data;
+
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server returned non-JSON response: ${text}`);
+      }
+
+      console.log('=== LOGIN DEBUG ===', 'data:', data, 'data.data:', data.data, 'token:', data.data?.token);
+
+
+      if (data.success) {
+        // Store user data and token in localStorage
+        localStorage.setItem("user", JSON.stringify(data.data));
+
+        // CRITICAL: Store the JWT token for authenticated API requests
+        if (data.data.token) {
+          localStorage.setItem("token", data.data.token);
+        }
+
+        const user = data.data;
+        const company = data.company;
+        const companyUrl = company?.url || company?.subdomainUrl;
+        const token = data.data.token;
+
+        // Redirect based on mode
+        if (mode === "signup") {
+          // After successful admin signup, redirect to the company-specific site if available.
+          // Pass the token so the tenant domain can hydrate auth state.
+          if (companyUrl) {
+            let redirectUrl = companyUrl;
+            try {
+              const url = new URL(companyUrl);
+              if (token) {
+                url.searchParams.set('token', token);
+              }
+              redirectUrl = url.toString();
+            } catch {
+              // If URL parsing fails for any reason, fall back to plain redirect
+            }
+
+            setAuthSuccess("Registration successful! Redirecting to your restaurant site...");
+            setTimeout(() => {
+              window.location.href = redirectUrl;
+            }, 2000);
+          } else {
+            // Fallback: stay on this page and show login tab
+            setMode("login");
+            setAuthSuccess("Registration successful! Please login.");
+          }
+        } else {
+          // Login success - Redirect
+          if (user?.role === 'admin') {
+            if (companyUrl) {
+              let redirectUrl = companyUrl;
+              try {
+                const url = new URL(companyUrl);
+                if (token) {
+                  url.searchParams.set('token', token);
+                }
+                redirectUrl = url.toString();
+              } catch {
+                // Ignore URL parsing errors and just use raw companyUrl
+              }
+              window.location.href = redirectUrl;
+            } else {
+              navigate('/homepage');
+            }
+            return;
+          }
+
+          const searchParams = new URLSearchParams(window.location.search);
+          const tableNumber = searchParams.get('table') || '1';
+          navigate(`/customer.html?table=${tableNumber}`);
+        }
+      } else {
+        setAuthError(data.message || "Authentication failed");
+      }
+    } catch (error) {
+      console.error("Auth error:", error);
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        setAuthError("Network error. Please check your connection and try again.");
+      } else if (error.message.includes('CORS')) {
+        setAuthError("CORS error. Please contact support.");
+      } else {
+        setAuthError(error.message || "Something went wrong. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Generate floating food items for background
   useEffect(() => {
@@ -113,87 +245,6 @@ export default function SignupPage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-    setAuthError("");
-
-    try {
-      const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login";
-      const payload = mode === "signup"
-        ? { fullName: formData.fullName, email: formData.email, password: formData.password, role: 'customer' }
-        : { email: formData.email, password: formData.password };
-
-      // Enhanced fetch with proper CORS configuration
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        credentials: 'include', // Important for CORS
-        mode: 'cors', // Explicitly set CORS mode
-      });
-
-      // Handle non-JSON responses
-      const contentType = response.headers.get("content-type");
-      let data;
-
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        throw new Error(`Server returned non-JSON response: ${text}`);
-      }
-
-      if (data.success) {
-        // Store user data in localStorage
-        localStorage.setItem("user", JSON.stringify(data.data));
-
-        // Redirect based on mode
-        if (mode === "signup") {
-          // After successful signup, switch to login mode
-          setMode("login");
-          setAuthError(""); // Clear any errors
-          // Reset form data except email
-          setFormData(prev => ({ ...prev, password: "" }));
-        } else {
-          // After successful login, redirect to HomePage
-          navigate("/homepage");
-        }
-      } else {
-        setAuthError(data.message || "Authentication failed");
-      }
-    } catch (error) {
-      console.error("Authentication error:", error);
-
-      // More specific error messages
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        setAuthError("Network error. Please check your connection and try again.");
-      } else if (error.message.includes('CORS')) {
-        setAuthError("CORS error. Please contact support.");
-      } else {
-        setAuthError(error.message || "Something went wrong. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const getPasswordStrengthColor = () => {
-    if (passwordStrength <= 25) return "weak";
-    if (passwordStrength <= 50) return "fair";
-    if (passwordStrength <= 75) return "good";
-    return "strong";
   };
 
   const getPasswordStrengthText = () => {
@@ -500,6 +551,7 @@ export default function SignupPage() {
                   </div>
 
                   {/* Authentication error message */}
+                  {authSuccess && <div className="signup-auth-success" style={{ color: '#4caf50', marginBottom: '1rem', textAlign: 'center', padding: '10px', background: 'rgba(76, 175, 80, 0.1)', borderRadius: '8px' }}>{authSuccess}</div>}
                   {authError && <div className="signup-auth-error">{authError}</div>}
 
                   <button type="submit" className="signup-submit-button" disabled={isLoading}>

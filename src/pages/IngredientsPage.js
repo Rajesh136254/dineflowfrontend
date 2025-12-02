@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useLanguage } from '../contexts/LanguageContext';
 
-const API_URL = process.env.REACT_APP_API_URL || '';
+import { useAuth } from '../contexts/AuthContext';
+
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
 function IngredientsPage() {
     const [ingredients, setIngredients] = useState([]);
@@ -12,22 +15,24 @@ function IngredientsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [confirmModal, setConfirmModal] = useState({ show: false, message: '', onConfirm: null });
-    const { t } = useLanguage();
+    const { token, logout } = useAuth();
     const navigate = useNavigate();
-
-    useEffect(() => {
-        loadIngredients();
-    }, []);
 
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
-        setTimeout(() => setToast({ ...toast, show: false }), 3000);
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
     };
 
-    const loadIngredients = async () => {
+    const loadIngredients = React.useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/ingredients`);
+            const response = await fetch(`${API_URL}/api/ingredients`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
             const data = await response.json();
             if (data.success) {
                 setIngredients(data.data);
@@ -38,7 +43,14 @@ function IngredientsPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [token, logout]);
+
+    useEffect(() => {
+        if (token) {
+            loadIngredients();
+        }
+    }, [token, loadIngredients]);
+
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -70,9 +82,18 @@ function IngredientsPage() {
         try {
             const response = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
+
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
+
             const data = await response.json();
             if (data.success) {
                 loadIngredients();
@@ -95,8 +116,15 @@ function IngredientsPage() {
             onConfirm: async () => {
                 try {
                     const response = await fetch(`${API_URL}/api/ingredients/${id}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
+
+                    if (response.status === 401 || response.status === 403) {
+                        logout();
+                        return;
+                    }
+
                     const data = await response.json();
                     if (data.success) {
                         loadIngredients();
@@ -131,7 +159,7 @@ function IngredientsPage() {
                             Back to Admin
                         </button>
                         <button
-                            onClick={() => { setCurrentIngredient({ unit: 'kg' }); setIsModalOpen(true); }}
+                            onClick={() => { setCurrentIngredient({ unit: 'kg', threshold: 5 }); setIsModalOpen(true); }}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition flex items-center"
                         >
                             <i className="fas fa-plus mr-2"></i> Add Ingredient
@@ -283,7 +311,7 @@ function IngredientsPage() {
                                     type="number"
                                     step="0.01"
                                     required
-                                    value={currentIngredient.threshold || 5}
+                                    value={currentIngredient.threshold !== undefined && currentIngredient.threshold !== null ? currentIngredient.threshold : 5}
                                     onChange={e => setCurrentIngredient({ ...currentIngredient, threshold: e.target.value })}
                                     className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                                 />

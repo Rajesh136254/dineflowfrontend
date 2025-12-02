@@ -123,7 +123,7 @@ function CustomerPage() {
     const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
     const [customerOrders, setCustomerOrders] = useState([]);
     const [categories, setCategories] = useState([]);
-    const { currentUser, logout } = useAuth();
+    const { currentUser, logout, token } = useAuth();
     const navigate = useNavigate();
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -145,7 +145,6 @@ function CustomerPage() {
     };
 
     const getAuthHeaders = () => {
-        const token = localStorage.getItem('token');
         return token ? { 'Authorization': `Bearer ${token}` } : {};
     };
 
@@ -158,6 +157,10 @@ function CustomerPage() {
                     'Content-Type': 'application/json'
                 }
             });
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
             const data = await response.json();
             if (data.success) {
                 setTables(data.data);
@@ -167,7 +170,7 @@ function CustomerPage() {
         } catch (error) {
             console.error('Error loading tables:', error);
         }
-    }, []);
+    }, [logout]);
 
     const loadCategories = useCallback(async () => {
         try {
@@ -177,17 +180,21 @@ function CustomerPage() {
                     'Content-Type': 'application/json'
                 }
             });
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
             const data = await response.json();
             if (data.success) {
                 setCategories(data.data);
             } else {
-                setCategories(['Appetizer', 'Main Course', 'Dessert', 'Beverage', 'Salad']);
+                setCategories([]);
             }
         } catch (error) {
             console.error('Error loading categories:', error);
-            setCategories(['Appetizer', 'Main Course', 'Dessert', 'Beverage', 'Salad']);
+            setCategories([]);
         }
-    }, []);
+    }, [logout]);
 
     const loadMenu = useCallback(async () => {
         setIsLoading(true);
@@ -199,6 +206,11 @@ function CustomerPage() {
                 }
             });
 
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Menu error response:', errorText);
@@ -207,7 +219,13 @@ function CustomerPage() {
 
             const data = await response.json();
             if (data.success) {
-                setMenuItems(data.data);
+                // Filter out placeholder items
+                const validItems = (data.data || []).filter(item =>
+                    !item.name.toLowerCase().includes('placeholder') &&
+                    item.category !== 'add-new' &&
+                    item.is_available !== false
+                );
+                setMenuItems(validItems);
             } else {
                 console.error('API Error:', data.message);
             }
@@ -216,9 +234,10 @@ function CustomerPage() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [logout]);
 
     const loadCustomerOrders = useCallback(async () => {
+        if (!token) return; // Don't fetch orders if not logged in
         try {
             const customerIdParam = currentUser?.id ? `&customer_id=${currentUser.id}` : '';
             const response = await fetch(`${API_URL}/api/orders?table_number=${tableNumber}${customerIdParam}`, {
@@ -227,6 +246,11 @@ function CustomerPage() {
                     'Content-Type': 'application/json'
                 }
             });
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
+
             const data = await response.json();
             if (data.success) {
                 setCustomerOrders(data.data);
@@ -234,7 +258,7 @@ function CustomerPage() {
         } catch (error) {
             console.error('Error loading orders:', error);
         }
-    }, [tableNumber, currentUser]);
+    }, [tableNumber, currentUser, token]);
 
     // --- Cart Functions ---
     const addToCart = (itemId) => {

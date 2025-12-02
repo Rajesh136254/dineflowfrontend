@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const API_URL = process.env.REACT_APP_API_URL || '';
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
 const AuthContext = createContext();
 
@@ -14,15 +16,40 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [token, setToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
+    // 1. Load any existing auth state from localStorage
+    let storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
 
-    if (token && user) {
-      setCurrentUser(JSON.parse(user));
+    // 2. If there is no token yet, but a `token` is present in the URL
+    //    (e.g. after redirect from main domain to company subdomain),
+    //    persist it so admin/analytics can work on the tenant domain.
+    if (!storedToken) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlToken = searchParams.get('token');
+
+      if (urlToken) {
+        storedToken = urlToken;
+        localStorage.setItem('token', urlToken);
+
+        // Clean token from the URL for security / neatness
+        searchParams.delete('token');
+        const newQuery = searchParams.toString();
+        const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`;
+        window.history.replaceState({}, '', newUrl);
+      }
     }
+
+    if (storedToken) {
+      setToken(storedToken);
+    }
+    if (storedToken && storedUser) {
+      setCurrentUser(JSON.parse(storedUser));
+    }
+
     setIsLoading(false);
   }, []);
 
@@ -39,10 +66,12 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('token', 'dummy-token'); // In a real app, use the actual token
+        const authToken = data.data.token;
+        localStorage.setItem('token', authToken);
         localStorage.setItem('user', JSON.stringify(data.data));
+        setToken(authToken);
         setCurrentUser(data.data);
-        return { success: true, user: data.data };
+        return { success: true, user: data.data, company: data.company };
       } else {
         return { success: false, message: data.message };
       }
@@ -77,13 +106,15 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setToken(null);
     setCurrentUser(null);
     // Force a page reload to ensure clean state
-    window.location.href = '/login';
+    window.location.href = '/login?mode=login';
   };
 
   const value = {
     currentUser,
+    token,
     isLoading,
     login,
     signup,

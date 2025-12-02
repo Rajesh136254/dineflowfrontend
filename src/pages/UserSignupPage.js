@@ -1,5 +1,4 @@
-
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -17,9 +16,6 @@ const UserSignupPage = ({ redirectUrl }) => {
     const tableNumber = searchParams.get('table') || '1';
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
-
-    // Use redirectUrl if provided, otherwise use default
-    const redirectTo = redirectUrl || `/customer.html?table=${tableNumber}`;
 
     const handleSubmit = async (e) => {
         e.preventDefault();

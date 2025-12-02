@@ -1,5 +1,5 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -19,7 +19,9 @@ const LoginPage = ({ redirectUrl }) => {
     const [showForgotPassword, setShowForgotPassword] = useState(false);
 
     // Use environment variable for API URL with fallback
-    const API_URL = process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com';
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000'
+        : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
     // Use redirectUrl if provided, otherwise use default
     const redirectTo = redirectUrl || `/customer.html?table=${tableNumber}`;
@@ -32,9 +34,9 @@ const LoginPage = ({ redirectUrl }) => {
         const result = await login(email, password);
 
         if (result.success) {
-            // Check role and redirect accordingly
             // For QR flow (LoginPage), everyone goes to CustomerPage
-            if (result.user && (['admin', 'user', 'customer'].includes(result.user.role))) {
+            // We removed the admin redirect logic from here as requested
+            if (result.user && (['user', 'customer'].includes(result.user.role))) {
                 navigate(`/customer.html?table=${tableNumber}`);
             } else {
                 navigate(redirectTo);

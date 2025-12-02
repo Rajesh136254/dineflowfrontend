@@ -9,10 +9,32 @@ import IngredientsPage from './pages/IngredientsPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import CustomerAuthPage from './pages/CustomerAuthPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DebugInfo from './components/DebugInfo';
+
+const RootRoute = () => {
+  const hostname = window.location.hostname;
+  const parts = hostname.split('.');
+
+  let isSubdomain = false;
+
+  // Handle localhost cases
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    isSubdomain = false;
+  } else if (parts.length === 2 && parts[1] === 'localhost') {
+    // Handle sub.localhost
+    isSubdomain = true;
+  }
+  // Handle production cases (e.g. sub.domain.com)
+  else if (parts.length > 2 && parts[0] !== 'www') {
+    isSubdomain = true;
+  }
+
+  return isSubdomain ? <HomePage /> : <DashboardPage />;
+};
 
 function App() {
   return (
@@ -22,7 +44,7 @@ function App() {
         <Router>
           <Routes>
             {/* Admin routes - keep as they are */}
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/admin.html" element={<AdminPage />} />
             <Route path="/analytics.html" element={<AnalyticsPage />} />
@@ -33,6 +55,7 @@ function App() {
 
             {/* Customer authentication flow */}
             <Route path="/login" element={<CustomerAuthPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected customer route */}
             <Route

@@ -1,64 +1,50 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Chart } from 'chart.js/auto';
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
-import * as XLSX from "xlsx";
-
-const formatCurrency = (value, currency = 'INR') => {
-    const num = Number(value);
-    const symbol = currency === 'INR' ? '₹' : '$';
-    return `${symbol}${isNaN(num) ? '0.00' : num.toFixed(2)}`;
-};
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { useAuth } from '../contexts/AuthContext';
+import Chart from 'chart.js/auto';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import * as XLSX from 'xlsx';
 
 function AnalyticsPage() {
-    const [currentCurrency, setCurrentCurrency] = useState('INR');
+    const { token, logout } = useAuth();
     const [timePeriod, setTimePeriod] = useState('daily');
+    const [currentCurrency, setCurrentCurrency] = useState('INR');
     const [analyticsData, setAnalyticsData] = useState(null);
+    const [previousPeriodData, setPreviousPeriodData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [previousPeriodData, setPreviousPeriodData] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
 
-    // Chart refs
+    // Refs for chart canvases
     const revenueChartRef = useRef(null);
     const ordersChartRef = useRef(null);
     const categoryChartRef = useRef(null);
     const paymentChartRef = useRef(null);
-    const hourlyChartRef = useRef(null);
     const itemsChartRef = useRef(null);
-    const tableChartRef = useRef(null);
     const customerChartRef = useRef(null);
+    const hourlyChartRef = useRef(null);
+    const tableChartRef = useRef(null);
 
-    // Chart instance refs
+    // Refs for chart instances to destroy them properly
     const revenueChartInstance = useRef(null);
     const ordersChartInstance = useRef(null);
     const categoryChartInstance = useRef(null);
     const paymentChartInstance = useRef(null);
-    const hourlyChartInstance = useRef(null);
     const itemsChartInstance = useRef(null);
-    const tableChartInstance = useRef(null);
     const customerChartInstance = useRef(null);
+    const hourlyChartInstance = useRef(null);
+    const tableChartInstance = useRef(null);
 
-    // Function to download a chart as an image
-    const downloadChart = (chartRef, filename) => {
-        if (!chartRef.current) {
-            console.warn("Chart ref is null");
-            return;
-        }
-        try {
-            const url = chartRef.current.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = filename;
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (error) {
-            console.error("Error downloading chart:", error);
-            alert("Failed to download chart image. Please try again.");
-        }
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000'
+        : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
+
+    const formatCurrency = (value, currency) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 2
+        }).format(value);
     };
 
     // Function to download table data as CSV
@@ -196,21 +182,41 @@ function AnalyticsPage() {
         }
     };
 
+    // Function to download chart image
+    const downloadChart = (chartRef, filename) => {
+        if (chartRef.current) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = chartRef.current.toDataURL('image/png');
+            link.click();
+        }
+    };
+
     // Fetch analytics data from API
     const fetchAnalyticsData = useCallback(async () => {
+        if (!token) return;
         setLoading(true);
         setError(null);
 
+        const authFetch = async (url) => {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.status === 401 || res.status === 403) {
+                logout();
+                throw new Error('Unauthorized');
+            }
+            return res;
+        };
+
         try {
             const [summaryRes, revenueOrdersRes, topItemsRes, categoryRes, paymentRes, tableRes, hourlyRes, customerRes] = await Promise.all([
-                fetch(`${API_URL}/api/analytics/summary?period=${timePeriod}&currency=${currentCurrency}`),
-                fetch(`${API_URL}/api/analytics/revenue-orders?period=${timePeriod}&currency=${currentCurrency}`),
-                fetch(`${API_URL}/api/analytics/top-items?period=${timePeriod}&currency=${currentCurrency}`),
-                fetch(`${API_URL}/api/analytics/category-performance?period=${timePeriod}&currency=${currentCurrency}`),
-                fetch(`${API_URL}/api/analytics/payment-methods?period=${timePeriod}`),
-                fetch(`${API_URL}/api/analytics/table-performance?period=${timePeriod}&currency=${currentCurrency}`),
-                fetch(`${API_URL}/api/analytics/hourly-orders?period=${timePeriod}`),
-                fetch(`${API_URL}/api/analytics/customer-retention?period=${timePeriod}`)
+                authFetch(`${API_URL}/api/analytics/summary?period=${timePeriod}&currency=${currentCurrency}`),
+                authFetch(`${API_URL}/api/analytics/revenue-orders?period=${timePeriod}&currency=${currentCurrency}`),
+                authFetch(`${API_URL}/api/analytics/top-items?period=${timePeriod}&currency=${currentCurrency}`),
+                authFetch(`${API_URL}/api/analytics/category-performance?period=${timePeriod}&currency=${currentCurrency}`),
+                authFetch(`${API_URL}/api/analytics/payment-methods?period=${timePeriod}`),
+                authFetch(`${API_URL}/api/analytics/table-performance?period=${timePeriod}&currency=${currentCurrency}`),
+                authFetch(`${API_URL}/api/analytics/hourly-orders?period=${timePeriod}`),
+                authFetch(`${API_URL}/api/analytics/customer-retention?period=${timePeriod}`)
             ]);
 
             if (!summaryRes.ok) throw new Error(`Summary API error: ${summaryRes.status}`);
@@ -253,7 +259,7 @@ function AnalyticsPage() {
 
             // Fetch previous period data
             try {
-                const prevRes = await fetch(`${API_URL}/api/analytics/previous-period?period=${timePeriod}&currency=${currentCurrency}`);
+                const prevRes = await authFetch(`${API_URL}/api/analytics/previous-period?period=${timePeriod}&currency=${currentCurrency}`);
                 if (prevRes.ok) {
                     const prevData = await prevRes.json();
                     if (prevData.success) {
@@ -270,12 +276,16 @@ function AnalyticsPage() {
         } finally {
             setLoading(false);
         }
-    }, [timePeriod, currentCurrency]);
+    }, [timePeriod, currentCurrency, token, logout, API_URL]);
 
     // Initial fetch
     useEffect(() => {
-        fetchAnalyticsData();
-    }, [fetchAnalyticsData]);
+        if (token) {
+            fetchAnalyticsData();
+        } else {
+            setLoading(false);
+        }
+    }, [fetchAnalyticsData, token]);
 
     // CONSOLIDATED CHART LIFECYCLE EFFECT
     useEffect(() => {
@@ -725,7 +735,7 @@ function AnalyticsPage() {
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="chart-container" style={{ height: '300px', position: 'relative' }}>
+                                        <div className="chart-container">
                                             {analyticsData?.revenueOrders?.length > 0 ? (
                                                 <canvas ref={revenueChartRef}></canvas>
                                             ) : (
@@ -735,17 +745,17 @@ function AnalyticsPage() {
                                     </div>
                                     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 fade-in chart-container-wrapper">
                                         <div className="flex justify-between items-center mb-4">
-                                            <h3 className="text-lg font-bold text-gray-900">Orders Distribution</h3>
+                                            <h3 className="text-lg font-bold text-gray-900">Orders Overview</h3>
                                             <div className="flex gap-2">
-                                                <button onClick={() => downloadChartData(analyticsData.revenueOrders, 'Orders_Distribution_Data')} className="text-gray-400 hover:text-green-600 transition" title="Download Excel">
+                                                <button onClick={() => downloadChartData(analyticsData.revenueOrders, 'Orders_Overview_Data')} className="text-gray-400 hover:text-green-600 transition" title="Download Excel">
                                                     <i className="fas fa-file-excel"></i>
                                                 </button>
-                                                <button onClick={() => downloadChart(ordersChartRef, `orders-distribution-${timePeriod}-${currentCurrency}.png`)} className="text-gray-400 hover:text-blue-600 transition" title="Download Image">
+                                                <button onClick={() => downloadChart(ordersChartRef, `orders-overview-${timePeriod}.png`)} className="text-gray-400 hover:text-blue-600 transition" title="Download Image">
                                                     <i className="fas fa-image"></i>
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="chart-container" style={{ height: '300px', position: 'relative' }}>
+                                        <div className="chart-container">
                                             {analyticsData?.revenueOrders?.length > 0 ? (
                                                 <canvas ref={ordersChartRef}></canvas>
                                             ) : (
@@ -761,13 +771,13 @@ function AnalyticsPage() {
                         {activeTab === 'revenue' && (
                             <>
                                 <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6 fade-in">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Revenue Analysis</h3>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Revenue Breakdown</h3>
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                         <div>
                                             <div className="flex justify-between items-center mb-3">
                                                 <h4 className="text-md font-semibold text-gray-800">Revenue by Category</h4>
                                                 <div className="flex gap-2">
-                                                    <button onClick={() => downloadChartData(analyticsData.categories, 'Revenue_By_Category_Data')} className="text-gray-400 hover:text-green-600 transition" title="Download Excel">
+                                                    <button onClick={() => downloadChartData(analyticsData.categories, 'Revenue_by_Category_Data')} className="text-gray-400 hover:text-green-600 transition" title="Download Excel">
                                                         <i className="fas fa-file-excel"></i>
                                                     </button>
                                                     <button onClick={() => downloadChart(categoryChartRef, `revenue-by-category-${timePeriod}-${currentCurrency}.png`)} className="text-gray-400 hover:text-blue-600 transition" title="Download Image">
@@ -790,7 +800,7 @@ function AnalyticsPage() {
                                                     <button onClick={() => downloadChartData(analyticsData.paymentMethods, 'Payment_Methods_Data')} className="text-gray-400 hover:text-green-600 transition" title="Download Excel">
                                                         <i className="fas fa-file-excel"></i>
                                                     </button>
-                                                    <button onClick={() => downloadChart(paymentChartRef, `payment-methods-${timePeriod}-${currentCurrency}.png`)} className="text-gray-400 hover:text-blue-600 transition" title="Download Image">
+                                                    <button onClick={() => downloadChart(paymentChartRef, `payment-methods-${timePeriod}.png`)} className="text-gray-400 hover:text-blue-600 transition" title="Download Image">
                                                         <i className="fas fa-image"></i>
                                                     </button>
                                                 </div>

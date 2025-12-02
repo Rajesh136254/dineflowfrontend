@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
 
 function AdminPage() {
   // ── State ───────────────────────────────────────
@@ -48,12 +49,16 @@ function AdminPage() {
   // Toast
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const { t, language, changeLanguage } = useLanguage();
+  const { token, logout } = useAuth();
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
 
   // Refs
   const qrRefs = useRef({});
   const BASE_URL = window.location.origin;
-  const API_URL = process.env.REACT_APP_API_URL || '';
+  // Use environment variable for API URL with fallback
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
   // ── Helpers ─────────────────────────────────────
   const showToast = (msg, type = 'success') => {
@@ -79,9 +84,16 @@ function AdminPage() {
     try {
       const res = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ order_status: newStatus }),
       });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
       if (json.success) {
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, order_status: newStatus, updated_at: new Date().toISOString() } : o));
@@ -92,7 +104,7 @@ function AdminPage() {
     } catch (err) {
       showToast('Update failed', 'error');
     }
-  }, [API_URL]);
+  }, [API_URL, token, logout]);
 
   const getGroupName = (groupId, groupName) => groupName || 'Non AC';
 
@@ -109,15 +121,17 @@ function AdminPage() {
 
   // ── Load data ───────────────────────────────────
   useEffect(() => {
-    loadMenu();
-    loadTables();
-    loadCategories();
-    loadTableGroups();
-  }, []);
+    if (token) {
+      loadMenu();
+      loadTables();
+      loadCategories();
+      loadTableGroups();
+    }
+  }, [token]);
 
   useEffect(() => {
-    if (activeTab === 'tables') loadOrders();
-  }, [activeTab]);
+    if (activeTab === 'tables' && token) loadOrders();
+  }, [activeTab, token]);
 
   // ── Generate QR ───────────────────────────
   const generateQRCode = (tableId, tableNumber) => {
@@ -125,9 +139,7 @@ function AdminPage() {
 
     const el = qrRefs.current[tableId];
     if (el) {
-      // Clear previous QR code if exists
       el.innerHTML = '';
-
       new window.QRCode(el, {
         text: `${BASE_URL}/customer.html?table=${tableNumber}`,
         width: 200,
@@ -143,43 +155,65 @@ function AdminPage() {
   const loadMenu = useCallback(async () => {
     setIsMenuLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/menu`);
+      const res = await fetch(`${API_URL}/api/menu`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
-      if (json.success) setMenuItems(json.data || []);
+      if (json.success) {
+        // Filter out placeholder items and 'add-new' categories
+        const validItems = (json.data || []).filter(item =>
+          item.name !== '[Category Placeholder]' &&
+          item.category !== 'add-new'
+        );
+        setMenuItems(validItems);
+      }
     } catch (err) {
       showToast('Failed to load menu', 'error');
     } finally {
       setIsMenuLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, token, logout]);
 
   const loadTables = useCallback(async () => {
     setIsTablesLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/tables`);
+      const res = await fetch(`${API_URL}/api/tables`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
       if (res.ok) {
         if (json.success) {
           setTables(json.data || []);
-          console.log('Tables loaded:', json.data);
         } else {
           showToast(json.message || 'Failed to load tables', 'error');
         }
       } else {
         showToast(`Server error: ${res.status}`, 'error');
-        console.error('Server response:', json);
       }
     } catch (err) {
-      console.error('Error loading tables:', err);
       showToast('Network error while loading tables', 'error');
     } finally {
       setIsTablesLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, token, logout]);
 
   const loadCategories = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/categories`);
+      const res = await fetch(`${API_URL}/api/categories`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setCategories(json.data.filter(c => c && c.trim() !== ''));
@@ -187,12 +221,18 @@ function AdminPage() {
     } catch {
       setCategories(['Appetizer', 'Main Course', 'Dessert', 'Beverage', 'Salad']);
     }
-  }, [API_URL]);
+  }, [API_URL, token, logout]);
 
   const loadOrders = useCallback(async () => {
     setIsOrdersLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/orders`);
+      const res = await fetch(`${API_URL}/api/orders`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
       if (json.success) setOrders(json.data || []);
     } catch (err) {
@@ -200,28 +240,32 @@ function AdminPage() {
     } finally {
       setIsOrdersLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, token, logout]);
 
   const loadTableGroups = useCallback(async () => {
     setIsGroupsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/table-groups`);
+      const res = await fetch(`${API_URL}/api/table-groups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
       if (json.success) {
         const uniqueGroups = json.data.filter((g, index, self) => index === self.findIndex(g2 => g2.id === g.id));
         setTableGroups(uniqueGroups || []);
-        console.log('Table groups loaded:', uniqueGroups);
       } else {
         showToast(json.message || 'Failed to load groups', 'error');
       }
     } catch (err) {
-      console.error('Error loading table groups:', err);
       showToast('Failed to load groups', 'error');
       setTableGroups([]);
     } finally {
       setIsGroupsLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, token, logout]);
 
   // ── Add Category ────────────────────────────
   const addNewCategory = async () => {
@@ -233,9 +277,16 @@ function AdminPage() {
     try {
       const res = await fetch(`${API_URL}/api/categories`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ name }),
       });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
       if (json.success) {
         setCategories(prev => [...prev, name]);
@@ -259,9 +310,16 @@ function AdminPage() {
       const url = currentGroup.id ? `${API_URL}/api/table-groups/${currentGroup.id}` : `${API_URL}/api/table-groups`;
       const res = await fetch(url, {
         method: currentGroup.id ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ name }),
       });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        return;
+      }
       const json = await res.json();
       if (json.success) {
         closeGroupModal();
@@ -280,7 +338,14 @@ function AdminPage() {
   const deleteGroup = (id) => {
     openConfirm('Delete group? Tables in this group will be set to Non AC.', async () => {
       try {
-        const res = await fetch(`${API_URL}/api/table-groups/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/api/table-groups/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401 || res.status === 403) {
+          logout();
+          return;
+        }
         const json = await res.json();
         if (json.success) {
           loadTableGroups();
@@ -335,9 +400,21 @@ function AdminPage() {
       const url = id ? `${API_URL}/api/menu/${id}` : `${API_URL}/api/menu`;
       const res = await fetch(url, {
         method: id ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload),
       });
+
+      console.log('Menu submit response status:', res.status);
+
+      if (res.status === 401 || res.status === 403) {
+        console.error('Authentication failed during menu submit');
+        showToast('Session expired. Please login again.', 'error');
+        // setTimeout(() => logout(), 2000); // Commented out to prevent forced redirect
+        return;
+      }
       const json = await res.json();
       if (json.success) {
         closeMenuModal();
@@ -368,9 +445,21 @@ function AdminPage() {
       const url = id ? `${API_URL}/api/tables/${id}` : `${API_URL}/api/tables`;
       const res = await fetch(url, {
         method: id ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload),
       });
+
+      console.log('Table submit response status:', res.status);
+
+      if (res.status === 401 || res.status === 403) {
+        console.error('Authentication failed during table submit');
+        showToast('Session expired. Please login again.', 'error');
+        // setTimeout(() => logout(), 2000); // Commented out to prevent forced redirect
+        return;
+      }
 
       const json = await res.json();
 
@@ -380,7 +469,6 @@ function AdminPage() {
           loadTables();
           showToast(id ? 'Updated' : 'Added', 'success');
           if (!id) {
-            // Set to selected table for QR and show modal after a short delay
             setTimeout(() => {
               const newTable = { ...payload, id: json.data.id, table_number: num };
               setSelectedTableForQR(newTable);
@@ -392,10 +480,8 @@ function AdminPage() {
         }
       } else {
         showToast(json.message || `Server error: ${res.status}`, 'error');
-        console.error('Server response:', json);
       }
     } catch (err) {
-      console.error('Error submitting table:', err);
       showToast('Network error', 'error');
     }
   };
@@ -404,7 +490,14 @@ function AdminPage() {
   const deleteMenuItem = (id) => {
     openConfirm('Delete item?', async () => {
       try {
-        const res = await fetch(`${API_URL}/api/menu/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/api/menu/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401 || res.status === 403) {
+          logout();
+          return;
+        }
         const json = await res.json();
         if (json.success) {
           setMenuItems(prev => prev.filter(item => item.id !== id));
@@ -423,7 +516,14 @@ function AdminPage() {
   const deleteTable = (id) => {
     openConfirm('Delete table & QR?', async () => {
       try {
-        const res = await fetch(`${API_URL}/api/tables/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/api/tables/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401 || res.status === 403) {
+          logout();
+          return;
+        }
         const json = await res.json();
         if (json.success) {
           loadTables();
@@ -486,8 +586,6 @@ function AdminPage() {
   const showQRModal = (t) => {
     setSelectedTableForQR(t);
     setIsQRModalOpen(true);
-
-    // Generate QR code after modal opens
     setTimeout(() => {
       generateQRCode(t.id, t.table_number);
     }, 100);
@@ -517,11 +615,9 @@ function AdminPage() {
     if (!el?.parentElement) return showToast('QR not found', 'error');
 
     try {
-      // Create a new window for printing
       const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
 
       if (!printWindow) {
-        // If popup is blocked, use an alternative method
         const printContent = document.createElement('div');
         printContent.id = 'print-content';
         printContent.innerHTML = `
@@ -541,7 +637,6 @@ function AdminPage() {
         return;
       }
 
-      // Write content to new window
       printWindow.document.write(`
         <html>
           <head>
@@ -601,7 +696,6 @@ function AdminPage() {
       printWindow.document.close();
       printWindow.focus();
 
-      // Wait for content to load before printing
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
@@ -618,42 +712,25 @@ function AdminPage() {
   const filtered = menuItems.filter((i) => {
     const s = searchTerm.toLowerCase();
     const nameOk = i.name.toLowerCase().includes(s);
-    const descOk = i.description?.toLowerCase().includes(s);
-    const catOk = !selectedCategory || i.category === selectedCategory;
-    return (nameOk || descOk) && catOk;
+    const catOk = selectedCategory ? i.category === selectedCategory : true;
+    return nameOk && catOk;
   });
 
-  const filteredTables = tables.filter((t) => {
-    if (selectedGroupFilter === 'all') return true;
-    if (selectedGroupFilter === 'non_ac') return !t.group_id;
-    return t.group_id == selectedGroupFilter;
-  });
+  const filteredTables = selectedGroupFilter === 'all'
+    ? tables
+    : tables.filter(t => t.group_id === selectedGroupFilter);
 
-  const getCategoryColor = (c) => {
-    const map = {
-      Appetizer: 'bg-yellow-100 text-yellow-800',
-      'Main Course': 'bg-blue-100 text-blue-800',
-      Dessert: 'bg-pink-100 text-pink-800',
-      Beverage: 'bg-purple-100 text-purple-800',
-      Salad: 'bg-green-100 text-green-800',
-    };
-    return map[c] || 'bg-gray-100 text-gray-800';
-  };
-
-  // ── Render ─────────────────────────────────────
   return (
-    <>
+    <div className="min-h-screen bg-gray-50 p-6">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        * { font-family: 'Inter', sans-serif; }
-        @keyframes fade { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-        .fade { animation:fade .3s ease-out; }
+        @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .fade { animation: fade .3s ease-out; }
         .card { transition:all .3s; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
-        .card:hover { transform:translateY(-5px); box-shadow:0 10px 20px rgba(0,0,0,.1); }
-        .btn { transition:all .2s; cursor:pointer; border-radius: 8px; font-weight: 500; }
-        .btn:hover { transform:scale(1.02); }
-        .toast { position:fixed; bottom:20px; right:20px; padding:16px 24px; background:white; color:#1f2937; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.15); display:flex; align-items:center; z-index:1000; transform:translateX(400px); transition: transform 0.3s ease-in-out; }
-        .toast.show { transform:translateX(0); }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, .1); }
+        .btn { transition:all .2s; cursor: pointer; border-radius: 8px; font-weight: 500; }
+        .btn:hover { transform: scale(1.02); }
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; background: white; color:#1f2937; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, .15); display: flex; align-items: center; z-index: 1000; transform: translateX(400px); transition: transform 0.3s ease-in-out; }
+        .toast.show { transform: translateX(0); }
         .toast.success { border-left: 4px solid #10B981; }
         .toast.error { border-left: 4px solid #EF4444; }
         .toast.info { border-left: 4px solid #3B82F6; }
@@ -665,79 +742,97 @@ function AdminPage() {
         .btn-secondary:hover { background-color: #e5e7eb; }
         .btn-danger { background-color: #ef4444; color: white; }
         .btn-danger:hover { background-color: #dc2626; }
-        .modal-overlay { background-color: rgba(0,0,0,0.5); }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
         .modal-content { color: #1f2937; }
       `}</style>
 
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
-          <div className="relative">
-            <button
-              onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-              className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition"
-            >
-              <i className="fas fa-globe text-indigo-600"></i>
-              <span className="uppercase font-medium">{language}</span>
-              <i className={`fas fa-chevron-down text-xs transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
-            </button>
-
-            {showLanguageDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-fade-in">
-                {[
-                  { code: 'en', label: 'English' },
-                  { code: 'es', label: 'Español' },
-                  { code: 'fr', label: 'Français' },
-                  { code: 'hi', label: 'हिन्दी' },
-                  { code: 'zh', label: '中文' },
-                  { code: 'ta', label: 'தமிழ்' },
-                  { code: 'ml', label: 'മലയാളം' },
-                  { code: 'te', label: 'తెలుగు' }
-                ].map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => {
-                      changeLanguage(lang.code);
-                      setShowLanguageDropdown(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition flex items-center justify-between ${language === lang.code ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-700'}`}
-                  >
-                    <span>{lang.label}</span>
-                    {language === lang.code && <i className="fas fa-check text-xs"></i>}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-500">Manage your restaurant efficiently</p>
         </div>
+        <div className="flex gap-4 relative">
+          <button
+            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+            className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition"
+          >
+            <i className="fas fa-globe text-indigo-600"></i>
+            <span className="uppercase font-medium">{language}</span>
+            <i className={`fas fa-chevron-down text-xs transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
+          </button>
 
-        <div className="max-w-7xl mx-auto mb-6 flex gap-4 border-b overflow-x-auto">
-          {['menu', 'tables', 'groups'].map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-2 px-4 capitalize whitespace-nowrap ${activeTab === tab ? 'border-b-2 border-indigo-600 text-indigo-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {activeTab === 'menu' && (
-          <div className="max-w-7xl mx-auto fade">
-            <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between">
-              <div className="flex gap-2 flex-1">
-                <input placeholder={t('search') || "Search..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input-field max-w-xs" />
-                <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="input-field max-w-xs">
-                  <option value="">All Categories</option>
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
-              <button onClick={showAddMenuModal} className="btn btn-primary px-4 py-2">+ {t('addItem')}</button>
+          {showLanguageDropdown && (
+            <div className="absolute right-0 mt-12 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-fade-in">
+              {[
+                { code: 'en', label: 'English' },
+                { code: 'es', label: 'Español' },
+                { code: 'fr', label: 'Français' },
+                { code: 'hi', label: 'हिन्दी' },
+                { code: 'zh', label: '中文' },
+                { code: 'ta', label: 'தமிழ்' },
+                { code: 'ml', label: 'മലയാളം' },
+                { code: 'te', label: 'తెలుగు' }
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    changeLanguage(lang.code);
+                    setShowLanguageDropdown(false);
+                  }}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition flex items-center justify-between ${language === lang.code ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-700'}`}
+                >
+                  <span>{lang.label}</span>
+                  {language === lang.code && <i className="fas fa-check text-xs"></i>}
+                </button>
+              ))}
             </div>
-            {isMenuLoading ? <div className="text-center py-10">Loading menu...</div> : (
+          )}
+
+          <button onClick={logout} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 text-red-600 transition">
+            <i className="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto mb-6 flex gap-4 border-b overflow-x-auto">
+        {['menu', 'tables', 'groups'].map(tab => (
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-2 px-4 capitalize whitespace-nowrap ${activeTab === tab ? 'border-b-2 border-indigo-600 text-indigo-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'menu' && (
+        <div className="max-w-7xl mx-auto fade">
+          <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between">
+            <div className="flex gap-2 flex-1">
+              <input placeholder={t('search') || "Search..."} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="input-field max-w-xs" />
+              <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)} className="input-field max-w-xs">
+                <option value="">All Categories</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <button onClick={showAddMenuModal} className="btn btn-primary px-4 py-2">+ {t('addItem')}</button>
+          </div>
+          {isMenuLoading ? <div className="text-center py-10">Loading menu...</div> : (
+            filtered.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
+                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className="fas fa-utensils text-3xl text-indigo-500"></i>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">Your menu is empty</h3>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">Start by adding delicious items to your menu. You can organize them into categories and even use AI to generate nutritional info!</p>
+                <button onClick={showAddMenuModal} className="btn btn-primary px-6 py-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+                  <i className="fas fa-plus mr-2"></i> Add Your First Item
+                </button>
+              </div>
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filtered.map(item => (
                   <div key={item.id} className="card bg-white overflow-hidden flex flex-col">
                     <div className="h-48 bg-gray-200 relative">
                       {item.image_url ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-gray-400">No Image</div>}
-                      <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold ${getCategoryColor(item.category)}`}>{item.category}</span>
+                      <span className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-bold ${item.category === 'Veg' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{item.category}</span>
                     </div>
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-2"><h3 className="font-bold text-lg">{item.name}</h3><span className="font-bold text-indigo-600">₹{item.price_inr}</span></div>
@@ -750,23 +845,36 @@ function AdminPage() {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
+      )}
 
-        {activeTab === 'tables' && (
-          <div className="max-w-7xl mx-auto fade">
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex gap-2">
-                <select value={selectedGroupFilter} onChange={e => setSelectedGroupFilter(e.target.value)} className="input-field">
-                  <option value="all">All Groups</option>
-                  <option value="non_ac">Non AC</option>
-                  {tableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                </select>
-              </div>
-              <button onClick={showAddTableModal} className="btn btn-primary px-4 py-2">+ Add Table</button>
+      {activeTab === 'tables' && (
+        <div className="max-w-7xl mx-auto fade">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex gap-2">
+              <select value={selectedGroupFilter} onChange={e => setSelectedGroupFilter(e.target.value)} className="input-field">
+                <option value="all">All Groups</option>
+                <option value="non_ac">Non AC</option>
+                {tableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
             </div>
-            {isTablesLoading ? <div className="text-center py-10">Loading tables...</div> : (
+            <button onClick={showAddTableModal} className="btn btn-primary px-4 py-2">+ Add Table</button>
+          </div>
+          {isTablesLoading ? <div className="text-center py-10">Loading tables...</div> : (
+            filteredTables.length === 0 ? (
+              <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
+                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className="fas fa-chair text-3xl text-indigo-500"></i>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-2">No tables found</h3>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">Set up your restaurant layout by adding tables. You can assign them to groups (like AC, Garden) later.</p>
+                <button onClick={showAddTableModal} className="btn btn-primary px-6 py-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+                  <i className="fas fa-plus mr-2"></i> Add Your First Table
+                </button>
+              </div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 {filteredTables.map(t => {
                   const counts = getTableCounts(t.table_number);
@@ -807,13 +915,26 @@ function AdminPage() {
                   );
                 })}
               </div>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
+      )}
 
-        {activeTab === 'groups' && (
-          <div className="max-w-7xl mx-auto fade">
-            <div className="flex justify-end mb-6"><button onClick={showAddGroupModal} className="btn btn-primary px-4 py-2">+ Add Group</button></div>
+      {activeTab === 'groups' && (
+        <div className="max-w-7xl mx-auto fade">
+          <div className="flex justify-end mb-6"><button onClick={showAddGroupModal} className="btn btn-primary px-4 py-2">+ Add Group</button></div>
+          {tableGroups.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
+              <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-layer-group text-3xl text-indigo-500"></i>
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">No table groups yet</h3>
+              <p className="text-gray-500 mb-6 max-w-md mx-auto">Groups help you organize your tables (e.g., "AC Section", "Outdoor", "First Floor").</p>
+              <button onClick={showAddGroupModal} className="btn btn-primary px-6 py-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+                <i className="fas fa-plus mr-2"></i> Create Your First Group
+              </button>
+            </div>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {tableGroups.map(g => (
                 <div key={g.id} className="card bg-white p-4 flex justify-between items-center">
@@ -825,9 +946,9 @@ function AdminPage() {
                 </div>
               ))}
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {isMenuModalOpen && (
         <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4" onClick={closeMenuModal}>
@@ -982,20 +1103,25 @@ function AdminPage() {
 
       {confirmModal.show && (
         <div className="fixed inset-0 modal-overlay z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full modal-content">
-            <p className="text-lg mb-6">{confirmModal.message}</p>
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 modal-content">
+            <h3 className="text-lg font-bold mb-4">Confirm Action</h3>
+            <p className="mb-6 text-gray-600">{confirmModal.message}</p>
             <div className="flex gap-3">
-              <button onClick={() => { confirmModal.onConfirm(); setConfirmModal({ show: false }); }} className="btn btn-danger flex-1 py-2">Yes, Delete</button>
-              <button onClick={() => setConfirmModal({ show: false })} className="btn btn-secondary flex-1 py-2">Cancel</button>
+              <button onClick={confirmModal.onConfirm} className="btn btn-danger flex-1 py-2">Yes</button>
+              <button onClick={() => setConfirmModal({ show: false })} className="btn btn-secondary flex-1 py-2">No</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className={`toast ${toast.show ? 'show' : ''} ${toast.type}`}>
-        {toast.message}
-      </div>
-    </>
+      {toast.show && (
+        <div className={`toast ${toast.type} show`}>
+          {toast.type === 'success' && <i className="fas fa-check-circle text-green-500 mr-3"></i>}
+          {toast.type === 'error' && <i className="fas fa-exclamation-circle text-red-500 mr-3"></i>}
+          {toast.message}
+        </div>
+      )}
+    </div>
   );
 }
 

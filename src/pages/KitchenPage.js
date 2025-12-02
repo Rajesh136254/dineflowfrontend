@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
+import { useAuth } from '../contexts/AuthContext';
 
 function KitchenPage() {
     // State variables
@@ -7,14 +8,14 @@ function KitchenPage() {
     const [currentFilter, setCurrentFilter] = useState('pending');
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
     const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
-    const [authToken, setAuthToken] = useState(localStorage.getItem('token') || '');
+    const { token, logout } = useAuth();
     const [deliveredDateFilter, setDeliveredDateFilter] = useState('today'); // New state for date filter
 
     // Refs for non-state values
     const audioRef = useRef(null);
-    const prevOrdersRef = useRef([]);
-    const initialLoadRef = useRef(true); // Track if it's the initial load
-    const API_URL = process.env.REACT_APP_API_URL;
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:5000'
+        : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
     // --- Helper Functions ---
     const playNotificationSound = () => {
@@ -40,19 +41,19 @@ function KitchenPage() {
     const getDateRange = (filter) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        
+
         const weekAgo = new Date(today);
         weekAgo.setDate(weekAgo.getDate() - 7);
-        
+
         const monthAgo = new Date(today);
         monthAgo.setMonth(monthAgo.getMonth() - 1);
-        
+
         switch (filter) {
             case 'today':
                 return { start: today, end: tomorrow };
@@ -67,74 +68,43 @@ function KitchenPage() {
         }
     };
 
-    // --- Data Loading and Updating Functions ---
     const loadOrders = useCallback(async () => {
-        console.log('loadOrders function called');
-        console.log('API_URL:', API_URL);
         try {
-            const response = await fetch(`${API_URL}/api/orders`);
-            console.log('Response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const response = await fetch(`${API_URL}/api/orders`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
             }
-            
             const data = await response.json();
-            console.log('API Response:', data);
-            
             if (data.success) {
-                const newOrders = data.data;
-                
-                // Sort orders by creation time (oldest first) for FIFO queue
-                const sortedOrders = [...newOrders].sort((a, b) => 
-                    new Date(a.created_at) - new Date(b.created_at)
-                );
-                
-                // Only trigger notification for genuinely new orders (not on initial load)
-                if (!initialLoadRef.current && newOrders.length > prevOrdersRef.current.length) {
-                    playNotificationSound();
-                    if (notificationPermission === 'granted') {
-                        new Notification('New Order Received!', {
-                            body: `Order #${newOrders[newOrders.length - 1].id} from Table ${newOrders[newOrders.length - 1].table_number}`
-                        });
-                    }
-                }
-                
-                setOrders(sortedOrders);
-                prevOrdersRef.current = sortedOrders;
-                
-                // Set initial load to false after first load
-                if (initialLoadRef.current) {
-                    initialLoadRef.current = false;
-                }
-            } else {
-                console.error('API Error:', data.message);
+                setOrders(data.data.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
             }
         } catch (error) {
             console.error('Error loading orders:', error);
-            setConnectionStatus('🔴 Connection Error');
         }
-    }, [notificationPermission]);
+    }, [API_URL, token, logout]);
 
     const updateOrderStatus = async (orderId, newStatus) => {
         try {
             const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ order_status: newStatus })
             });
 
+            if (response.status === 401 || response.status === 403) {
+                logout();
+                return;
+            }
+
             const data = await response.json();
             if (data.success) {
-                setOrders(currentOrders => {
-                    const updatedOrders = currentOrders.map(order => 
-                        order.id === orderId ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() } : order
-                    );
-                    // Re-sort to maintain FIFO order
-                    return updatedOrders.sort((a, b) => 
-                        new Date(a.created_at) - new Date(b.created_at)
-                    );
-                });
+                console.log('Order status updated');
             } else {
                 console.error('API Error:', data.message);
             }
@@ -145,25 +115,37 @@ function KitchenPage() {
 
     // --- useEffect Hooks ---
     useEffect(() => {
+        if (!token) return;
+
         // Initialize Socket.IO connection
-        const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000');
-        
+        const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+            auth: { token }
+        });
+
         socket.on('connect', () => {
             console.log('Connected to server');
             setConnectionStatus('🟢 Connected');
         });
-        
+
         socket.on('disconnect', () => {
             console.log('Disconnected from server');
             setConnectionStatus('🔴 Disconnected');
         });
-        
+
+        socket.on('connect_error', (err) => {
+            console.error('Socket connection error:', err.message);
+            setConnectionStatus(`🔴 Error: ${err.message}`);
+            if (err.message === 'Authentication error' || err.message === 'jwt expired') {
+                logout();
+            }
+        });
+
         socket.on('new-order', (order) => {
             console.log('New order received:', order);
             setOrders(prevOrders => {
                 const updatedOrders = [order, ...prevOrders];
                 // Sort to maintain FIFO order
-                return updatedOrders.sort((a, b) => 
+                return updatedOrders.sort((a, b) =>
                     new Date(a.created_at) - new Date(b.created_at)
                 );
             });
@@ -174,43 +156,43 @@ function KitchenPage() {
                 });
             }
         });
-        
+
         socket.on('order-status-updated', (order) => {
             console.log('Order status updated:', order);
             setOrders(prevOrders => {
-                const updatedOrders = prevOrders.map(o => 
+                const updatedOrders = prevOrders.map(o =>
                     o.id === order.id ? { ...o, order_status: order.order_status, updated_at: order.updated_at } : o
                 );
                 // Re-sort to maintain FIFO order
-                return updatedOrders.sort((a, b) => 
+                return updatedOrders.sort((a, b) =>
                     new Date(a.created_at) - new Date(b.created_at)
                 );
             });
         });
-        
+
         // Request notification permission
         if (Notification.permission === 'default') {
             Notification.requestPermission().then(setNotificationPermission);
         }
-        
+
         // Load initial orders
         loadOrders();
-        
+
         // Set up interval to refresh orders
         const intervalId = setInterval(loadOrders, 30000);
-        
+
         // Clean up
         return () => {
             clearInterval(intervalId);
             socket.disconnect();
         };
-    }, [loadOrders, notificationPermission]);
+    }, [loadOrders, notificationPermission, token, logout]);
 
     // --- Derived State ---
     // Calculate filtered orders based on current filter and date filter (for delivered orders)
     const filteredOrders = (() => {
         let filtered = orders.filter(o => o.order_status === currentFilter);
-        
+
         // Apply date filter only for delivered orders
         if (currentFilter === 'delivered') {
             const { start, end } = getDateRange(deliveredDateFilter);
@@ -219,7 +201,7 @@ function KitchenPage() {
                 return orderDate >= start && orderDate < end;
             });
         }
-        
+
         return filtered;
     })();
 
@@ -245,149 +227,178 @@ function KitchenPage() {
 
     // --- Render Logic ---
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                    <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold">👨‍🍳 Kitchen Dashboard</h1>
-                        <p className="text-green-100 text-sm sm:text-base">Real-time Order Management</p>
+        <div className="min-h-screen bg-gray-100 p-6">
+            <audio ref={audioRef} src="/notification.mp3" />
+
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-800">Kitchen Display System</h1>
+                    <p className="text-gray-500 text-sm mt-1">{connectionStatus}</p>
+                </div>
+                <div className="flex gap-4">
+                    <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
+                        <span className="text-gray-500 text-sm">Active Orders: </span>
+                        <span className="font-bold text-indigo-600 text-xl ml-2">
+                            {statusCounts.pending + statusCounts.preparing}
+                        </span>
                     </div>
-                    <div className="mt-2 sm:mt-0 text-right">
-                        <p className="text-xl sm:text-3xl font-bold text-green-600">{filteredOrders.length}</p>
-                        <p className="text-xs sm:text-sm text-gray-200">
-                            {currentFilter === 'delivered' 
-                                ? `${deliveredDateFilter === 'today' ? 'Today' : deliveredDateFilter === 'yesterday' ? 'Yesterday' : deliveredDateFilter === 'week' ? 'This Week' : 'This Month'} Orders`
-                                : `${currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1)} Orders`
-                            }
-                        </p>
-                    </div>
+                    <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+                        Logout
+                    </button>
                 </div>
             </div>
 
-            <div className="p-2 sm:p-4">
-                {/* Connection Status */}
-                <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-base sm:text-lg font-semibold">Status</h2>
-                            <p className={`text-xs sm:text-sm ${connectionStatus.includes('Connected') ? 'text-green-600' : 'text-red-600'}`}>{connectionStatus}</p>
+            {/* Status Tabs */}
+            <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
+                {['pending', 'preparing', 'ready', 'delivered'].map(status => (
+                    <button
+                        key={status}
+                        onClick={() => setCurrentFilter(status)}
+                        className={`flex-1 min-w-[150px] p-4 rounded-xl border-2 transition-all ${currentFilter === status
+                            ? `border-${getStatusColor(status)}-500 bg-${getStatusColor(status)}-50`
+                            : 'border-white bg-white hover:border-gray-200'
+                            }`}
+                    >
+                        <div className="flex justify-between items-center mb-2">
+                            <span className={`uppercase font-bold text-sm text-${getStatusColor(status)}-600`}>
+                                {status}
+                            </span>
+                            <span className={`bg-${getStatusColor(status)}-100 text-${getStatusColor(status)}-700 px-2 py-1 rounded-full text-xs font-bold`}>
+                                {statusCounts[status]}
+                            </span>
                         </div>
-                    </div>
-                </div>
+                        <div className={`h-1 w-full bg-${getStatusColor(status)}-200 rounded-full overflow-hidden`}>
+                            <div
+                                className={`h-full bg-${getStatusColor(status)}-500 transition-all duration-500`}
+                                style={{ width: '100%' }}
+                            ></div>
+                        </div>
+                    </button>
+                ))}
+            </div>
 
-                {/* Compact Stats for mobile */}
-                <div className="compact-stats">
-                    <div className="compact-stat"><div className="number text-orange-600">{statusCounts.pending}</div><div className="label">Pending</div></div>
-                    <div className="compact-stat"><div className="number text-blue-600">{statusCounts.preparing}</div><div className="label">Preparing</div></div>
-                    <div className="compact-stat"><div className="number text-green-600">{statusCounts.ready}</div><div className="label">Ready</div></div>
-                    <div className="compact-stat"><div className="number text-gray-600">{statusCounts.delivered}</div><div className="label">Delivered</div></div>
-                </div>
-
-                {/* Order Status Statistics */}
-                <div className="stats-grid">
-                    <div className="stats-card"><div className="stats-icon bg-orange-100 text-orange-600"><i className="fas fa-clock text-sm"></i></div><div className="stats-number text-orange-600">{statusCounts.pending}</div><div className="stats-label">Pending</div></div>
-                    <div className="stats-card"><div className="stats-icon bg-blue-100 text-blue-600"><i className="fas fa-fire text-sm"></i></div><div className="stats-number text-blue-600">{statusCounts.preparing}</div><div className="stats-label">Preparing</div></div>
-                    <div className="stats-card"><div className="stats-icon bg-green-100 text-green-600"><i className="fas fa-check-circle text-sm"></i></div><div className="stats-number text-green-600">{statusCounts.ready}</div><div className="stats-label">Ready</div></div>
-                    <div className="stats-card"><div className="stats-icon bg-gray-100 text-gray-600"><i className="fas fa-truck text-sm"></i></div><div className="stats-number text-gray-600">{statusCounts.delivered}</div><div className="stats-label">Delivered</div></div>
-                </div>
-
-                {/* Filter Buttons */}
-                <div className="mb-4">
-                    <div className="flex flex-wrap gap-2">
-                        {['pending', 'preparing', 'ready', 'delivered'].map(status => (
-                            <button key={status} onClick={() => setCurrentFilter(status)} className={`filter-button px-3 py-2 sm:px-4 sm:py-2 rounded-lg font-medium relative text-sm ${currentFilter === status ? 'active text-white' : 'bg-gray-200 text-gray-700'}`} style={{ backgroundColor: currentFilter === status ? (status === 'pending' ? '#ea580c' : status === 'preparing' ? '#2563eb' : status === 'ready' ? '#059669' : '#4b5563') : '' }}>
-                                {status.charAt(0).toUpperCase() + status.slice(1)}
-                                <span className="count">{statusCounts[status]}</span>
+            {/* Date Filter for Delivered Orders */}
+            {currentFilter === 'delivered' && (
+                <div className="mb-6 flex justify-end">
+                    <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-200 inline-flex">
+                        {['today', 'yesterday', 'week', 'month'].map(filter => (
+                            <button
+                                key={filter}
+                                onClick={() => setDeliveredDateFilter(filter)}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${deliveredDateFilter === filter
+                                    ? 'bg-indigo-100 text-indigo-700'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {filter.charAt(0).toUpperCase() + filter.slice(1)}
                             </button>
                         ))}
                     </div>
-                    
-                    {/* Date Filters for Delivered Orders */}
-                    {currentFilter === 'delivered' && (
-                        <div className="mt-3 p-3 bg-gray-100 rounded-lg">
-                            <h3 className="text-sm font-medium text-gray-700 mb-2">Filter by Date:</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    { value: 'today', label: 'Today' },
-                                    { value: 'yesterday', label: 'Yesterday' },
-                                    { value: 'week', label: 'This Week' },
-                                    { value: 'month', label: 'This Month' }
-                                ].map(filter => (
-                                    <button 
-                                        key={filter.value} 
-                                        onClick={() => setDeliveredDateFilter(filter.value)} 
-                                        className={`px-3 py-1 rounded text-xs font-medium ${deliveredDateFilter === filter.value ? 'bg-green-600 text-white' : 'bg-white text-gray-700'}`}
-                                    >
-                                        {filter.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
+            )}
 
-                {/* Orders Container */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {filteredOrders.length === 0 ? (
-                        <div className="col-span-full text-center py-8 sm:py-12">
-                            <p className="text-gray-500 text-base sm:text-lg">
-                                {currentFilter === 'delivered' 
-                                    ? `No delivered orders for ${deliveredDateFilter === 'today' ? 'today' : deliveredDateFilter === 'yesterday' ? 'yesterday' : deliveredDateFilter === 'week' ? 'this week' : 'this month'}`
-                                    : `No ${currentFilter} orders to display`
-                                }
-                            </p>
+            {/* Orders Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredOrders.length === 0 ? (
+                    <div className="col-span-full text-center py-20">
+                        <div className="text-gray-300 mb-4">
+                            <i className="fas fa-clipboard-list text-6xl"></i>
                         </div>
-                    ) : (
-                        filteredOrders.map(order => {
-                            const statusColors = { pending: 'border-orange-300', preparing: 'border-blue-300', ready: 'border-green-300', delivered: 'border-gray-300' };
-                            const statusIndicator = { pending: 'pending-indicator', preparing: 'preparing-indicator', ready: 'ready-indicator', delivered: 'delivered-indicator' };
-                            const time = new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                            const symbol = order.currency === 'INR' ? '₹' : '$';
-                            const amount = order[`total_amount_${order.currency.toLowerCase()}`];
-                            
-                            return (
-                                <div key={order.id} className={`order-card bg-white rounded-lg shadow-md p-3 sm:p-4 border-l-4 ${statusColors[order.order_status]}`}>
-                                    <div className={`progress-indicator ${statusIndicator[order.order_status]}`}></div>
-                                    <div className="flex justify-between items-start mb-2 sm:mb-3">
-                                        <div>
-                                            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Table {order.table_number}</h3>
-                                            <p className="text-xs sm:text-sm text-gray-500">Order #{order.id} • {time}</p>
-                                            <p className="order-time">Wait time: {calculateWaitTime(order.created_at, order.updated_at)}</p>
-                                        </div>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${order.order_status === 'pending' ? 'bg-orange-100 text-orange-800' : order.order_status === 'preparing' ? 'bg-blue-100 text-blue-800' : order.order_status === 'ready' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                            {order.order_status.toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <div className="mb-2 sm:mb-3 space-y-1 sm:space-y-2">
-                                        {order.items.map((item, index) => (
-                                            <div key={index} className="flex justify-between text-xs sm:text-sm">
-                                                <span><span className="font-semibold">{item.quantity}x</span> {item.item_name}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="border-t border-gray-200 pt-2 sm:pt-3 mb-2 sm:mb-3">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs sm:text-sm font-medium text-gray-600">Total:</span>
-                                            <span className="text-base sm:text-lg font-bold text-gray-900">{symbol}{parseFloat(amount).toFixed(2)}</span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 mt-1">{order.payment_method === 'cash' ? '💵 Cash' : '💳 Online'}</p>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {order.order_status === 'pending' && <button onClick={() => updateOrderStatus(order.id, 'preparing')} className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold transition duration-200">Start Preparing</button>}
-                                        {order.order_status === 'preparing' && <button onClick={() => updateOrderStatus(order.id, 'ready')} className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold transition duration-200">Mark as Ready</button>}
-                                        {order.order_status === 'ready' && <button onClick={() => updateOrderStatus(order.id, 'delivered')} className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold transition duration-200">Mark as Delivered</button>}
+                        <h3 className="text-xl font-bold text-gray-400">No {currentFilter} orders</h3>
+                    </div>
+                ) : (
+                    filteredOrders.map(order => (
+                        <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col animate-fade-in">
+                            {/* Order Header */}
+                            <div className={`p-4 border-b border-gray-100 flex justify-between items-center bg-${getStatusColor(order.order_status)}-50`}>
+                                <div>
+                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Table</span>
+                                    <div className="text-2xl font-bold text-gray-800">{order.table_number}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Order #{order.id}</div>
+                                    <div className="text-sm font-medium text-gray-600">
+                                        {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                 </div>
-                            );
-                        })
-                    )}
-                </div>
-            </div>
+                            </div>
 
-            {/* Hidden Audio Element */}
-            <audio ref={audioRef} src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77RiGwU7k9n0yXkpBSd60O3WjjsJEle07O2rVhMKRp3h8r5sIAUsgs/z2og1CBtpvfDmm04MDFCr5/C1YhsFO5PY88l6KwUme9Dt1o46CRJYtOztqVYUCUad4PO+ax8FLIPo8tmJNQgbabzw5ZtODAxPquXus2IbBTuU2fPJeiwFJnvP7NWOOgkSWLPp7KlWFApGneDzvmsfBSyD6PLZiTYIG2m88OSbTgwMT6rl7rNiGwU7k9j0yXorBSZ8z+3WjjkJEliy6eqoVhQKRp3h8r5sIAUsgo/z2Ik2CBtpvPDlm04MDFCq5e+zYhsFPJTY9Ml6KwUmfM/t1o46CRNYs+rqqFYUCkad4PO+bCAFLIKP89mINggbabzw5ptODAxQquXvs2IbBTyU2PTJeisFJnzP7daOOgkTWLTq6qhWFApGneDzvmwgBSyCkPPZiDYIG2m88OWbTgwMUKrl77NiHAU8lNn0yXorBSZ8z+3VjjkJEliz6uuoVhMKRp3g875sIAUsg5Dz2Yg2CBxpvPDlm04MDFCq5e+zYhwFPJTY9Ml6KwUmfM/t1Y46CRJYs+rqqFYTCkad4PO+bCAFLIOQ89mINggcabzw5ZtODAxQquXvs2IbBTyU2fTJeisFJnzP7dWOOgkSWLPq6qhWEwpGneDzvmwgBSyDkPPZiDYIHGm88OWbTgwMUKrl77NiHAU8lNn0yXorBSZ8z+3VjjkJEliz6uuoVhMKRp3g875sIAUshJDz2Yg2CBxpvPDlm04MDFCq5e+zYhwFPJTZ9Ml6KwUmfM/t1Y46CRJYs+rqqFYTCkad4PO+bCAFLISQ89mINggcabzw5ZtODAxQquXvs2IcBTyU2fTJeisFJnzP7dWOOgkSWLPq6qhWEwpGneDzvmwgBSyEkPPZiDYIHGm88OWbTgwMT6vl77NiHAU8lNn0yXorBSZ8z+3VjjkJEliz6uuoVhMKRp3g875sIAUshJDz2Yg2CBxpvPDlm04MDFCr5e+zYhwFPJTZ9Ml6KwUmfM/t1Y46CRJYtOrqqFYTCkad4PO+bCAFLISQ89mINggcabzw5ZtODAxPq+Xvs2IbBTyU2fTJeisFJnzP7dWOOgkSWLTq6qhWEwpGneDzvmwgBSyEkPPZiDYIHGm88OWbTgwMT6vl77NiHAU8lNn0yXorBSZ8z+3VjjkJEliz6uuoVhMKRp3g875sIAUshJDz2Yg2CBxpvPDlm04MDFCr5e+zYhwFPJTZ9Ml6KwUmfM/t1Y46CRJYtOrqqFYTCkad4PO+bCAFLISQ89mINggcabzw5ZtODAxPq+Xvs2IcBTyU2fTJeisFJnzP7dWOOgkSWLTq6qhWEwpGneDzvmwgBSyEkPPZiDYIHGm88OWbTgwMT6vl77NiHAU8lNn0yXorBSZ8z+3VjjkJEliz6uuoVhMKRp3g875sIAUshJDz2Yg2CBxpvPDlm04MDFCr5e+zYhwFPJTZ9Ml6KwUmfM/t1Y46CRJYtOrqqFYTCkad4PO+bCAFLISQ89mINggcabzw5ZtODAxPq+Xvs2IcBTyU2fTJeisFJnzP7dWOOgkSWLTq6qhWEwpGneDzvmwgBSyEkPPZiDYIHGm88OWbTgwMT6vl77NiHAU8lNn0yXorBSZ8z+3VjjkJEliz6uuoVhMK" preload="auto" />
+                            {/* Order Items */}
+                            <div className="p-4 flex-1 overflow-y-auto max-h-[300px]">
+                                {order.items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center mb-3 last:mb-0">
+                                        <div className="flex items-center gap-3">
+                                            <span className="bg-gray-100 text-gray-800 font-bold w-8 h-8 flex items-center justify-center rounded-lg">
+                                                {item.quantity}
+                                            </span>
+                                            <span className="font-medium text-gray-700">{item.item_name}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {order.notes && (
+                                    <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-sm rounded-lg border border-yellow-100">
+                                        <i className="fas fa-sticky-note mr-2"></i>
+                                        {order.notes}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Order Footer */}
+                            <div className="p-4 bg-gray-50 border-t border-gray-100">
+                                <div className="flex justify-between items-center mb-4 text-sm text-gray-500">
+                                    <span>Wait time:</span>
+                                    <span className="font-mono font-bold">{calculateWaitTime(order.created_at, order.updated_at)}</span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    {order.order_status === 'pending' && (
+                                        <button
+                                            onClick={() => updateOrderStatus(order.id, 'preparing')}
+                                            className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition shadow-sm"
+                                        >
+                                            Start Preparing
+                                        </button>
+                                    )}
+                                    {order.order_status === 'preparing' && (
+                                        <button
+                                            onClick={() => updateOrderStatus(order.id, 'ready')}
+                                            className="col-span-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold transition shadow-sm"
+                                        >
+                                            Mark Ready
+                                        </button>
+                                    )}
+                                    {order.order_status === 'ready' && (
+                                        <button
+                                            onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                            className="col-span-2 bg-gray-800 hover:bg-gray-900 text-white py-3 rounded-lg font-bold transition shadow-sm"
+                                        >
+                                            Complete Order
+                                        </button>
+                                    )}
+                                    {order.order_status === 'delivered' && (
+                                        <div className="col-span-2 text-center text-green-600 font-bold py-2 bg-green-50 rounded-lg border border-green-100">
+                                            <i className="fas fa-check-circle mr-2"></i> Completed
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }
+
+// Helper to get color based on status
+const getStatusColor = (status) => {
+    switch (status) {
+        case 'pending': return 'yellow';
+        case 'preparing': return 'blue';
+        case 'ready': return 'green';
+        case 'delivered': return 'gray';
+        default: return 'gray';
+    }
+};
 
 export default KitchenPage;

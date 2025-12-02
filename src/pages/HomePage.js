@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function HomePage() {
     const navigate = useNavigate();
@@ -14,11 +14,13 @@ function HomePage() {
     const [frameUrl, setFrameUrl] = useState('');
     const [isFrameLoading, setIsFrameLoading] = useState(false);
 
+    const isHomePage = location.pathname === '/' || location.pathname === '/homepage';
+
     // --- Navigation Handlers ---
     // This function opens the frame for top navigation items
     const handleTopNavigation = (path) => {
         // If we're already on the homepage, use frame navigation
-        if (location.pathname === '/' || location.pathname === '/homepage') {
+        if (isHomePage) {
             setActiveFrame(path);
             setFrameUrl(path);
             setIsFrameLoading(true); // Start loading state
@@ -71,732 +73,277 @@ function HomePage() {
             observer.observe(card);
         });
 
+        // Cleanup function for observer
         return () => observer.disconnect();
     }, []);
 
-    // --- Render Logic ---
-    // We only show the main homepage content if we are on the home path.
-    const isHomePage = location.pathname === '/' || location.pathname === '/homepage';
-
     return (
-        <>
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-                
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-                
-                body {
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    overflow-x: hidden;
-                }
-                
-                .hero-gradient {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    position: relative;
-                    overflow: hidden;
-                }
-                
-                .hero-gradient::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: -100%;
-                    width: 200%;
-                    height: 100%;
-                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-                    animation: shimmer 8s infinite;
-                }
-                
-                @keyframes shimmer {
-                    0% { left: -100%; }
-                    100% { left: 100%; }
-                }
-                
-                .btn-hover {
-                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                    position: relative;
-                    overflow: hidden;
-                    transform: translateY(0);
-                }
-                
-                .btn-hover::before {
-                    content: '';
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    width: 0;
-                    height: 0;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.3);
-                    transform: translate(-50%, -50%);
-                    transition: width 0.6s, height 0.6s;
-                }
-                
-                .btn-hover:hover::before {
-                    width: 300px;
-                    height: 300px;
-                }
-                
-                .btn-hover:hover {
-                    transform: translateY(-3px);
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                }
-                
-                .floating {
-                    animation: floating 3s ease-in-out infinite;
-                }
-                
-                @keyframes floating {
-                    0%, 100% { transform: translateY(0px); }
-                    50% { transform: translateY(-10px); }
-                }
-                
-                .fade-in {
-                    animation: fadeIn 0.8s ease-in forwards;
-                    opacity: 0;
-                }
-                
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(30px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                
-                .pattern-bg {
-                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                    position: relative;
-                }
-                
-                .pattern-bg::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background-image: 
-                        radial-gradient(circle at 20% 80%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 20%, rgba(118, 75, 162, 0.1) 0%, transparent 50%),
-                        radial-gradient(circle at 40% 40%, rgba(102, 126, 234, 0.05) 0%, transparent 50%);
-                    pointer-events: none;
-                }
-                
-                .nav-item {
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                    position: relative;
-                    backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                }
-                
-                .nav-item::after {
-                    content: '';
-                    position: absolute;
-                    bottom: 0;
-                    left: 50%;
-                    width: 0;
-                    height: 2px;
-                    background: linear-gradient(90deg, #667eea, #764ba2);
-                    transform: translateX(-50%);
-                    transition: width 0.3s ease;
-                }
-                
-                .nav-item:hover::after {
-                    width: 80%;
-                }
-                
-                .feature-card {
-                    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                    backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    cursor: pointer;
-                }
-                
-                .feature-card:hover {
-                    transform: translateY(-10px) scale(1.02);
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-                }
-                
-                .feature-icon {
-                    transition: all 0.3s ease;
-                }
-                
-                .feature-card:hover .feature-icon {
-                    transform: rotate(360deg) scale(1.1);
-                }
-                
-                .glass-effect {
-                    background: rgba(255, 255, 255, 0.95);
-                    backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                }
-                
-                .text-gradient {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    background-clip: text;
-                }
-                
-                .pulse {
-                    animation: pulse 2s infinite;
-                }
-                
-                @keyframes pulse {
-                    0% {
-                        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
-                    }
-                    70% {
-                        box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
-                    }
-                    100% {
-                        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0);
-                    }
-                }
-                
-                .scroll-indicator {
-                    animation: bounce 2s infinite;
-                }
-                
-                @keyframes bounce {
-                    0%, 20%, 50%, 80%, 100% {
-                        transform: translateY(0);
-                    }
-                    40% {
-                        transform: translateY(-10px);
-                    }
-                    60% {
-                        transform: translateY(-5px);
-                    }
-                }
-                
-                /* Frame Container Styles - Centered */
-                .frame-container {
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 90%;
-                    max-width: 1200px;
-                    height: 85vh;
-                    background-color: white;
-                    z-index: 1000;
-                    display: flex;
-                    flex-direction: column;
-                    border-radius: 16px;
-                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-                    overflow: hidden;
-                    animation: frameAppear 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                }
-                
-                @keyframes frameAppear {
-                    0% {
-                        opacity: 0;
-                        transform: translate(-50%, -50%) scale(0.9);
-                    }
-                    100% {
-                        opacity: 1;
-                        transform: translate(-50%, -50%) scale(1);
-                    }
-                }
-                
-                .frame-header {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 16px 24px;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    border-radius: 16px 16px 0 0;
-                }
-                
-                .frame-content {
-                    flex: 1;
-                    background: white;
-                    width: 100%;
-                    height: calc(100% - 60px);
-                    overflow: auto;
-                    position: relative;
-                }
-                
-                .frame-content iframe {
-                    width: 100%;
-                    height: 100%;
-                    border: none;
-                }
-                
-                .close-btn {
-                    background: rgba(255, 255, 255, 0.2);
-                    border: none;
-                    color: white;
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                }
-                
-                .close-btn:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                    transform: rotate(90deg);
-                }
-                
-                /* Loading Animation Styles */
-                .loading-container {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: white;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 10;
-                }
-                
-                .loading-spinner {
-                    width: 60px;
-                    height: 60px;
-                    position: relative;
-                    margin-bottom: 24px;
-                }
-                
-                .loading-spinner-circle {
-                    position: absolute;
-                    width: 100%;
-                    height: 100%;
-                    border-radius: 50%;
-                    border: 4px solid transparent;
-                    border-top-color: #667eea;
-                    animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-                }
-                
-                .loading-spinner-circle:nth-child(2) {
-                    width: 80%;
-                    height: 80%;
-                    top: 10%;
-                    left: 10%;
-                    border-top-color: #764ba2;
-                    animation: spin 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite reverse;
-                }
-                
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-                
-                .loading-text {
-                    font-size: 18px;
-                    font-weight: 500;
-                    color: #4a5568;
-                    margin-bottom: 8px;
-                }
-                
-                .loading-subtext {
-                    font-size: 14px;
-                    color: #718096;
-                    max-width: 300px;
-                    text-align: center;
-                }
-                
-                .loading-dots {
-                    display: inline-block;
-                    width: 40px;
-                    text-align: left;
-                }
-                
-                .loading-dots::after {
-                    content: '';
-                    animation: dots 1.5s steps(4, end) infinite;
-                }
-                
-                @keyframes dots {
-                    0% { content: ''; }
-                    25% { content: '.'; }
-                    50% { content: '..'; }
-                    75% { content: '...'; }
-                    100% { content: ''; }
-                }
-                
-                /* Overlay when frame is open */
-                .overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background-color: rgba(0, 0, 0, 0.5);
-                    z-index: 999;
-                    backdrop-filter: blur(4px);
-                }
-                
-                /* World Class Responsive Design */
-                @media (max-width: 1024px) {
-                    .frame-container {
-                        width: 95%;
-                        height: 90vh;
-                    }
-                }
-                
-                @media (max-width: 768px) {
-                    .frame-container {
-                        width: 98%;
-                        height: 95vh;
-                        border-radius: 12px;
-                    }
-                    
-                    .frame-header {
-                        padding: 12px 16px;
-                    }
-                    
-                    .close-btn {
-                        width: 32px;
-                        height: 32px;
-                    }
-                    
-                    .loading-spinner {
-                        width: 50px;
-                        height: 50px;
-                    }
-                    
-                    .loading-text {
-                        font-size: 16px;
-                    }
-                }
-                
-                @media (max-width: 480px) {
-                    .frame-container {
-                        width: 100%;
-                        height: 100vh;
-                        border-radius: 0;
-                    }
-                    
-                    .frame-header {
-                        border-radius: 0;
-                    }
-                }
-                
-                /* Enhanced mobile navigation */
-                .mobile-nav-item {
-                    transition: all 0.3s ease;
-                }
-                
-                .mobile-nav-item:hover {
-                    transform: translateX(5px);
-                }
-                
-                /* Enhanced feature cards for mobile */
-                @media (max-width: 768px) {
-                    .feature-card {
-                        margin-bottom: 16px;
-                    }
-                }
-                
-                /* FontAwesome Icons */
-                .fas {
-                    display: inline-block;
-                    font-style: normal;
-                    font-variant: normal;
-                    text-rendering: auto;
-                    line-height: 1;
-                }
-                
-                .fa-utensils:before { content: "\\f2e7"; }
-                .fa-home:before { content: "\\f015"; }
-                .fa-cog:before { content: "\\f013"; }
-                .fa-chef-hat:before { content: "\\f6b5"; }
-                .fa-user:before { content: "\\f007"; }
-                .fa-chart-line:before { content: "\\f201"; }
-                .fa-qrcode:before { content: "\\f029"; }
-                .fa-bars:before { content: "\\f0c9"; }
-                .fa-mobile-alt:before { content: "\\f3cd"; }
-                .fa-bolt:before { content: "\\f0e7"; }
-                .fa-shield-alt:before { content: "\\f3ed"; }
-                .fa-quote-left:before { content: "\\f10d"; }
-                .fa-comment-dots:before { content: "\\f4ad"; }
-                .fa-facebook-f:before { content: "\\f39e"; }
-                .fa-twitter:before { content: "\\f099"; }
-                .fa-instagram:before { content: "\\f16d"; }
-                .fa-linkedin-in:before { content: "\\f0e1"; }
-                .fa-headset:before { content: "\\f590"; }
-                .fa-arrow-down:before { content: "\\f063"; }
-                .fa-times:before { content: "\\f00d"; }
-            `}</style>
-
-            <div className="pattern-bg min-h-screen">
-                {/* Premium Header with Navigation */}
-                <header className={`hero-gradient text-white transition-all duration-500 ${isScrolled ? 'py-3 shadow-2xl' : 'py-6'}`}>
-                    <div className="container mx-auto px-4">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center space-x-3 group">
-                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:rotate-12 group-hover:scale-110 shadow-lg">
-                                    <i className="fas fa-utensils text-purple-600 text-xl"></i>
-                                </div>
-                                <h1 className="text-3xl font-bold tracking-tight">EndOfHunger</h1>
+        <div className="pattern-bg min-h-screen">
+            {/* Premium Header with Navigation */}
+            <header className={`hero-gradient text-white transition-all duration-500 ${isScrolled ? 'py-3 shadow-2xl' : 'py-6'}`}>
+                <div className="container mx-auto px-4">
+                    <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3 group">
+                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:rotate-12 group-hover:scale-110 shadow-lg">
+                                <i className="fas fa-utensils text-purple-600 text-xl"></i>
                             </div>
-
-                            {/* Desktop Navigation */}
-                            <nav className="hidden lg:flex items-center space-x-2">
-                                {[
-                                    { id: 'home', path: '/homepage', icon: 'fa-home', label: 'Home' },
-                                    { id: 'admin', path: '/admin.html', icon: 'fa-cog', label: 'Admin' },
-                                    { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
-                                    { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
-                                    { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
-                                    { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' }
-                                ].map((item) => (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path)}
-                                        className="nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2 hover:shadow-xl"
-                                    >
-                                        <i className={`fas ${item.icon}`}></i>
-                                        <span>{item.label}</span>
-                                    </button>
-                                ))}
-                            </nav>
-
-                            {/* Mobile Menu Button */}
-                            <button
-                                className="lg:hidden hover:scale-110 transition-transform"
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            >
-                                <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
-                            </button>
+                            <h1 className="text-3xl font-bold tracking-tight">EndOfHunger</h1>
                         </div>
 
-                        {/* Mobile Menu */}
-                        {isMobileMenuOpen && (
-                            <nav className="lg:hidden mt-4 pb-4 flex flex-wrap gap-2">
-                                {[
-                                    { id: 'home', path: '/homepage', icon: 'fa-home', label: 'Home' },
-                                    { id: 'admin', path: '/admin.html', icon: 'fa-cog', label: 'Admin' },
-                                    { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
-                                    { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
-                                    { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
-                                    { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' }
-                                ].map((item) => (
-                                    <button
-                                        key={item.id}
-                                        onClick={() => {
-                                            item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path);
-                                            setIsMobileMenuOpen(false);
-                                        }}
-                                        className="mobile-nav-item nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2"
-                                    >
-                                        <i className={`fas ${item.icon}`}></i>
-                                        <span>{item.label}</span>
-                                    </button>
-                                ))}
-                            </nav>
-                        )}
+                        {/* Desktop Navigation */}
+                        <nav className="hidden lg:flex items-center space-x-2">
+                            {[
+                                { id: 'home', path: '/homepage', icon: 'fa-home', label: 'Home' },
+                                { id: 'admin', path: '/admin.html', icon: 'fa-cog', label: 'Admin' },
+                                { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
+                                { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
+                                { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
+                                { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' }
+                            ].map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path)}
+                                    className="nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2 hover:shadow-xl"
+                                >
+                                    <i className={`fas ${item.icon}`}></i>
+                                    <span>{item.label}</span>
+                                </button>
+                            ))}
+                        </nav>
+
+                        {/* Mobile Menu Button */}
+                        <button
+                            className="lg:hidden hover:scale-110 transition-transform"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        >
+                            <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
+                        </button>
                     </div>
-                </header>
 
-                {/* Content Container - Only show on the home page */}
-                {isHomePage && (
-                    <div id="content-container" className="container mx-auto px-4 py-8">
-                        {/* Hero Section */}
-                        <div className="text-center mb-16 fade-in">
-                            <h2 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-                                Welcome to <br />
-                                <span className="text-gradient">EndOfHunger</span>
-                            </h2>
-                            <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                                A modern QR-based restaurant ordering system that enhances customer experience and streamlines operations
-                            </p>
-                            <div className="mt-8 scroll-indicator">
-                                <i className="fas fa-arrow-down text-3xl text-purple-600"></i>
-                            </div>
+                    {/* Mobile Menu */}
+                    {isMobileMenuOpen && (
+                        <nav className="lg:hidden mt-4 pb-4 flex flex-wrap gap-2">
+                            {[
+                                { id: 'home', path: '/homepage', icon: 'fa-home', label: 'Home' },
+                                { id: 'admin', path: '/admin.html', icon: 'fa-cog', label: 'Admin' },
+                                { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
+                                { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
+                                { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
+                                { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' }
+                            ].map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => {
+                                        item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path);
+                                        setIsMobileMenuOpen(false);
+                                    }}
+                                    className="mobile-nav-item nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2"
+                                >
+                                    <i className={`fas ${item.icon}`}></i>
+                                    <span>{item.label}</span>
+                                </button>
+                            ))}
+                        </nav>
+                    )}
+                </div>
+            </header>
+
+            {/* Content Container - Only show on the home page */}
+            {isHomePage && (
+                <div id="content-container" className="container mx-auto px-4 py-8">
+                    {/* Hero Section */}
+                    <div className="text-center mb-16 fade-in">
+                        <h2 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+                            Welcome to <br />
+                            <span className="text-gradient">EndOfHunger</span>
+                        </h2>
+                        <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                            A modern QR-based restaurant ordering system that enhances customer experience and streamlines operations
+                        </p>
+                        <div className="mt-8 scroll-indicator">
+                            <i className="fas fa-arrow-down text-3xl text-purple-600"></i>
                         </div>
+                    </div>
 
-                        {/* Feature Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+                    {/* Feature Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+                        {[
+                            {
+                                id: 'customer',
+                                title: 'Customer Experience',
+                                description: 'Seamless QR-based ordering, real-time tracking, and instant payments.',
+                                path: '/customer.html',
+                                buttonColor: 'bg-purple-600 hover:bg-purple-700',
+                                demoText: 'View Customer App',
+                                isLink: false
+                            },
+                            {
+                                id: 'kitchen',
+                                title: 'Kitchen Display',
+                                description: 'Efficient order management, status updates, and preparation tracking.',
+                                path: '/kitchen.html',
+                                buttonColor: 'bg-blue-600 hover:bg-blue-700',
+                                demoText: 'View Kitchen Display',
+                                isLink: false
+                            },
+                            {
+                                id: 'admin',
+                                title: 'Admin Dashboard',
+                                description: 'Comprehensive management of menu, tables, and restaurant settings.',
+                                path: '/admin.html',
+                                buttonColor: 'bg-indigo-600 hover:bg-indigo-700',
+                                demoText: 'View Admin Panel',
+                                isLink: false
+                            },
+                            {
+                                id: 'analytics',
+                                title: 'Analytics & Reports',
+                                description: 'Deep insights into sales, popular items, and peak hours.',
+                                path: '/analytics.html',
+                                buttonColor: 'bg-green-600 hover:bg-green-700',
+                                demoText: 'View Analytics',
+                                isLink: false
+                            },
+                            {
+                                id: 'ingredients',
+                                title: 'Ingredients Management',
+                                description: 'Track inventory, manage stock levels, and get low stock alerts.',
+                                path: '/ingredients',
+                                buttonColor: 'bg-orange-600 hover:bg-orange-700',
+                                demoText: 'Manage Ingredients',
+                                isLink: false
+                            }
+                        ].map((feature, index) => (
+                            <div key={index} className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition duration-300 transform hover:-translate-y-2 fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                                <div className="p-8">
+                                    <h3 className="text-2xl font-bold mb-4 text-gray-800">{feature.title}</h3>
+                                    <p className="text-gray-600 mb-6 leading-relaxed">{feature.description}</p>
+                                    {feature.isLink ? (
+                                        <a href="#" className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
+                                            {feature.demoText}
+                                        </a>
+                                    ) : (
+                                        <button onClick={() => handleCardNavigation(feature.path)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
+                                            {feature.demoText}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Why Choose Us Section */}
+                    <div className="glass-effect rounded-3xl shadow-2xl p-10 mb-16 fade-in">
+                        <h3 className="text-3xl font-bold text-gray-800 mb-10 text-center">Why Choose EndOfHunger?</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {[
                                 {
-                                    id: 'customer',
-                                    title: 'Customer Experience',
-                                    description: 'Seamless QR-based ordering, real-time tracking, and instant payments.',
-                                    path: '/customer.html',
-                                    buttonColor: 'bg-purple-600 hover:bg-purple-700',
-                                    demoText: 'View Customer App',
-                                    isLink: false
+                                    icon: 'fa-mobile-alt',
+                                    color: 'purple',
+                                    title: 'Mobile First',
+                                    description: 'Optimized for all devices with responsive design and touch-friendly interface'
                                 },
                                 {
-                                    id: 'kitchen',
-                                    title: 'Kitchen Display',
-                                    description: 'Efficient order management, status updates, and preparation tracking.',
-                                    path: '/kitchen.html',
-                                    buttonColor: 'bg-blue-600 hover:bg-blue-700',
-                                    demoText: 'View Kitchen Display',
-                                    isLink: false
+                                    icon: 'fa-bolt',
+                                    color: 'blue',
+                                    title: 'Lightning Fast',
+                                    description: 'Quick order placement and real-time updates for efficient restaurant operations'
                                 },
                                 {
-                                    id: 'admin',
-                                    title: 'Admin Dashboard',
-                                    description: 'Comprehensive management of menu, tables, and restaurant settings.',
-                                    path: '/admin.html',
-                                    buttonColor: 'bg-indigo-600 hover:bg-indigo-700',
-                                    demoText: 'View Admin Panel',
-                                    isLink: false
-                                },
-                                {
-                                    id: 'analytics',
-                                    title: 'Analytics & Reports',
-                                    description: 'Deep insights into sales, popular items, and peak hours.',
-                                    path: '/analytics.html',
-                                    buttonColor: 'bg-green-600 hover:bg-green-700',
-                                    demoText: 'View Analytics',
-                                    isLink: false
-                                },
-                                {
-                                    id: 'ingredients',
-                                    title: 'Ingredients Management',
-                                    description: 'Track inventory, manage stock levels, and get low stock alerts.',
-                                    path: '/ingredients',
-                                    buttonColor: 'bg-orange-600 hover:bg-orange-700',
-                                    demoText: 'Manage Ingredients',
-                                    isLink: false
+                                    icon: 'fa-shield-alt',
+                                    color: 'green',
+                                    title: 'Secure & Reliable',
+                                    description: 'Enterprise-grade security with encrypted payments and data protection'
                                 }
-                            ].map((feature, index) => (
-                                <div key={index} className="bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition duration-300 transform hover:-translate-y-2 fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                                    <div className="p-8">
-                                        <h3 className="text-2xl font-bold mb-4 text-gray-800">{feature.title}</h3>
-                                        <p className="text-gray-600 mb-6 leading-relaxed">{feature.description}</p>
-                                        {feature.isLink ? (
-                                            <a href="#" className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
-                                                {feature.demoText}
-                                            </a>
-                                        ) : (
-                                            <button onClick={() => handleCardNavigation(feature.path)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
-                                                {feature.demoText}
-                                            </button>
-                                        )}
+                            ].map((item, index) => (
+                                <div key={index} className="text-center group">
+                                    <div className={`w-20 h-20 bg-${item.color}-100 rounded-2xl flex items-center justify-center mx-auto mb-6 transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}>
+                                        <i className={`fas ${item.icon} text-${item.color}-600 text-2xl`}></i>
                                     </div>
+                                    <h4 className="font-bold text-xl text-gray-800 mb-3">{item.title}</h4>
+                                    <p className="text-gray-600 leading-relaxed">{item.description}</p>
                                 </div>
                             ))}
                         </div>
+                    </div>
 
-                        {/* Why Choose Us Section */}
-                        <div className="glass-effect rounded-3xl shadow-2xl p-10 mb-16 fade-in">
-                            <h3 className="text-3xl font-bold text-gray-800 mb-10 text-center">Why Choose EndOfHunger?</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {[
-                                    {
-                                        icon: 'fa-mobile-alt',
-                                        color: 'purple',
-                                        title: 'Mobile First',
-                                        description: 'Optimized for all devices with responsive design and touch-friendly interface'
-                                    },
-                                    {
-                                        icon: 'fa-bolt',
-                                        color: 'blue',
-                                        title: 'Lightning Fast',
-                                        description: 'Quick order placement and real-time updates for efficient restaurant operations'
-                                    },
-                                    {
-                                        icon: 'fa-shield-alt',
-                                        color: 'green',
-                                        title: 'Secure & Reliable',
-                                        description: 'Enterprise-grade security with encrypted payments and data protection'
-                                    }
-                                ].map((item, index) => (
-                                    <div key={index} className="text-center group">
-                                        <div className={`w-20 h-20 bg-${item.color}-100 rounded-2xl flex items-center justify-center mx-auto mb-6 transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}>
-                                            <i className={`fas ${item.icon} text-${item.color}-600 text-2xl`}></i>
-                                        </div>
-                                        <h4 className="font-bold text-xl text-gray-800 mb-3">{item.title}</h4>
-                                        <p className="text-gray-600 leading-relaxed">{item.description}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Testimonial Section */}
-                        <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-3xl shadow-2xl p-12 text-white mb-16 relative overflow-hidden fade-in">
-                            <div className="absolute top-0 left-0 w-full h-full bg-black opacity-10"></div>
-                            <div className="relative z-10 max-w-4xl mx-auto text-center">
-                                <i className="fas fa-quote-left text-6xl mb-8 opacity-50"></i>
-                                <p className="text-2xl md:text-3xl mb-8 italic leading-relaxed">
-                                    "EndOfHunger transformed our restaurant operations. Orders are processed 40% faster, and our customers love the convenience of ordering from their tables."
-                                </p>
-                                <div className="flex items-center justify-center">
-                                    <img src="https://picsum.photos/seed/restaurant-owner/60/60.jpg" alt="Restaurant Owner" className="w-16 h-16 rounded-full mr-6 border-4 border-white shadow-lg" />
-                                    <div className="text-left">
-                                        <p className="font-bold text-xl">Sarah Johnson</p>
-                                        <p className="text-lg opacity-90">Owner, The Garden Bistro</p>
-                                    </div>
+                    {/* Testimonial Section */}
+                    <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-3xl shadow-2xl p-12 text-white mb-16 relative overflow-hidden fade-in">
+                        <div className="absolute top-0 left-0 w-full h-full bg-black opacity-10"></div>
+                        <div className="relative z-10 max-w-4xl mx-auto text-center">
+                            <i className="fas fa-quote-left text-6xl mb-8 opacity-50"></i>
+                            <p className="text-2xl md:text-3xl mb-8 italic leading-relaxed">
+                                "EndOfHunger transformed our restaurant operations. Orders are processed 40% faster, and our customers love the convenience of ordering from their tables."
+                            </p>
+                            <div className="flex items-center justify-center">
+                                <img src="https://picsum.photos/seed/restaurant-owner/60/60.jpg" alt="Restaurant Owner" className="w-16 h-16 rounded-full mr-6 border-4 border-white shadow-lg" />
+                                <div className="text-left">
+                                    <p className="font-bold text-xl">Sarah Johnson</p>
+                                    <p className="text-lg opacity-90">Owner, The Garden Bistro</p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* Footer - Only show on home page */}
-                {isHomePage && (
-                    <footer className="bg-gray-900 text-white py-12 px-4 mt-16">
-                        <div className="container mx-auto">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                                <div>
-                                    <div className="flex items-center space-x-3 mb-6">
-                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                                            <i className="fas fa-utensils text-purple-600"></i>
-                                        </div>
-                                        <h3 className="text-xl font-bold">EndOfHunger</h3>
+            {/* Footer - Only show on home page */}
+            {isHomePage && (
+                <footer className="bg-gray-900 text-white py-12 px-4 mt-16">
+                    <div className="container mx-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                            <div>
+                                <div className="flex items-center space-x-3 mb-6">
+                                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                                        <i className="fas fa-utensils text-purple-600"></i>
                                     </div>
-                                    <p className="text-gray-400 leading-relaxed">Modern QR-based restaurant ordering system for enhanced dining experiences.</p>
+                                    <h3 className="text-xl font-bold">EndOfHunger</h3>
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-lg mb-4">Product</h4>
-                                    <ul className="space-y-3 text-gray-400">
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Features</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Pricing</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">FAQ</a></li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-lg mb-4">Company</h4>
-                                    <ul className="space-y-3 text-gray-400">
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">About</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Blog</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Careers</a></li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h4 className="font-bold text-lg mb-4">Connect</h4>
-                                    <div className="flex space-x-4 mb-6">
-                                        {['facebook-f', 'twitter', 'instagram', 'linkedin-in'].map((social) => (
-                                            <a key={social} href="#" className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center hover:bg-purple-600 transition-all duration-300 hover:scale-110 hover:rotate-6">
-                                                <i className={`fab fa-${social}`}></i>
-                                            </a>
-                                        ))}
-                                    </div>
-                                    <p className="text-gray-400">support@endofhunger.com</p>
-                                </div>
+                                <p className="text-gray-400 leading-relaxed">Modern QR-based restaurant ordering system for enhanced dining experiences.</p>
                             </div>
-                            <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-                                <p>&copy; 2023 EndOfHunger. All rights reserved.</p>
+                            <div>
+                                <h4 className="font-bold text-lg mb-4">Product</h4>
+                                <ul className="space-y-3 text-gray-400">
+                                    <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Features</a></li>
+                                    <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Pricing</a></li>
+                                    <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">FAQ</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-lg mb-4">Company</h4>
+                                <ul className="space-y-3 text-gray-400">
+                                    <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">About</a></li>
+                                    <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Blog</a></li>
+                                    <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Careers</a></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-lg mb-4">Connect</h4>
+                                <div className="flex space-x-4 mb-6">
+                                    {['facebook-f', 'twitter', 'instagram', 'linkedin-in'].map((social) => (
+                                        <a key={social} href="#" className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center hover:bg-purple-600 transition-all duration-300 hover:scale-110 hover:rotate-6">
+                                            <i className={`fab fa-${social}`}></i>
+                                        </a>
+                                    ))}
+                                </div>
+                                <p className="text-gray-400">support@endofhunger.com</p>
                             </div>
                         </div>
-                    </footer>
-                )}
-
-                {/* Floating Action Button - Only show on home page */}
-                {isHomePage && (
-                    <div className="fixed bottom-8 right-8 floating">
-                        <button className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-all duration-300 pulse">
-                            <i className="fas fa-comment-dots text-2xl"></i>
-                        </button>
+                        <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
+                            <p>&copy; 2023 EndOfHunger. All rights reserved.</p>
+                        </div>
                     </div>
-                )}
-            </div>
+                </footer>
+            )}
+
+            {/* Floating Action Button - Only show on home page */}
+            {isHomePage && (
+                <div className="fixed bottom-8 right-8 floating">
+                    <button className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-all duration-300 pulse">
+                        <i className="fas fa-comment-dots text-2xl"></i>
+                    </button>
+                </div>
+            )}
 
             {/* Overlay when frame is open */}
             {activeFrame && (
@@ -812,41 +359,31 @@ function HomePage() {
                             {activeFrame === '/kitchen.html' && 'Kitchen Dashboard'}
                             {activeFrame === '/customer.html' && 'Customer Order'}
                             {activeFrame === '/analytics.html' && 'Analytics Dashboard'}
-                            {activeFrame === '/ingredients' && 'Ingredients Management'}
                         </h3>
                         <button className="close-btn" onClick={closeFrame}>
                             <i className="fas fa-times"></i>
                         </button>
                     </div>
                     <div className="frame-content">
-                        {/* Loading Animation */}
                         {isFrameLoading && (
                             <div className="loading-container">
                                 <div className="loading-spinner">
                                     <div className="loading-spinner-circle"></div>
                                     <div className="loading-spinner-circle"></div>
                                 </div>
-                                <div className="loading-text">Loading<span className="loading-dots"></span></div>
-                                <div className="loading-subtext">
-                                    {activeFrame === '/admin.html' && 'Preparing your admin dashboard...'}
-                                    {activeFrame === '/kitchen.html' && 'Setting up your kitchen view...'}
-                                    {activeFrame === '/customer.html' && 'Creating your ordering experience...'}
-                                    {activeFrame === '/analytics.html' && 'Gathering your business insights...'}
-                                    {activeFrame === '/ingredients' && 'Loading ingredients inventory...'}
-                                </div>
+                                <div className="loading-text">Loading...</div>
+                                <div className="loading-subtext">Please wait while we load the module</div>
                             </div>
                         )}
                         <iframe
                             src={frameUrl}
                             title="Content Frame"
-                            sandbox="allow-scripts allow-same-origin allow-forms"
                             onLoad={handleIframeLoad}
-                            style={{ display: isFrameLoading ? 'none' : 'block' }}
-                        />
+                        ></iframe>
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }
 
