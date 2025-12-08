@@ -29,8 +29,8 @@ const RootRoute = () => {
     // Handle sub.localhost
     isSubdomain = true;
   }
-  // Handle Render deployment (e.g. appname.onrender.com is Main, tenant.appname.onrender.com is Subdomain)
-  else if (hostname.endsWith('onrender.com')) {
+  // Handle Render and Vercel deployments (e.g. appname.onrender.com or appname.vercel.app is Main)
+  else if (hostname.endsWith('onrender.com') || hostname.endsWith('vercel.app')) {
     if (parts.length === 3) {
       isSubdomain = false; // Main App (Dashboard)
     } else if (parts.length > 3) {
