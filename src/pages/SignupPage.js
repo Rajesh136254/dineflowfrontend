@@ -112,6 +112,16 @@ export default function SignupPage() {
 
         // Redirect based on mode
         if (mode === "signup") {
+          // Check for Vercel/Render deployments where wildcards are not supported
+          const hostname = window.location.hostname;
+          if (hostname.endsWith('vercel.app') || hostname.endsWith('onrender.com')) {
+            setAuthSuccess("Registration successful! Redirecting to Dashboard...");
+            setTimeout(() => {
+              navigate('/admin.html');
+            }, 2000);
+            return;
+          }
+
           // After successful admin signup, redirect to the company-specific site if available.
           // Pass the token so the tenant domain can hydrate auth state.
           if (companyUrl) {
