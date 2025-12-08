@@ -147,8 +147,13 @@ export default function SignupPage() {
           }
         } else {
           // Login success - Redirect
-          // Redirect to dashboard if user is admin OR has a specific role (not a regular customer)
           if (user?.role === 'admin' || user?.role_id || user?.role !== 'customer') {
+            const hostname = window.location.hostname;
+            if (hostname.endsWith('vercel.app') || hostname.endsWith('onrender.com')) {
+              window.location.href = '/admin.html';
+              return;
+            }
+
             if (companyUrl) {
               let redirectUrl = companyUrl;
               try {
