@@ -112,9 +112,37 @@ export default function SignupPage() {
 
         // Redirect based on mode
         if (mode === "signup") {
-          // User requested flow: Signup -> Login -> Homepage
-          setMode("login");
-          setAuthSuccess("Registration successful! Please login.");
+          // Check for Vercel/Render deployments where wildcards are not supported
+          const hostname = window.location.hostname;
+          if (hostname.endsWith('vercel.app') || hostname.endsWith('onrender.com')) {
+            // On Live, fallback to Login tab
+            setMode("login");
+            setAuthSuccess("Registration successful! Please login.");
+            return;
+          }
+
+          // After successful admin signup, redirect to the company-specific site if available.
+          if (companyUrl) {
+            let redirectUrl = companyUrl;
+            try {
+              const url = new URL(companyUrl);
+              if (token) {
+                url.searchParams.set('token', token);
+              }
+              redirectUrl = url.toString();
+            } catch {
+              // If URL parsing fails for any reason, fall back to plain redirect
+            }
+
+            setAuthSuccess("Registration successful! Redirecting to your restaurant site...");
+            setTimeout(() => {
+              window.location.href = redirectUrl;
+            }, 2000);
+          } else {
+            // Fallback: stay on this page and show login tab
+            setMode("login");
+            setAuthSuccess("Registration successful! Please login.");
+          }
         }
       } else {
         // Login success - Redirect
