@@ -26,7 +26,7 @@
     --signup-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     --signup-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     --signup-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     /* Responsive person scaling variables */
     --person-scale: 1;
     --person-base-size: 120px;
@@ -109,9 +109,19 @@ body {
 }
 
 @keyframes signup-float {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    33% { transform: translate(30px, -30px) rotate(120deg); }
-    66% { transform: translate(-20px, 20px) rotate(240deg); }
+
+    0%,
+    100% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+
+    33% {
+        transform: translate(30px, -30px) rotate(120deg);
+    }
+
+    66% {
+        transform: translate(-20px, 20px) rotate(240deg);
+    }
 }
 
 /* ====================== FLOATING FOOD ITEMS ====================== */
@@ -126,6 +136,7 @@ body {
     0% {
         transform: translateY(100vh) rotate(0deg);
     }
+
     100% {
         transform: translateY(-100px) rotate(360deg);
     }
@@ -149,7 +160,7 @@ body {
     font-weight: 800;
     color: white;
     margin-bottom: clamp(1rem, 3vw, 2rem);
-    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* ====================== START BUTTON ====================== */
@@ -160,7 +171,7 @@ body {
     font-size: clamp(1rem, 3vw, 1.3rem);
     padding: clamp(0.875rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2.8rem);
     border-radius: 50px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
     border: none;
     cursor: pointer;
     transition: var(--signup-transition);
@@ -170,7 +181,7 @@ body {
 
 .signup-start-button:hover {
     transform: translateY(-3px);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
 }
 
 .signup-start-button::before {
@@ -197,14 +208,21 @@ body {
     font-size: clamp(1rem, 3vw, 2rem);
     font-weight: 700;
     color: white;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     opacity: 0;
     animation: signup-fadeInOut 3s ease-in-out;
 }
 
 @keyframes signup-fadeInOut {
-    0%, 100% { opacity: 0; }
-    50% { opacity: 1; }
+
+    0%,
+    100% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 /* ====================== CHARACTER CONTAINER ====================== */
@@ -250,7 +268,7 @@ body {
     left: calc(var(--person-base-size) * 0.25);
     border: calc(var(--person-base-size) * 0.0167) solid #333;
     z-index: 2;
-    box-shadow: 0 calc(var(--person-base-size) * 0.042) calc(var(--person-base-size) * 0.125) rgba(0,0,0,0.2);
+    box-shadow: 0 calc(var(--person-base-size) * 0.042) calc(var(--person-base-size) * 0.125) rgba(0, 0, 0, 0.2);
 }
 
 /* Hair */
@@ -312,8 +330,16 @@ body {
 }
 
 @keyframes signup-blink {
-    0%, 90%, 100% { transform: scaleY(1); }
-    95% { transform: scaleY(0.1); }
+
+    0%,
+    90%,
+    100% {
+        transform: scaleY(1);
+    }
+
+    95% {
+        transform: scaleY(0.1);
+    }
 }
 
 .signup-mouth {
@@ -352,7 +378,7 @@ body {
     border-radius: calc(var(--person-base-size) * 0.125) calc(var(--person-base-size) * 0.125) calc(var(--person-base-size) * 0.042) calc(var(--person-base-size) * 0.042);
     border: calc(var(--person-base-size) * 0.0167) solid #333;
     z-index: 1;
-    box-shadow: 0 calc(var(--person-base-size) * 0.042) calc(var(--person-base-size) * 0.125) rgba(0,0,0,0.2);
+    box-shadow: 0 calc(var(--person-base-size) * 0.042) calc(var(--person-base-size) * 0.125) rgba(0, 0, 0, 0.2);
 }
 
 /* Shirt details */
@@ -382,7 +408,7 @@ body {
     position: absolute;
     border: calc(var(--person-base-size) * 0.0167) solid #333;
     border-radius: calc(var(--person-base-size) * 0.083);
-    box-shadow: 0 calc(var(--person-base-size) * 0.025) calc(var(--person-base-size) * 0.083) rgba(0,0,0,0.2);
+    box-shadow: 0 calc(var(--person-base-size) * 0.025) calc(var(--person-base-size) * 0.083) rgba(0, 0, 0, 0.2);
 }
 
 .signup-arm-left {
@@ -424,7 +450,7 @@ body {
     background: #333;
     border-radius: 0 0 calc(var(--person-base-size) * 0.083) calc(var(--person-base-size) * 0.083);
     transform-origin: top center;
-    box-shadow: 0 calc(var(--person-base-size) * 0.025) calc(var(--person-base-size) * 0.083) rgba(0,0,0,0.2);
+    box-shadow: 0 calc(var(--person-base-size) * 0.025) calc(var(--person-base-size) * 0.083) rgba(0, 0, 0, 0.2);
 }
 
 /* Shoes */
@@ -458,8 +484,15 @@ body {
 }
 
 @keyframes signup-rumble {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 /* Hunger Bubble */
@@ -472,10 +505,13 @@ body {
 }
 
 @keyframes signup-bubbleFloat {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 0;
         transform: translateY(0);
     }
+
     50% {
         opacity: 1;
         transform: translateY(calc(var(--person-base-size) * -0.125));
@@ -487,13 +523,20 @@ body {
     padding: calc(var(--person-base-size) * 0.067) calc(var(--person-base-size) * 0.1);
     border-radius: calc(var(--person-base-size) * 0.167);
     font-size: calc(var(--person-base-size) * 0.2);
-    box-shadow: 0 calc(var(--person-base-size) * 0.033) calc(var(--person-base-size) * 0.1) rgba(0,0,0,0.2);
+    box-shadow: 0 calc(var(--person-base-size) * 0.033) calc(var(--person-base-size) * 0.1) rgba(0, 0, 0, 0.2);
     animation: signup-pulse 1.5s ease-in-out infinite;
 }
 
 @keyframes signup-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
 }
 
 /* Interactive hint */
@@ -508,14 +551,21 @@ body {
     border-radius: calc(var(--person-base-size) * 0.125);
     font-size: calc(var(--person-base-size) * 0.1);
     font-weight: 600;
-    box-shadow: 0 calc(var(--person-base-size) * 0.017) calc(var(--person-base-size) * 0.067) rgba(0,0,0,0.2);
+    box-shadow: 0 calc(var(--person-base-size) * 0.017) calc(var(--person-base-size) * 0.067) rgba(0, 0, 0, 0.2);
     opacity: 0;
     animation: signup-hintPulse 2s ease-in-out infinite;
 }
 
 @keyframes signup-hintPulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
+
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
 /* Jump animation */
@@ -524,8 +574,15 @@ body {
 }
 
 @keyframes signup-jump {
-    0%, 100% { transform: scale(var(--person-scale)) translateY(0); }
-    50% { transform: scale(var(--person-scale)) translateY(calc(var(--person-base-size) * -0.417)); }
+
+    0%,
+    100% {
+        transform: scale(var(--person-scale)) translateY(0);
+    }
+
+    50% {
+        transform: scale(var(--person-scale)) translateY(calc(var(--person-base-size) * -0.417));
+    }
 }
 
 /* ====================== RUNNING ANIMATION ====================== */
@@ -538,9 +595,11 @@ body {
         left: -200px;
         transform: scale(calc(var(--person-scale) * 0.8));
     }
+
     20% {
         transform: scale(var(--person-scale));
     }
+
     100% {
         left: calc(50% - calc(var(--person-base-size) * 0.5));
         transform: scale(var(--person-scale));
@@ -564,13 +623,27 @@ body {
 }
 
 @keyframes signup-swingArm {
-    0%, 100% { transform: rotate(-30deg); }
-    50% { transform: rotate(30deg); }
+
+    0%,
+    100% {
+        transform: rotate(-30deg);
+    }
+
+    50% {
+        transform: rotate(30deg);
+    }
 }
 
 @keyframes signup-swingLeg {
-    0%, 100% { transform: rotate(-20deg); }
-    50% { transform: rotate(20deg); }
+
+    0%,
+    100% {
+        transform: rotate(-20deg);
+    }
+
+    50% {
+        transform: rotate(20deg);
+    }
 }
 
 /* ====================== THROWING ANIMATION ====================== */
@@ -587,16 +660,37 @@ body {
 }
 
 @keyframes signup-throwArm {
-    0% { transform: rotate(0deg); }
-    30% { transform: rotate(-150deg) translateY(calc(var(--person-base-size) * -0.167)); }
-    60% { transform: rotate(-150deg) translateY(calc(var(--person-base-size) * -0.167)); }
-    100% { transform: rotate(0deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    30% {
+        transform: rotate(-150deg) translateY(calc(var(--person-base-size) * -0.167));
+    }
+
+    60% {
+        transform: rotate(-150deg) translateY(calc(var(--person-base-size) * -0.167));
+    }
+
+    100% {
+        transform: rotate(0deg);
+    }
 }
 
 @keyframes signup-bodyTwist {
-    0%, 100% { transform: rotate(0deg); }
-    30% { transform: rotate(-20deg); }
-    60% { transform: rotate(10deg); }
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    30% {
+        transform: rotate(-20deg);
+    }
+
+    60% {
+        transform: rotate(10deg);
+    }
 }
 
 /* ====================== BRIEFCASE ====================== */
@@ -619,7 +713,7 @@ body {
     border-radius: calc(var(--person-base-size) * 0.067);
     border: calc(var(--person-base-size) * 0.025) solid #333;
     position: relative;
-    box-shadow: 0 calc(var(--person-base-size) * 0.042) calc(var(--person-base-size) * 0.125) rgba(0,0,0,0.3);
+    box-shadow: 0 calc(var(--person-base-size) * 0.042) calc(var(--person-base-size) * 0.125) rgba(0, 0, 0, 0.3);
 }
 
 .signup-briefcase-handle {
@@ -638,14 +732,17 @@ body {
         opacity: 1;
         transform: translate(0, 0) rotate(0deg);
     }
+
     30% {
         opacity: 1;
         transform: translate(calc(var(--person-base-size) * -0.5), calc(var(--person-base-size) * -1)) rotate(-45deg);
     }
+
     60% {
         opacity: 1;
         transform: translate(calc(var(--person-base-size) * 1), calc(var(--person-base-size) * -2)) rotate(180deg);
     }
+
     100% {
         opacity: 0;
         transform: translate(calc(var(--person-base-size) * 3), calc(var(--person-base-size) * -3)) rotate(360deg);
@@ -679,6 +776,7 @@ body {
         opacity: 0;
         transform: translateY(30px);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0);
@@ -703,9 +801,11 @@ body {
         opacity: 0;
         transform: scale(0.9) rotate(-2deg);
     }
+
     50% {
         transform: scale(1.02) rotate(1deg);
     }
+
     100% {
         opacity: 1;
         transform: scale(1) rotate(0);
@@ -748,8 +848,15 @@ body {
 }
 
 @keyframes signup-logoFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
 }
 
 .signup-logo-section h2 {
@@ -821,9 +928,19 @@ body {
 }
 
 @keyframes signup-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
 }
 
 .signup-input-icon {
@@ -874,6 +991,7 @@ body {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1010,7 +1128,9 @@ body {
 }
 
 @keyframes signup-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* ====================== FORM FOOTER ====================== */
@@ -1097,15 +1217,15 @@ body {
         --person-base-size: 70px;
         --character-height: 180px;
     }
-    
+
     .signup-page {
         padding: 0.5rem;
     }
-    
+
     .signup-form-card {
         padding: 1.25rem;
     }
-    
+
     .signup-form-overlay {
         padding: 0.5rem;
     }
@@ -1118,7 +1238,7 @@ body {
         --person-base-size: 60px;
         --character-height: 160px;
     }
-    
+
     .signup-form-card {
         padding: 1rem;
     }
@@ -1131,17 +1251,17 @@ body {
         --person-base-size: 60px;
         --character-height: 120px;
     }
-    
+
     .signup-page-title {
         font-size: clamp(1rem, 3vw, 1.5rem);
         margin-bottom: 0.5rem;
     }
-    
+
     .signup-start-button {
         font-size: clamp(0.875rem, 2.5vw, 1rem);
         padding: 0.75rem 1.5rem;
     }
-    
+
     .signup-character-container {
         margin-top: 0.5rem;
     }
@@ -1162,7 +1282,7 @@ body {
         padding-top: constant(safe-area-inset-top);
         padding-top: env(safe-area-inset-top);
     }
-    
+
     .signup-character-container {
         touch-action: manipulation;
     }
@@ -1173,7 +1293,7 @@ body {
     .signup-person {
         will-change: transform;
     }
-    
+
     .signup-running-person,
     .signup-throwing-person {
         will-change: transform, left;
@@ -1181,7 +1301,9 @@ body {
 }
 
 /* High DPI displays */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
+
     .signup-head,
     .signup-body,
     .signup-arm,
@@ -1192,6 +1314,7 @@ body {
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
+
     .signup-person,
     .signup-running-person,
     .signup-throwing-person,
@@ -1201,7 +1324,7 @@ body {
     .signup-logo {
         animation: none !important;
     }
-    
+
     .signup-person.signup-jump {
         animation: none !important;
     }
@@ -1213,29 +1336,30 @@ body {
         background: #1a1a1a;
         color: white;
     }
-    
+
     .signup-input {
         color: white;
     }
-    
+
     .signup-input-wrapper {
         background: #2a2a2a;
         border-color: #444;
     }
-    
+
     .signup-tabs {
         background: #2a2a2a;
     }
-    
+
     .signup-tab {
         color: #aaa;
     }
-    
+
     .signup-tab.signup-active {
         background: #1a1a1a;
         color: var(--signup-primary);
     }
 }
+
 .signup-forgot-password {
     text-align: right;
     margin-top: 0.5rem;
@@ -1252,4 +1376,80 @@ body {
 .signup-forgot-password span:hover {
     color: var(--signup-primary-dark);
     text-decoration: underline;
+}
+
+/* ====================== REALISTIC MAN ANIMATION ====================== */
+img.signup-realistic-man {
+    position: relative;
+    width: auto !important;
+    height: 350px !important;
+    max-height: 40vh;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    /* Blends white background into the scene */
+    filter: contrast(1.1) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.3));
+    z-index: 20;
+}
+
+/* Walking Bobbing Animation */
+.signup-realistic-man.walking {
+    animation: signup-walkBob 0.5s infinite cubic-bezier(0.4, 0, 0.2, 1) alternate;
+}
+
+@keyframes signup-walkBob {
+    0% {
+        transform: translateY(0) rotate(2deg);
+    }
+
+    100% {
+        transform: translateY(-15px) rotate(-2deg);
+    }
+}
+
+/* Throwing Animation - emphasized */
+.signup-realistic-man.throwing {
+    animation: signup-throwEmphasize 0.5s ease-out forwards;
+}
+
+@keyframes signup-throwEmphasize {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Override container centering for the image */
+.signup-throwing-person {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+/* ====================== VIDEO INTRO ====================== */
+.signup-video-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+.signup-intro-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+    /* Makes white background transparent */
 }

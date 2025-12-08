@@ -20,37 +20,69 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Load any existing auth state from localStorage
-    let storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const initAuth = async () => {
+      // 1. Load any existing auth state from localStorage
+      let storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
 
-    // 2. If there is no token yet, but a `token` is present in the URL
-    //    (e.g. after redirect from main domain to company subdomain),
-    //    persist it so admin/analytics can work on the tenant domain.
-    if (!storedToken) {
-      const searchParams = new URLSearchParams(window.location.search);
-      const urlToken = searchParams.get('token');
+      // 2. If there is no token yet, but a `token` is present in the URL
+      //    (e.g. after redirect from main domain to company subdomain),
+      //    persist it so admin/analytics can work on the tenant domain.
+      if (!storedToken) {
+        const searchParams = new URLSearchParams(window.location.search);
+        const urlToken = searchParams.get('token');
 
-      if (urlToken) {
-        storedToken = urlToken;
-        localStorage.setItem('token', urlToken);
+        if (urlToken) {
+          storedToken = urlToken;
+          localStorage.setItem('token', urlToken);
 
-        // Clean token from the URL for security / neatness
-        searchParams.delete('token');
-        const newQuery = searchParams.toString();
-        const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`;
-        window.history.replaceState({}, '', newUrl);
+          // Clean token from the URL for security / neatness
+          searchParams.delete('token');
+          const newQuery = searchParams.toString();
+          const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`;
+          window.history.replaceState({}, '', newUrl);
+        }
       }
-    }
 
-    if (storedToken) {
-      setToken(storedToken);
-    }
-    if (storedToken && storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
-    }
+      if (storedToken) {
+        setToken(storedToken);
 
-    setIsLoading(false);
+        // If we have a token but no user data, fetch it from the backend
+        if (!storedUser) {
+          console.log('🔄 Token found but no user data - fetching from backend...');
+          try {
+            const response = await fetch(`${API_URL}/api/auth/me`, {
+              headers: {
+                'Authorization': `Bearer ${storedToken}`
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.user) {
+                console.log('✅ User data fetched from backend:', data.user);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                setCurrentUser(data.user);
+              }
+            } else {
+              console.warn('⚠️ Failed to fetch user data - token may be invalid');
+              // Token is invalid, clear it
+              localStorage.removeItem('token');
+              setToken(null);
+              window.location.href = 'http://work.localhost:3000/signup?mode=login';
+            }
+          } catch (error) {
+            console.error('❌ Error fetching user data:', error);
+          }
+        } else {
+          setCurrentUser(JSON.parse(storedUser));
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = async (email, password) => {
@@ -109,7 +141,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setCurrentUser(null);
     // Force a page reload to ensure clean state
-    window.location.href = '/login?mode=login';
+    window.location.href = 'http://work.localhost:3000/signup?mode=login';
   };
 
   const value = {

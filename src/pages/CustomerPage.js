@@ -109,8 +109,10 @@ function CustomerPage() {
     const [currentCurrency, setCurrentCurrency] = useState('INR');
     const [searchParams] = useSearchParams();
     const [tableNumber, setTableNumber] = useState(() => {
-        return parseInt(searchParams.get('table') || '1');
+        const t = searchParams.get('table');
+        return t ? parseInt(t) : null;
     });
+    const [isTableSelectionModalOpen, setIsTableSelectionModalOpen] = useState(false);
     const [tables, setTables] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState('all');
@@ -127,6 +129,22 @@ function CustomerPage() {
     const navigate = useNavigate();
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+    const [companyInfo, setCompanyInfo] = useState(null);
+
+    useEffect(() => {
+        const fetchCompanyInfo = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/company/public`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setCompanyInfo(json.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch company info", err);
+            }
+        };
+        fetchCompanyInfo();
+    }, []);
 
     // Feedback & Cancellation State
     const [feedbackModal, setFeedbackModal] = useState({ show: false, orderId: null, items: [] });
@@ -237,7 +255,7 @@ function CustomerPage() {
     }, [logout]);
 
     const loadCustomerOrders = useCallback(async () => {
-        if (!token) return; // Don't fetch orders if not logged in
+        if (!token || !tableNumber) return; // Don't fetch orders if not logged in or table not selected
         try {
             const customerIdParam = currentUser?.id ? `&customer_id=${currentUser.id}` : '';
             const response = await fetch(`${API_URL}/api/orders?table_number=${tableNumber}${customerIdParam}`, {
@@ -445,8 +463,14 @@ function CustomerPage() {
 
     // --- useEffect Hooks ---
     useEffect(() => {
-        const tableFromUrl = parseInt(searchParams.get('table') || '1');
-        setTableNumber(tableFromUrl);
+        const tableFromUrl = searchParams.get('table');
+        if (tableFromUrl) {
+            setTableNumber(parseInt(tableFromUrl));
+            setIsTableSelectionModalOpen(false);
+        } else {
+            // If no table in URL, open selection modal
+            setIsTableSelectionModalOpen(true);
+        }
         loadTables();
         loadMenu();
         loadCategories();
@@ -455,7 +479,13 @@ function CustomerPage() {
     return (
         <>
             <div className="top-cart">
-                <div className="gradient-bg text-white p-3 sm:p-4">
+                <div className={`text-white p-3 sm:p-4 transition-all duration-500 ${!companyInfo?.banner_url ? 'gradient-bg' : ''}`}
+                    style={companyInfo?.banner_url ? {
+                        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${companyInfo.banner_url})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                    } : {}}
+                >
                     <div className="container mx-auto">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center">
@@ -797,45 +827,66 @@ function CustomerPage() {
                         <div className="bg-white rounded-2xl p-6 max-w-sm mx-4 w-full">
                             <h3 className="text-xl font-bold mb-4 text-center">Rate Your Order</h3>
                             <p className="text-gray-600 text-center mb-6">How was your food?</p>
-
-                            <div className="flex justify-center gap-2 mb-6">
+                            {/* ... feedback form ... */}
+                            <div className="flex justify-center gap-4 mb-6">
                                 {[1, 2, 3, 4, 5].map(star => (
-                                    <button
-                                        key={star}
-                                        onClick={() => setFeedbackRating(star)}
-                                        className={`text-3xl transition ${star <= feedbackRating ? 'text-yellow-400' : 'text-gray-300'}`}
-                                    >
-                                        <i className="fas fa-star"></i>
-                                    </button>
+                                    <button key={star} onClick={() => setFeedbackRating(star)} className={`text-3xl ${star <= feedbackRating ? 'text-yellow-400' : 'text-gray-300'}`}>★</button>
                                 ))}
                             </div>
-
                             <textarea
                                 value={feedbackComment}
                                 onChange={(e) => setFeedbackComment(e.target.value)}
-                                placeholder="Any comments or suggestions?"
-                                className="w-full p-3 border border-gray-300 rounded-lg mb-6 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                                rows="3"
-                            ></textarea>
-
+                                placeholder="Any comments? (Optional)"
+                                className="w-full border border-gray-300 rounded-lg p-3 mb-4 h-24 resize-none"
+                            />
                             <div className="flex gap-3">
-                                <button
-                                    onClick={() => setFeedbackModal({ show: false, orderId: null, items: [] })}
-                                    className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                                >
-                                    Skip
-                                </button>
-                                <button
-                                    onClick={handleFeedbackSubmit}
-                                    className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                                >
-                                    Submit
-                                </button>
+                                <button onClick={handleFeedbackSubmit} className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium">Submit</button>
+                                <button onClick={() => setFeedbackModal({ show: false, orderId: null, items: [] })} className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg font-medium">Skip</button>
                             </div>
                         </div>
                     </div>
                 )
             }
+
+            {/* Table Selection Modal */}
+            {
+                isTableSelectionModalOpen && (
+                    <div className="fixed inset-0 bg-black/80 modal-backdrop z-[60] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl">
+                            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i className="fas fa-chair text-blue-600 text-2xl"></i>
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Select Your Table</h3>
+                            <p className="text-gray-600 mb-6">Please select the table number you are seated at.</p>
+
+                            <div className="grid grid-cols-3 gap-3 max-h-60 overflow-y-auto mb-6 p-2">
+                                {tables.map(table => (
+                                    <button
+                                        key={table.id}
+                                        onClick={() => {
+                                            setTableNumber(table.table_number);
+                                            setIsTableSelectionModalOpen(false);
+                                            // Optionally update URL without reload
+                                            navigate(`?table=${table.table_number}`, { replace: true });
+                                        }}
+                                        className="bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-xl p-3 transition flex flex-col items-center justify-center gap-1"
+                                    >
+                                        <span className="text-lg font-bold text-gray-800">{table.table_number}</span>
+                                        <span className="text-[10px] text-gray-500 truncate w-full">{table.table_name || 'Table'}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {tables.length === 0 && (
+                                <p className="text-red-500 text-sm mb-4">No tables found. Please contact staff.</p>
+                            )}
+                        </div>
+                    </div>
+                )
+            }
+
+
+
 
             {/* Cancellation Modal */}
             {

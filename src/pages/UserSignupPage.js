@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -13,9 +13,29 @@ const UserSignupPage = ({ redirectUrl }) => {
     const { signup } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const tableNumber = searchParams.get('table') || '1';
+    const tableNumber = searchParams.get('table');
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+    const [companyInfo, setCompanyInfo] = useState(null);
+
+    useEffect(() => {
+        const fetchCompanyInfo = async () => {
+            try {
+                const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000'
+                    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
+
+                const res = await fetch(`${API_URL}/api/company/public`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setCompanyInfo(json.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch company info", err);
+            }
+        };
+        fetchCompanyInfo();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -37,7 +57,7 @@ const UserSignupPage = ({ redirectUrl }) => {
 
         if (result.success) {
             // Redirect to login page with table number after successful signup
-            navigate(`/login?mode=login&table=${tableNumber}`);
+            navigate(`/login?mode=login${tableNumber ? `&table=${tableNumber}` : ''}`);
         } else {
             setError(result.message);
         }
@@ -84,16 +104,24 @@ const UserSignupPage = ({ redirectUrl }) => {
 
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
-                    <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                        <i className="fas fa-utensils text-white text-2xl"></i>
-                    </div>
+                    {companyInfo?.logo_url ? (
+                        <img
+                            src={companyInfo.logo_url}
+                            alt={companyInfo.company_name || "Company Logo"}
+                            className="w-24 h-24 object-contain rounded-full bg-white shadow-md p-2"
+                        />
+                    ) : (
+                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                            <i className="fas fa-utensils text-white text-2xl"></i>
+                        </div>
+                    )}
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                     {t('createAccountTitle')}
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     {t('or')}{' '}
-                    <Link to={`/login?mode=login&table=${tableNumber}`} className="font-medium text-blue-600 hover:text-blue-500">
+                    <Link to={`/login?mode=login${tableNumber ? `&table=${tableNumber}` : ''}`} className="font-medium text-blue-600 hover:text-blue-500">
                         {t('signInLink')}
                     </Link>
                 </p>

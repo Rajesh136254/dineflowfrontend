@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Chart from 'chart.js/auto';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 
@@ -14,6 +14,26 @@ function AnalyticsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
+    const [companyInfo, setCompanyInfo] = useState(null);
+
+    useEffect(() => {
+        const fetchCompanyInfo = async () => {
+            try {
+                const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000'
+                    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
+
+                const res = await fetch(`${API_URL}/api/company/public`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setCompanyInfo(json.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch company info", err);
+            }
+        };
+        fetchCompanyInfo();
+    }, []);
 
     // Refs for chart canvases
     const revenueChartRef = useRef(null);
@@ -631,7 +651,13 @@ function AnalyticsPage() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="gradient-bg text-white p-4 sm:p-6">
+            <div className={`text-white p-4 sm:p-6 transition-all duration-500 ${!companyInfo?.banner_url ? 'gradient-bg' : ''}`}
+                style={companyInfo?.banner_url ? {
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${companyInfo.banner_url})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                } : {}}
+            >
                 <div className="container mx-auto">
                     <div className="header-content flex justify-between items-start sm:items-center">
                         <div>

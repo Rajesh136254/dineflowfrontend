@@ -17,6 +17,22 @@ function IngredientsPage() {
     const [confirmModal, setConfirmModal] = useState({ show: false, message: '', onConfirm: null });
     const { token, logout } = useAuth();
     const navigate = useNavigate();
+    const [companyInfo, setCompanyInfo] = useState(null);
+
+    useEffect(() => {
+        const fetchCompanyInfo = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/company/public`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setCompanyInfo(json.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch company info", err);
+            }
+        };
+        fetchCompanyInfo();
+    }, []);
 
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });
@@ -149,10 +165,16 @@ function IngredientsPage() {
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
-                <div className="flex justify-between items-center mb-8">
+                <div className={`flex justify-between items-center mb-8 p-6 rounded-xl shadow-sm transition-all duration-500 ${!companyInfo?.banner_url ? 'bg-white' : 'text-white'}`}
+                    style={companyInfo?.banner_url ? {
+                        backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${companyInfo.banner_url})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                    } : {}}
+                >
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Ingredients Management</h1>
-                        <p className="text-gray-600">Manage your inventory and stock levels</p>
+                        <h1 className={`text-3xl font-bold ${!companyInfo?.banner_url ? 'text-gray-900' : 'text-white'}`}>Ingredients Management</h1>
+                        <p className={`${!companyInfo?.banner_url ? 'text-gray-600' : 'text-gray-200'}`}>Manage your inventory and stock levels</p>
                     </div>
                     <div className="flex gap-4">
                         <button onClick={() => navigate('/admin.html')} className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg transition">

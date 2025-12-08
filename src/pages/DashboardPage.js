@@ -22,179 +22,122 @@ function DashboardPage() {
     const pricingRef = useRef(null);
     const currencyDropdownRef = useRef(null);
 
-    // Currency conversion rates (relative to INR)
-    const currencyRates = {
-        INR: 1,
-        USD: 0.012,
-        EUR: 0.011,
-        GBP: 0.0095,
-        JPY: 1.75,
-        AUD: 0.018,
-        CAD: 0.016,
-        SGD: 0.016
-    };
+    // Currency Rates
+    const currencyRates = { INR: 1, USD: 0.012, EUR: 0.011, GBP: 0.0095, JPY: 1.75, AUD: 0.018, CAD: 0.016, SGD: 0.016 };
+    const currencySymbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', JPY: '¥', AUD: 'A$', CAD: 'C$', SGD: 'S$' };
 
-    // Currency symbols
-    const currencySymbols = {
-        INR: '₹',
-        USD: '$',
-        EUR: '€',
-        GBP: '£',
-        JPY: '¥',
-        AUD: 'A$',
-        CAD: 'C$',
-        SGD: 'S$'
-    };
-
-    // Testimonials data
+    // Testimonials
     const testimonials = [
-        {
-            name: "Sarah Johnson",
-            position: "Owner, The Garden Bistro",
-            image: "https://picsum.photos/seed/restaurant-owner/100/100.jpg",
-            quote: "EndOfHunger transformed our restaurant operations. Orders are processed 40% faster, and our customers love the convenience of ordering from their tables.",
-            rating: 5
-        },
-        {
-            name: "Michael Chen",
-            position: "Manager, Urban Eats",
-            image: "https://picsum.photos/seed/restaurant-manager/100/100.jpg",
-            quote: "The analytics dashboard has given us insights we never had before. We've optimized our menu based on real data and increased profits by 25%.",
-            rating: 5
-        },
-        {
-            name: "Emily Rodriguez",
-            position: "Chef, Coastal Kitchen",
-            image: "https://picsum.photos/seed/restaurant-chef/100/100.jpg",
-            quote: "Kitchen staff love the real-time order updates. No more confusion or missed tickets. It's streamlined our entire operation.",
-            rating: 5
-        }
+        { name: "Sarah Johnson", position: "Owner, The Garden Bistro", image: "https://picsum.photos/seed/restaurant-owner/100/100.jpg", quote: "EndOfHunger transformed our operations. Orders are 40% faster.", rating: 5 },
+        { name: "Michael Chen", position: "Manager, Urban Eats", image: "https://picsum.photos/seed/restaurant-manager/100/100.jpg", quote: "The analytics insight increased our profits by 25% in two months.", rating: 5 },
+        { name: "Emily Rodriguez", position: "Chef, Coastal Kitchen", image: "https://picsum.photos/seed/restaurant-chef/100/100.jpg", quote: "The KDS is a lifesaver. The kitchen is calm, organized, and efficient.", rating: 5 }
     ];
 
-    // Features data
+    // BENTO GRID FEATURES with realistic assets
     const features = [
         {
-            icon: 'fa-mobile-alt',
-            title: 'Mobile Ordering',
-            description: 'Customers can browse menus, customize orders, and pay directly from their phones.',
-            color: '#6366F1',
-            image: 'https://picsum.photos/seed/mobile-ordering/400/300.jpg'
-        },
-        {
+            id: 'qr',
+            title: 'Scan & Order',
+            description: 'Frictionless ordering experience. Customers scan, order, and pay without waiting.',
+            color: '#FF6B6B',
+            image: '/dash-feature-qr.png',
             icon: 'fa-qrcode',
-            title: 'QR Code Integration',
-            description: 'Generate unique QR codes for each table. No app downloads required.',
-            color: '#8B5CF6',
-            image: 'https://picsum.photos/seed/qr-code/400/300.jpg'
+            size: 'large' // Spans 2 cols, 2 rows
         },
         {
-            icon: 'fa-credit-card',
-            title: 'Secure Payments',
-            description: 'Multiple payment options with enterprise-grade security and instant processing.',
-            color: '#EC4899',
-            image: 'https://picsum.photos/seed/payments/400/300.jpg'
+            id: 'kds',
+            title: 'Live KDS',
+            description: 'Replace printers with smart screens. Real-time updates for your kitchen team.',
+            color: '#FFA502',
+            image: '/dash-feature-kds.png',
+            icon: 'fa-fire',
+            size: 'tall' // Spans 1 col, 2 rows
         },
         {
+            id: 'analytics',
+            title: 'Analytics & Insights',
+            description: 'Track sales, top items, and peak hours. Data-driven growth.',
+            color: '#2ED573',
+            image: '/dash-feature-analytics.png',
             icon: 'fa-chart-line',
-            title: 'Analytics Dashboard',
-            description: 'Track sales, popular items, and customer trends with detailed insights.',
-            color: '#10B981',
-            image: 'https://picsum.photos/seed/analytics/400/300.jpg'
+            size: 'wide' // Spans 2 cols, 1 row
         },
         {
-            icon: 'fa-chef-hat',
-            title: 'Kitchen Display',
-            description: 'Real-time order management for kitchen staff with status updates and timers.',
-            color: '#F59E0B',
-            image: 'https://picsum.photos/seed/kitchen/400/300.jpg'
+            id: 'tables',
+            title: 'Table Management',
+            description: 'Digital floor plan. Track occupancy status in real-time.',
+            color: '#A3CB38',
+            image: '/dash-feature-tables.png',
+            icon: 'fa-th',
+            size: 'medium'
         },
         {
-            icon: 'fa-cog',
-            title: 'Admin Panel',
-            description: 'Manage menu items, tables, and system settings with full control.',
-            color: '#EF4444',
-            image: 'https://picsum.photos/seed/admin/400/300.jpg'
+            id: 'menu',
+            title: 'Dynamic Menu',
+            description: 'Update items, prices, and images instantly everywhere.',
+            color: '#1289A7',
+            image: '/dash-feature-menu.png',
+            icon: 'fa-book-open',
+            size: 'medium'
+        },
+        {
+            id: 'inventory',
+            title: 'Smart Inventory',
+            description: 'Automated stock deduction. Low-stock alerts.',
+            color: '#1E90FF',
+            image: '/dash-feature-inventory.png',
+            icon: 'fa-cubes',
+            size: 'medium'
+        },
+        {
+            id: 'team',
+            title: 'Role Management',
+            description: 'Secure logins for Staff, Chefs, and Managers.',
+            color: '#5352ED',
+            image: '/dash-feature-team.png',
+            icon: 'fa-user-shield',
+            size: 'medium'
         }
     ];
 
-    // Calculate price in selected currency
-    const calculatePrice = () => {
-        const inrPrice = pricingPlan === 'monthly' ? 4999 : 3499;
-        const convertedPrice = inrPrice * currencyRates[currency];
-        return Math.round(convertedPrice);
-    };
+    const calculatePrice = () => Math.round((pricingPlan === 'monthly' ? 4999 : 3499) * currencyRates[currency]);
+    const formatPrice = (price) => currency === 'JPY' ? price.toLocaleString() : price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
-    // Format price with proper decimal places
-    const formatPrice = (price) => {
-        if (currency === 'JPY') {
-            return price.toLocaleString();
-        }
-        return price.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    };
-
-    // Scroll effects
+    // Scroll & Effects
     useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 50);
-        };
-
+        const handleScroll = () => setScrolled(window.scrollY > 50);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Auto-rotate testimonials
     useEffect(() => {
-        const interval = setInterval(() => {
-            setTestimonialIndex((prev) => (prev + 1) % testimonials.length);
-        }, 5000);
+        const interval = setInterval(() => setTestimonialIndex((prev) => (prev + 1) % testimonials.length), 5000);
         return () => clearInterval(interval);
     }, [testimonials.length]);
 
-    // Auto-rotate features
     useEffect(() => {
-        const interval = setInterval(() => {
-            setActiveFeature((prev) => (prev + 1) % features.length);
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [features.length]);
-
-    // Intersection Observer for animations
-    useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('animate-in');
-                    }
-                });
-            },
-            { threshold: 0.1 }
-        );
-
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('animate-in'); });
+        }, { threshold: 0.1 });
         const elements = document.querySelectorAll('.animate-on-scroll');
         elements.forEach(el => observer.observe(el));
-
-        return () => {
-            elements.forEach(el => observer.unobserve(el));
-        };
+        return () => elements.forEach(el => observer.unobserve(el));
     }, []);
 
-    // Close currency dropdown when clicking outside
+    // Dropdown Outside Click
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (showCurrencyDropdown && currencyDropdownRef.current && !currencyDropdownRef.current.contains(event.target)) {
                 setShowCurrencyDropdown(false);
             }
         };
-
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showCurrencyDropdown]);
 
-    const scrollToSection = useCallback((ref) => {
-        ref.current?.scrollIntoView({ behavior: 'smooth' });
-    }, []);
+    const scrollToSection = useCallback((ref) => { ref.current?.scrollIntoView({ behavior: 'smooth' }); }, []);
 
+    // Core Navigation Logic (Unchanged)
     const goToSignup = () => {
         setIsLoading(true);
         setTimeout(() => {
@@ -214,85 +157,46 @@ function DashboardPage() {
     };
 
     return (
-        <div className="dashboard">
-            {/* Animated Background */}
-            <div className="animated-background">
-                <div className="gradient-sphere sphere-1"></div>
-                <div className="gradient-sphere sphere-2"></div>
-                <div className="gradient-sphere sphere-3"></div>
-            </div>
+        <div className="dashboard stunning-theme">
+            {/* Hero Background using Inline Style to avoid Webpack errors */}
+            <div className="stunning-hero-bg" style={{ backgroundImage: "url('/dash-hero-bg.png')" }}></div>
 
             {/* Header */}
             <header className={`header ${scrolled ? 'scrolled' : ''}`}>
                 <div className="container">
                     <div className="header-content">
                         <div className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                            <div className="logo-icon">
-                                <i className="fas fa-utensils"></i>
-                            </div>
+                            <div className="logo-icon glass-icon"><i className="fas fa-utensils"></i></div>
                             <span className="logo-text">EndOfHunger</span>
                         </div>
-
                         <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
                             <ul className="nav-list">
                                 <li><a href="#home" onClick={(e) => { e.preventDefault(); scrollToSection(heroRef); }}>{t('home')}</a></li>
                                 <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>{t('features')}</a></li>
                                 <li><a href="#pricing" onClick={(e) => { e.preventDefault(); scrollToSection(pricingRef); }}>{t('pricing')}</a></li>
-                                <li><a href="#contact" onClick={(e) => e.preventDefault()}>{t('contact')}</a></li>
                             </ul>
                         </nav>
-
                         <div className="header-actions">
                             <div className="relative inline-block text-left mr-2">
-                                <button
-                                    onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                                    className="btn btn-secondary flex items-center gap-2"
-                                >
-                                    <i className="fas fa-globe"></i>
-                                    {language.toUpperCase()}
+                                <button onClick={() => setShowLanguageDropdown(!showLanguageDropdown)} className="btn btn-ghost flex items-center gap-2">
+                                    <i className="fas fa-globe"></i> {language.toUpperCase()}
                                 </button>
                                 {showLanguageDropdown && (
                                     <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-50 py-1">
-                                        {['en', 'es', 'fr', 'hi', 'zh', 'ta', 'ml', 'te'].map((lang) => (
-                                            <button
-                                                key={lang}
-                                                onClick={() => {
-                                                    changeLanguage(lang);
-                                                    setShowLanguageDropdown(false);
-                                                }}
-                                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                            >
-                                                {lang === 'en' ? 'English' :
-                                                    lang === 'es' ? 'Español' :
-                                                        lang === 'fr' ? 'Français' :
-                                                            lang === 'hi' ? 'हिंदी' :
-                                                                lang === 'zh' ? '中文' :
-                                                                    lang === 'ta' ? 'தமிழ்' :
-                                                                        lang === 'ml' ? 'മലയാളം' : 'తెలుగు'}
+                                        {['en', 'es', 'fr', 'hi', 'zh'].map((lang) => (
+                                            <button key={lang} onClick={() => { changeLanguage(lang); setShowLanguageDropdown(false); }} className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                {lang === 'en' ? 'English' : lang === 'hi' ? 'हिंदी' : lang}
                                             </button>
                                         ))}
                                     </div>
                                 )}
                             </div>
-                            <button className="btn btn-secondary" onClick={() => navigate('/signup')}>
-                                {t('login')}
+                            <button className="btn btn-secondary" onClick={() => navigate('/signup?mode=login')}>{t('login')}</button>
+                            <button className="btn btn-primary glow-effect" onClick={goToSignup} disabled={isLoading}>
+                                {isLoading ? <div className="spinner"></div> : t('getStarted')}
                             </button>
-                            <button className="btn btn-primary" onClick={goToSignup} disabled={isLoading}>
-                                {isLoading ? (
-                                    <div className="spinner"></div>
-                                ) : (
-                                    t('getStarted')
-                                )}
-                            </button>
-                            <button
-                                className="mobile-menu-toggle"
-                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                            >
-                                <span className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}>
-                                    <span></span>
-                                    <span></span>
-                                    <span></span>
-                                </span>
+                            <button className="mobile-menu-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                                <span className={`hamburger ${mobileMenuOpen ? 'active' : ''}`}><span></span><span></span><span></span></span>
                             </button>
                         </div>
                     </div>
@@ -303,150 +207,54 @@ function DashboardPage() {
             <section ref={heroRef} className="hero">
                 <div className="container">
                     <div className="hero-content">
-                        <div className="hero-text">
-                            <div className="hero-badge animate-on-scroll">
-                                <span>🎉 Revolutionize Your Restaurant Experience</span>
+                        <div className="hero-text glass-panel animate-on-scroll">
+                            <div className="hero-badge"><span>🚀 World Class Restaurant OS</span></div>
+                            <h1 className="hero-title">{t('heroTitle')}</h1>
+                            <p className="hero-description">{t('heroSubtitle')}</p>
+                            <div className="hero-actions">
+                                <button className="btn btn-hero-primary glow-effect" onClick={goToSignup}>Start Free Trial</button>
+                                <button className="btn btn-hero-secondary"><i className="fas fa-play"></i> Watch Demo</button>
                             </div>
-
-                            <h1 className="hero-title animate-on-scroll">
-                                {t('heroTitle')}
-                            </h1>
-
-                            <p className="hero-description animate-on-scroll">
-                                {t('heroSubtitle')}
-                            </p>
-
-                            <div className="hero-actions animate-on-scroll">
-                                <button className="btn btn-hero-primary" onClick={goToSignup}>
-                                    Start Free Trial
-                                </button>
-                                <button className="btn btn-hero-secondary">
-                                    <i className="fas fa-play-circle"></i>
-                                    Watch Demo
-                                </button>
-                            </div>
-
-                            <div className="hero-stats animate-on-scroll">
-                                <div className="stat">
-                                    <div className="stat-number">40%</div>
-                                    <div className="stat-label">Faster Service</div>
-                                </div>
-                                <div className="stat">
-                                    <div className="stat-number">25%</div>
-                                    <div className="stat-label">Higher Revenue</div>
-                                </div>
-                                <div className="stat">
-                                    <div className="stat-number">98%</div>
-                                    <div className="stat-label">Customer Satisfaction</div>
-                                </div>
+                            <div className="hero-stats">
+                                <div className="stat"><div className="stat-number">40%</div><div className="stat-label">Faster Service</div></div>
+                                <div className="stat"><div className="stat-number">25%</div><div className="stat-label">Higher Revenue</div></div>
                             </div>
                         </div>
-
                         <div className="hero-visual animate-on-scroll">
-                            <div className="phone-mockup">
-                                <div className="phone-frame">
-                                    <div className="phone-screen">
-                                        <div className="app-header">
-                                            <div className="restaurant-info">
-                                                <h3>The Garden Bistro</h3>
-                                                <p>Table 5 • 2 guests</p>
-                                            </div>
-                                            <div className="qr-icon">
-                                                <i className="fas fa-qrcode"></i>
-                                            </div>
-                                        </div>
-                                        <div className="menu-categories">
-                                            <div className="category active">Starters</div>
-                                            <div className="category">Mains</div>
-                                            <div className="category">Desserts</div>
-                                            <div className="category">Drinks</div>
-                                        </div>
-                                        <div className="menu-items">
-                                            <div className="menu-item">
-                                                <div className="item-image">
-                                                    <img src="https://picsum.photos/seed/food1/80/80.jpg" alt="Food" />
-                                                </div>
-                                                <div className="item-details">
-                                                    <h4>Garden Salad</h4>
-                                                    <p>Fresh organic greens</p>
-                                                    <div className="item-price">₹299</div>
-                                                </div>
-                                                <button className="add-btn">+</button>
-                                            </div>
-                                            <div className="menu-item">
-                                                <div className="item-image">
-                                                    <img src="https://picsum.photos/seed/food2/80/80.jpg" alt="Food" />
-                                                </div>
-                                                <div className="item-details">
-                                                    <h4>Bruschetta</h4>
-                                                    <p>Grilled bread & tomatoes</p>
-                                                    <div className="item-price">₹199</div>
-                                                </div>
-                                                <button className="add-btn">+</button>
-                                            </div>
-                                        </div>
-                                        <div className="cart-bar">
-                                            <div className="cart-info">
-                                                <span>2 items</span>
-                                                <span className="cart-total">₹498</span>
-                                            </div>
-                                            <button className="checkout-btn">Checkout</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="floating-elements">
-                                <div className="floating-card card-1">
-                                    <i className="fas fa-bell"></i>
-                                    <span>Order Ready!</span>
-                                </div>
-                                <div className="floating-card card-2">
-                                    <i className="fas fa-check-circle"></i>
-                                    <span>Payment Success</span>
-                                </div>
-                                <div className="floating-card card-3">
-                                    <i className="fas fa-star"></i>
-                                    <span>5.0 Rating</span>
-                                </div>
+                            <div className="realistic-mockup-container">
+                                <img src="/dash-hero-visual.png" alt="App on Phone" className="hero-realistic-image" />
+                                <div className="floating-card card-1 glass-card"><i className="fas fa-check-circle"></i><span>Order Scanned</span></div>
+                                <div className="floating-card card-2 glass-card"><i className="fas fa-bell"></i><span>Chef Notified</span></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Features Section */}
+            {/* Bento Grid Features Section */}
             <section ref={featuresRef} className="features">
                 <div className="container">
                     <div className="section-header animate-on-scroll">
-                        <h2 className="section-title">Powerful Features</h2>
-                        <p className="section-subtitle">Everything you need to streamline operations</p>
+                        <h2 className="section-title">The Complete Ecosystem</h2>
+                        <p className="section-subtitle">A stunning suite of tools designed for modern dining.</p>
                     </div>
 
-                    <div className="features-showcase">
-                        <div className="feature-tabs">
-                            {features.map((feature, index) => (
-                                <button
-                                    key={index}
-                                    className={`feature-tab ${activeFeature === index ? 'active' : ''}`}
-                                    onClick={() => setActiveFeature(index)}
-                                    style={{ '--color': feature.color }}
-                                >
-                                    <i className={`fas ${feature.icon}`}></i>
-                                    <span>{feature.title}</span>
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="feature-content animate-on-scroll">
-                            <div className="feature-image">
-                                <img src={features[activeFeature].image} alt={features[activeFeature].title} />
+                    <div className="bento-grid">
+                        {features.map((feature, index) => (
+                            <div key={index} className={`feature-card glass-card bento-${feature.size} animate-on-scroll`}>
+                                <div className="feature-image-wrapper">
+                                    <img src={feature.image} alt={feature.title} className="feature-realistic-img" />
+                                    <div className="feature-overlay"></div>
+                                </div>
+                                <div className="feature-details">
+                                    <div className="feature-icon" style={{ backgroundColor: feature.color }}>
+                                        <i className={`fas ${feature.icon}`}></i>
+                                    </div>
+                                    <h3>{feature.title}</h3>
+                                    <p>{feature.description}</p>
+                                </div>
                             </div>
-                            <div className="feature-info">
-                                <h3>{features[activeFeature].title}</h3>
-                                <p>{features[activeFeature].description}</p>
-                                <button className="btn btn-primary">Learn More</button>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -455,253 +263,87 @@ function DashboardPage() {
             <section ref={pricingRef} className="pricing">
                 <div className="container">
                     <div className="section-header animate-on-scroll">
-                        <h2 className="section-title">Simple Pricing</h2>
-                        <p className="section-subtitle">One plan, unlimited possibilities</p>
+                        <h2 className="section-title">Investment in Excellence</h2>
+                        <p className="section-subtitle">Simple, transparent pricing for unlimited growth.</p>
                     </div>
-
-                    <div className="pricing-controls animate-on-scroll">
-                        <div className="pricing-toggle">
-                            <button
-                                className={`toggle-btn ${pricingPlan === 'monthly' ? 'active' : ''}`}
-                                onClick={() => setPricingPlan('monthly')}
-                            >
-                                Monthly
-                            </button>
-                            <button
-                                className={`toggle-btn ${pricingPlan === 'yearly' ? 'active' : ''}`}
-                                onClick={() => setPricingPlan('yearly')}
-                            >
-                                Yearly <span className="discount">Save 20%</span>
-                            </button>
-                        </div>
-
-                        <div className="currency-selector" ref={currencyDropdownRef}>
-                            <button
-                                className="currency-btn"
-                                onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
-                            >
-                                <span>{currencySymbols[currency]}</span>
-                                <span>{currency}</span>
-                                <i className={`fas fa-chevron-${showCurrencyDropdown ? 'up' : 'down'}`}></i>
-                            </button>
-
-                            {showCurrencyDropdown && (
-                                <div className="currency-dropdown">
-                                    {Object.keys(currencyRates).map(curr => (
-                                        <button
-                                            key={curr}
-                                            className={`currency-option ${currency === curr ? 'active' : ''}`}
-                                            onClick={() => {
-                                                setCurrency(curr);
-                                                setShowCurrencyDropdown(false);
-                                            }}
-                                        >
-                                            <span>{currencySymbols[curr]}</span>
-                                            <span>{curr}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="pricing-card animate-on-scroll">
+                    <div className="pricing-card glass-card animate-on-scroll center-card">
                         <div className="pricing-header">
-                            <h3 className="pricing-title">Complete Solution</h3>
-                            <div className="pricing-price">
-                                <span className="currency-symbol">{currencySymbols[currency]}</span>
+                            <h3>Complete Suite</h3>
+                            <div className="price-display">
+                                <span className="currency">{currencySymbols[currency]}</span>
                                 <span className="amount">{formatPrice(calculatePrice())}</span>
-                                <span className="period">/{pricingPlan === 'monthly' ? 'mo' : 'mo'}</span>
-                            </div>
-                            <p className="pricing-description">Everything you need to run your restaurant efficiently</p>
-                        </div>
-
-                        <div className="pricing-features">
-                            <div className="feature-group">
-                                <h4>Core Features</h4>
-                                <ul>
-                                    <li><i className="fas fa-check"></i>Unlimited tables</li>
-                                    <li><i className="fas fa-check"></i>Advanced menu management</li>
-                                    <li><i className="fas fa-check"></i>Custom QR codes</li>
-                                    <li><i className="fas fa-check"></i>Real-time analytics</li>
-                                </ul>
-                            </div>
-
-                            <div className="feature-group">
-                                <h4>Advanced Features</h4>
-                                <ul>
-                                    <li><i className="fas fa-check"></i>Customer insights</li>
-                                    <li><i className="fas fa-check"></i>Priority support</li>
-                                    <li><i className="fas fa-check"></i>Custom branding</li>
-                                    <li><i className="fas fa-check"></i>API access</li>
-                                </ul>
+                                <span className="period">/mo</span>
                             </div>
                         </div>
-
-                        <button className="btn btn-primary pricing-btn" onClick={goToSignup}>
-                            Start Free Trial
-                        </button>
-
-                        <div className="pricing-guarantee">
-                            <i className="fas fa-shield-alt"></i>
-                            <span>14-day money-back guarantee</span>
+                        <div className="pricing-features-list">
+                            <ul>
+                                <li><i className="fas fa-check"></i> Unlimited Tables & Staff</li>
+                                <li><i className="fas fa-check"></i> Advanced KDS & Analytics</li>
+                                <li><i className="fas fa-check"></i> Instant Menu Updates</li>
+                                <li><i className="fas fa-check"></i> 24/7 Priority Support</li>
+                            </ul>
                         </div>
+                        <button className="btn btn-primary full-width" onClick={goToSignup}>Start 14-Day Free Trial</button>
                     </div>
                 </div>
             </section>
 
-            {/* Testimonials Section */}
-            <section className="testimonials">
+            {/* Advanced Footer */}
+            <footer className="footer-advanced">
                 <div className="container">
-                    <div className="section-header animate-on-scroll">
-                        <h2 className="section-title">Customer Success Stories</h2>
-                        <p className="section-subtitle">Join thousands of restaurants using EndOfHunger</p>
-                    </div>
-
-                    <div className="testimonial-slider animate-on-scroll">
-                        <div className="testimonial-card">
-                            <div className="testimonial-content">
-                                <div className="rating">
-                                    {[...Array(5)].map((_, i) => (
-                                        <i key={i} className="fas fa-star"></i>
-                                    ))}
-                                </div>
-                                <p className="testimonial-text">{testimonials[testimonialIndex].quote}</p>
-                            </div>
-                            <div className="testimonial-author">
-                                <img src={testimonials[testimonialIndex].image} alt={testimonials[testimonialIndex].name} className="author-image" />
-                                <div className="author-info">
-                                    <h4 className="author-name">{testimonials[testimonialIndex].name}</h4>
-                                    <p className="author-position">{testimonials[testimonialIndex].position}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="testimonial-dots">
-                            {testimonials.map((_, index) => (
-                                <button
-                                    key={index}
-                                    className={`dot ${index === testimonialIndex ? 'active' : ''}`}
-                                    onClick={() => setTestimonialIndex(index)}
-                                ></button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="cta">
-                <div className="container">
-                    <div className="cta-content animate-on-scroll">
-                        <h2 className="cta-title">Ready to End Hunger?</h2>
-                        <p className="cta-description">
-                            Start your free 14-day trial today. No credit card required.
-                        </p>
-
-                        <form className="cta-form" onSubmit={handleEmailSubmit}>
-                            <div className="input-group">
-                                <input
-                                    type="email"
-                                    placeholder="Enter your email address"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                                <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                                    {isLoading ? (
-                                        <div className="spinner"></div>
-                                    ) : (
-                                        'Get Started Free'
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-
-                        <div className="cta-features">
-                            <div className="cta-feature">
-                                <i className="fas fa-check-circle"></i>
-                                <span>No credit card required</span>
-                            </div>
-                            <div className="cta-feature">
-                                <i className="fas fa-check-circle"></i>
-                                <span>14-day free trial</span>
-                            </div>
-                            <div className="cta-feature">
-                                <i className="fas fa-check-circle"></i>
-                                <span>Cancel anytime</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Footer */}
-            <footer className="footer">
-                <div className="container">
-                    <div className="footer-content">
-                        <div className="footer-section">
-                            <div className="footer-logo">
-                                <div className="logo-icon">
+                    <div className="footer-grid">
+                        <div className="footer-brand">
+                            <div className="logo footer-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                                <div className="logo-icon glass-icon" style={{ width: '40px', height: '40px', fontSize: '1.2rem' }}>
                                     <i className="fas fa-utensils"></i>
                                 </div>
                                 <span className="logo-text">EndOfHunger</span>
                             </div>
-                            <p className="footer-description">
-                                The most advanced QR-based restaurant ordering system for enhanced dining experiences.
-                            </p>
-                            <div className="social-links">
-                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
-                                    <i className="fab fa-facebook-f"></i>
-                                </a>
-                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
-                                    <i className="fab fa-twitter"></i>
-                                </a>
-                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
-                                    <i className="fab fa-instagram"></i>
-                                </a>
-                                <a href="/" onClick={(e) => e.preventDefault()} className="social-link">
-                                    <i className="fab fa-linkedin-in"></i>
-                                </a>
+                            <p>Empowering restaurants with world-class technology. Join the dining revolution and scale your business today.</p>
+                            <div className="social-icons">
+                                <a href="#" className="social-icon" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
+                                <a href="#" className="social-icon" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+                                <a href="#" className="social-icon" aria-label="LinkedIn"><i className="fab fa-linkedin-in"></i></a>
+                                <a href="#" className="social-icon" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
                             </div>
                         </div>
 
-                        <div className="footer-section">
-                            <h3 className="footer-title">Product</h3>
-                            <ul className="footer-links">
+                        <div className="footer-links-col">
+                            <h4>Product</h4>
+                            <ul>
                                 <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>Features</a></li>
                                 <li><a href="#pricing" onClick={(e) => { e.preventDefault(); scrollToSection(pricingRef); }}>Pricing</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>FAQ</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>Integrations</a></li>
+                                <li><a href="#" onClick={(e) => e.preventDefault()}>KDS System</a></li>
+                                <li><a href="#" onClick={(e) => e.preventDefault()}>Smart Inventory</a></li>
                             </ul>
                         </div>
 
-                        <div className="footer-section">
-                            <h3 className="footer-title">Company</h3>
-                            <ul className="footer-links">
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>About</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>Blog</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>Careers</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>Contact</a></li>
+                        <div className="footer-links-col">
+                            <h4>Company</h4>
+                            <ul>
+                                <li><a href="#" onClick={(e) => e.preventDefault()}>About Us</a></li>
+                                <li><a href="#" onClick={(e) => e.preventDefault()}>Careers</a></li>
+                                <li><a href="#" onClick={(e) => e.preventDefault()}>Blog</a></li>
+                                <li><a href="#" onClick={(e) => e.preventDefault()}>Contact Support</a></li>
                             </ul>
                         </div>
 
-                        <div className="footer-section">
-                            <h3 className="footer-title">Support</h3>
-                            <ul className="footer-links">
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>Help Center</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>Documentation</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>API Reference</a></li>
-                                <li><a href="/" onClick={(e) => e.preventDefault()}>Status</a></li>
-                            </ul>
+                        <div className="footer-newsletter">
+                            <h4>Stay Ahead</h4>
+                            <p>Get the latest features, tips, and industry trends delivered to your inbox.</p>
+                            <form className="newsletter-form" onSubmit={(e) => { e.preventDefault(); alert("Thanks for subscribing!"); }}>
+                                <input type="email" placeholder="Enter your email" required />
+                                <button type="submit" className="btn-icon"><i className="fas fa-arrow-right"></i></button>
+                            </form>
                         </div>
                     </div>
 
                     <div className="footer-bottom">
-                        <p>&copy; 2023 EndOfHunger. All rights reserved.</p>
+                        <p>&copy; {new Date().getFullYear()} EndOfHunger Inc. All rights reserved.</p>
                         <div className="footer-legal">
-                            <a href="/" onClick={(e) => e.preventDefault()}>Privacy Policy</a>
-                            <a href="/" onClick={(e) => e.preventDefault()}>Terms of Service</a>
+                            <a href="#" onClick={(e) => e.preventDefault()}>Privacy Policy</a>
+                            <a href="#" onClick={(e) => e.preventDefault()}>Terms of Service</a>
+                            <a href="#" onClick={(e) => e.preventDefault()}>Cookie Policy</a>
                         </div>
                     </div>
                 </div>

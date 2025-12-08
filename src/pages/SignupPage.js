@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import './SignupPage.css';
 import ForgotPasswordModal from '../components/ForgotPasswordModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,9 +9,18 @@ export default function SignupPage() {
     ? 'http://localhost:5000'
     : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
-  const [mode, setMode] = useState("signup");
-  const [phase, setPhase] = useState("start");
-  const [showForm, setShowForm] = useState(false);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+
+  // Logic: 
+  // If mode=login -> Go straight to form (no start, no video)
+  // If mode=signup (default) -> Start button -> Video -> Form
+  const isLoginMode = searchParams.get('mode') === 'login';
+
+  const [mode, setMode] = useState(isLoginMode ? 'login' : 'signup');
+  const [phase, setPhase] = useState(isLoginMode ? "form" : "start");
+  const [showForm, setShowForm] = useState(isLoginMode);
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -21,14 +30,24 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
-  const [foodItems, setFoodItems] = useState([]);
-  const [interactiveMode, setInteractiveMode] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const navigate = useNavigate();
-  const formRef = useRef(null);
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
+
+  const navigate = useNavigate();
+  const formRef = useRef(null);
   const { login } = useAuth();
+
+  // Video end handler to show form
+  const handleVideoEnd = () => {
+    setPhase("form");
+    setShowForm(true);
+  };
+
+  // Transition from Start to Video
+  const startVideo = () => {
+    setPhase("video");
+  };
 
   const getPasswordStrengthColor = () => {
     if (passwordStrength <= 25) return "weak";
@@ -118,7 +137,8 @@ export default function SignupPage() {
           }
         } else {
           // Login success - Redirect
-          if (user?.role === 'admin') {
+          // Redirect to dashboard if user is admin OR has a specific role (not a regular customer)
+          if (user?.role === 'admin' || user?.role_id || user?.role !== 'customer') {
             if (companyUrl) {
               let redirectUrl = companyUrl;
               try {
@@ -158,53 +178,7 @@ export default function SignupPage() {
     }
   };
 
-  // Generate floating food items for background
-  useEffect(() => {
-    const foods = ["🍕", "🍔", "🍟", "🌮", "🍱", "🥘", "🍜", "🍣", "🍗", "🥙"];
-    const items = [];
-    for (let i = 0; i < 15; i++) {
-      items.push({
-        id: i,
-        icon: foods[Math.floor(Math.random() * foods.length)],
-        left: `${Math.random() * 100}%`,
-        animationDuration: `${15 + Math.random() * 20}s`,
-        animationDelay: `${Math.random() * 5}s`,
-        size: `${20 + Math.random() * 30}px`
-      });
-    }
-    setFoodItems(items);
-  }, []);
-
-  // Animation flow
-  const startRunning = () => {
-    setPhase("running");
-    setInteractiveMode(true);
-  };
-
-  useEffect(() => {
-    if (phase === "running") {
-      const t = setTimeout(() => setPhase("throwing"), 4000);
-      return () => clearTimeout(t);
-    }
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase === "throwing") {
-      const t = setTimeout(() => {
-        setPhase("form");
-        setShowForm(true);
-        setTimeout(() => {
-          if (formRef.current) {
-            const firstInput = formRef.current.querySelector('input');
-            if (firstInput) firstInput.focus();
-          }
-        }, 600);
-      }, 3000);
-      return () => clearTimeout(t);
-    }
-  }, [phase]);
-
-  // Form validation
+  // Form validation based on mode
   const validateForm = () => {
     const newErrors = {};
 
@@ -254,20 +228,6 @@ export default function SignupPage() {
     return "Strong password";
   };
 
-  // Interactive person controls
-  const handlePersonClick = () => {
-    if (interactiveMode && phase === "running") {
-      // Make the person jump when clicked
-      const person = document.querySelector('.signup-person');
-      if (person) {
-        person.classList.add('signup-jump');
-        setTimeout(() => {
-          person.classList.remove('signup-jump');
-        }, 1000);
-      }
-    }
-  };
-
   return (
     <div className="signup-page">
       {/* Animated Background */}
@@ -277,158 +237,35 @@ export default function SignupPage() {
         <div className="signup-gradient-sphere signup-sphere-3"></div>
       </div>
 
-      {/* Floating food items in background */}
-      {foodItems.map(item => (
-        <div
-          key={item.id}
-          className="signup-food-item"
-          style={{
-            left: item.left,
-            fontSize: item.size,
-            animationDuration: item.animationDuration,
-            animationDelay: item.animationDelay,
-          }}
-        >
-          {item.icon}
-        </div>
-      ))}
-
       {/* Main Content */}
       <div className="signup-content-container">
-        <h1 className="signup-page-title">
-          {phase === "start" ? "Welcome to EndOfHunger!" : "Let's Get You Fed!"}
-        </h1>
+
+        {/* Title only in Start Phase */}
+        {phase === "start" && (
+          <h1 className="signup-page-title">
+            Welcome to EndOfHunger!
+          </h1>
+        )}
 
         {/* Start Button */}
         {phase === "start" && (
-          <button className="signup-start-button" onClick={startRunning}>
+          <button className="signup-start-button" onClick={startVideo}>
             I'm Starving – Sign Me Up!
           </button>
         )}
 
-        {/* Hungry Text Overlay */}
-        {phase === "running" && (
-          <div className="signup-hungry-text-overlay">So hungry... need food! 🍽️</div>
+        {/* Video Phase */}
+        {phase === "video" && (
+          <div className="signup-video-wrapper">
+            <video
+              src="/intro-video.mp4"
+              autoPlay
+              playsInline
+              className="signup-intro-video"
+              onEnded={handleVideoEnd}
+            />
+          </div>
         )}
-
-        {/* 3D Character Container */}
-        <div className="signup-character-container" onClick={handlePersonClick}>
-          {/* Running Person */}
-          {phase === "running" && (
-            <div className="signup-person-container signup-running-person">
-              <div className="signup-person">
-                {/* Head */}
-                <div className="signup-head">
-                  <div className="signup-face">
-                    <div className="signup-eyes">
-                      <div className="signup-eye"></div>
-                      <div className="signup-eye"></div>
-                    </div>
-                    <div className="signup-mouth signup-hungry"></div>
-                  </div>
-                  {/* Hair */}
-                  <div className="signup-hair"></div>
-                </div>
-
-                {/* Body */}
-                <div className="signup-body">
-                  {/* Shirt details */}
-                  <div className="signup-shirt-details"></div>
-                </div>
-
-                {/* Arms */}
-                <div className="signup-arms">
-                  <div className="signup-arm signup-arm-left">
-                    <div className="signup-hand"></div>
-                  </div>
-                  <div className="signup-arm signup-arm-right">
-                    <div className="signup-hand"></div>
-                  </div>
-                </div>
-
-                {/* Legs */}
-                <div className="signup-legs">
-                  <div className="signup-leg signup-leg-left">
-                    <div className="signup-shoe"></div>
-                  </div>
-                  <div className="signup-leg signup-leg-right">
-                    <div className="signup-shoe"></div>
-                  </div>
-                </div>
-
-                {/* Stomach */}
-                <div className="signup-stomach signup-rumbling"></div>
-
-                {/* Hunger Bubble */}
-                <div className="signup-hunger-bubble">
-                  <div className="signup-hunger-text">🍔</div>
-                </div>
-
-                {/* Interactive hint */}
-                {interactiveMode && (
-                  <div className="signup-interactive-hint">Tap me!</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Throwing Person */}
-          {phase === "throwing" && (
-            <>
-              <div className="signup-person-container signup-throwing-person">
-                <div className="signup-person">
-                  {/* Head */}
-                  <div className="signup-head">
-                    <div className="signup-face">
-                      <div className="signup-eyes">
-                        <div className="signup-eye"></div>
-                        <div className="signup-eye"></div>
-                      </div>
-                      <div className="signup-mouth signup-happy"></div>
-                    </div>
-                    {/* Hair */}
-                    <div className="signup-hair"></div>
-                  </div>
-
-                  {/* Body */}
-                  <div className="signup-body">
-                    {/* Shirt details */}
-                    <div className="signup-shirt-details"></div>
-                  </div>
-
-                  {/* Arms */}
-                  <div className="signup-arms">
-                    <div className="signup-arm signup-arm-left">
-                      <div className="signup-hand"></div>
-                    </div>
-                    <div className="signup-arm signup-arm-right signup-throwing">
-                      <div className="signup-hand"></div>
-                    </div>
-                  </div>
-
-                  {/* Legs */}
-                  <div className="signup-legs">
-                    <div className="signup-leg signup-leg-left">
-                      <div className="signup-shoe"></div>
-                    </div>
-                    <div className="signup-leg signup-leg-right">
-                      <div className="signup-shoe"></div>
-                    </div>
-                  </div>
-
-                  {/* Stomach */}
-                  <div className="signup-stomach"></div>
-                </div>
-              </div>
-
-              {/* Briefcase */}
-              <div className="signup-briefcase">
-                <div className="signup-briefcase-body"></div>
-                <div className="signup-briefcase-handle"></div>
-              </div>
-            </>
-          )}
-        </div>
 
         {/* Signup Form */}
         {showForm && (

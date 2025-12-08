@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -13,10 +13,45 @@ const LoginPage = ({ redirectUrl }) => {
     const { login } = useAuth();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const tableNumber = searchParams.get('table') || '1';
+    const tableNumber = searchParams.get('table');
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [companyInfo, setCompanyInfo] = useState(null);
+    const { logout } = useAuth(); // Get logout function
+
+    // Clear session if mode=login is present (forced logout)
+    useEffect(() => {
+        const mode = searchParams.get('mode');
+        if (mode === 'login') {
+            // We can't call logout() directly here because it redirects to /login?mode=login 
+            // which would cause an infinite loop if not handled carefully.
+            // Instead, we manually clear storage to be safe, or rely on the fact that 
+            // the logout function ALREADY redirected us here.
+            // But to be double sure, let's clear localStorage.
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
+        const fetchCompanyInfo = async () => {
+            try {
+                const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000'
+                    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
+
+                const res = await fetch(`${API_URL}/api/company/public`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setCompanyInfo(json.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch company info", err);
+            }
+        };
+        fetchCompanyInfo();
+    }, []);
 
     // Use environment variable for API URL with fallback
     const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -24,7 +59,7 @@ const LoginPage = ({ redirectUrl }) => {
         : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
     // Use redirectUrl if provided, otherwise use default
-    const redirectTo = redirectUrl || `/customer.html?table=${tableNumber}`;
+    const redirectTo = redirectUrl || (tableNumber ? `/customer.html?table=${tableNumber}` : '/customer.html');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -37,7 +72,7 @@ const LoginPage = ({ redirectUrl }) => {
             // For QR flow (LoginPage), everyone goes to CustomerPage
             // We removed the admin redirect logic from here as requested
             if (result.user && (['user', 'customer'].includes(result.user.role))) {
-                navigate(`/customer.html?table=${tableNumber}`);
+                navigate(tableNumber ? `/customer.html?table=${tableNumber}` : '/customer.html');
             } else {
                 navigate(redirectTo);
             }
@@ -87,9 +122,17 @@ const LoginPage = ({ redirectUrl }) => {
 
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
-                    <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                        <i className="fas fa-utensils text-white text-2xl"></i>
-                    </div>
+                    {companyInfo?.logo_url ? (
+                        <img
+                            src={companyInfo.logo_url}
+                            alt={companyInfo.company_name || "Company Logo"}
+                            className="w-24 h-24 object-contain rounded-full bg-white shadow-md p-2"
+                        />
+                    ) : (
+                        <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                            <i className="fas fa-utensils text-white text-2xl"></i>
+                        </div>
+                    )}
                 </div>
                 <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                     {t('signInTitle')}

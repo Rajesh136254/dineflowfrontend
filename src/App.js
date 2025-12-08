@@ -10,6 +10,7 @@ import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import CustomerAuthPage from './pages/CustomerAuthPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import StaffPage from './pages/StaffPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -52,6 +53,7 @@ function App() {
             <Route path="/ingredients" element={<IngredientsPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/staff" element={<StaffPage />} />
 
             {/* Customer authentication flow */}
             <Route path="/login" element={<CustomerAuthPage />} />

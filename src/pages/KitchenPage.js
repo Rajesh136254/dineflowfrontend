@@ -10,6 +10,26 @@ function KitchenPage() {
     const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
     const { token, logout } = useAuth();
     const [deliveredDateFilter, setDeliveredDateFilter] = useState('today'); // New state for date filter
+    const [companyInfo, setCompanyInfo] = useState(null);
+
+    useEffect(() => {
+        const fetchCompanyInfo = async () => {
+            try {
+                const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? 'http://localhost:5000'
+                    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
+
+                const res = await fetch(`${API_URL}/api/company/public`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setCompanyInfo(json.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch company info", err);
+            }
+        };
+        fetchCompanyInfo();
+    }, []);
 
     // Refs for non-state values
     const audioRef = useRef(null);
@@ -230,10 +250,16 @@ function KitchenPage() {
         <div className="min-h-screen bg-gray-100 p-6">
             <audio ref={audioRef} src="/notification.mp3" />
 
-            <div className="flex justify-between items-center mb-8">
+            <div className={`flex justify-between items-center mb-8 p-6 rounded-xl shadow-sm transition-all duration-500 ${!companyInfo?.banner_url ? 'bg-white' : 'text-white'}`}
+                style={companyInfo?.banner_url ? {
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${companyInfo.banner_url})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                } : {}}
+            >
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-800">Kitchen Display System</h1>
-                    <p className="text-gray-500 text-sm mt-1">{connectionStatus}</p>
+                    <h1 className={`text-3xl font-bold ${!companyInfo?.banner_url ? 'text-gray-800' : 'text-white'}`}>Kitchen Display System</h1>
+                    <p className={`${!companyInfo?.banner_url ? 'text-gray-500' : 'text-gray-200'} text-sm mt-1`}>{connectionStatus}</p>
                 </div>
                 <div className="flex gap-4">
                     <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
@@ -242,9 +268,6 @@ function KitchenPage() {
                             {statusCounts.pending + statusCounts.preparing}
                         </span>
                     </div>
-                    <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
-                        Logout
-                    </button>
                 </div>
             </div>
 
