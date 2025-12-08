@@ -29,7 +29,15 @@ const RootRoute = () => {
     // Handle sub.localhost
     isSubdomain = true;
   }
-  // Handle production cases (e.g. sub.domain.com)
+  // Handle Render deployment (e.g. appname.onrender.com is Main, tenant.appname.onrender.com is Subdomain)
+  else if (hostname.endsWith('onrender.com')) {
+    if (parts.length === 3) {
+      isSubdomain = false; // Main App (Dashboard)
+    } else if (parts.length > 3) {
+      isSubdomain = true; // Tenant
+    }
+  }
+  // Handle other production cases (e.g. sub.domain.com)
   else if (parts.length > 2 && parts[0] !== 'www') {
     isSubdomain = true;
   }
