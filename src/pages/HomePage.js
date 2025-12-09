@@ -395,8 +395,8 @@ function HomePage() {
                         {visibleFeatures.map((feature, index) => (
                             <div key={index} className="feature-card bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition duration-300 transform hover:-translate-y-2 fade-in" style={{ animationDelay: `${index * 100}ms` }}>
                                 <div className="p-8">
-                                    <h3 className="text-2xl font-bold mb-4 text-gray-800">{feature.title}</h3>
-                                    <p className="text-gray-600 mb-6 leading-relaxed">{feature.description}</p>
+                                    <h3 className="text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
+                                    <p className="text-gray-800 font-medium mb-6 leading-relaxed">{feature.description}</p>
                                     {feature.isLink ? (
                                         <a href="#" className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
                                             {feature.demoText}
@@ -439,8 +439,8 @@ function HomePage() {
                                     <div className={`w-20 h-20 bg-${item.color}-100 rounded-2xl flex items-center justify-center mx-auto mb-6 transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}>
                                         <i className={`fas ${item.icon} text-${item.color}-600 text-2xl`}></i>
                                     </div>
-                                    <h4 className="font-bold text-xl text-gray-800 mb-3">{item.title}</h4>
-                                    <p className="text-gray-600 leading-relaxed">{item.description}</p>
+                                    <h4 className="font-bold text-xl text-gray-900 mb-3">{item.title}</h4>
+                                    <p className="text-gray-800 font-medium leading-relaxed">{item.description}</p>
                                 </div>
                             ))}
                         </div>
