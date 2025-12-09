@@ -393,26 +393,28 @@ function HomePage() {
                     {/* Feature Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
                         {visibleFeatures.map((feature, index) => (
-                            <div key={index} className="feature-card bg-white rounded-3xl shadow-xl overflow-hidden hover:shadow-2xl transition duration-300 transform hover:-translate-y-2 fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                                <div className="p-8">
-                                    <h3 className="text-2xl font-bold mb-4 text-gray-900">{feature.title}</h3>
-                                    <p className="text-gray-800 font-medium mb-6 leading-relaxed">{feature.description}</p>
-                                    {feature.isLink ? (
-                                        <a href="#" className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
-                                            {feature.demoText}
-                                        </a>
-                                    ) : (
-                                        <button onClick={() => handleCardNavigation(feature.path)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover`}>
-                                            {feature.demoText}
-                                        </button>
-                                    )}
+                            <div key={index} className="feature-card bg-white rounded-3xl shadow-lg hover:shadow-2xl transition duration-500 transform hover:-translate-y-2 fade-in relative z-10 flex flex-col h-full border border-gray-200" style={{ animationDelay: `${index * 100}ms` }}>
+                                <div className="p-8 flex flex-col flex-grow">
+                                    <h3 className="text-2xl font-bold mb-4" style={{ color: '#000000' }}>{feature.title}</h3>
+                                    <p className="font-medium mb-6 leading-relaxed flex-grow" style={{ color: '#334155' }}>{feature.description}</p>
+                                    <div className="mt-auto">
+                                        {feature.isLink ? (
+                                            <a href="#" className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover shadow-md`}>
+                                                {feature.demoText}
+                                            </a>
+                                        ) : (
+                                            <button onClick={() => handleCardNavigation(feature.path)} className={`block w-full ${feature.buttonColor} text-white font-semibold py-4 px-6 rounded-xl transition duration-300 text-center btn-hover shadow-md`}>
+                                                {feature.demoText}
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
                     {/* Why Choose Us Section */}
-                    <div className="glass-effect rounded-3xl shadow-2xl p-10 mb-16 fade-in">
+                    < div className="glass-effect rounded-3xl shadow-2xl p-10 mb-16 fade-in" >
                         <h3 className="text-3xl font-bold text-gray-800 mb-10 text-center">Why Choose EndOfHunger?</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {[
@@ -439,8 +441,8 @@ function HomePage() {
                                     <div className={`w-20 h-20 bg-${item.color}-100 rounded-2xl flex items-center justify-center mx-auto mb-6 transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}>
                                         <i className={`fas ${item.icon} text-${item.color}-600 text-2xl`}></i>
                                     </div>
-                                    <h4 className="font-bold text-xl text-gray-900 mb-3">{item.title}</h4>
-                                    <p className="text-gray-800 font-medium leading-relaxed">{item.description}</p>
+                                    <h4 className="font-bold text-xl text-black mb-3">{item.title}</h4>
+                                    <p className="text-black font-medium leading-relaxed">{item.description}</p>
                                 </div>
                             ))}
                         </div>
