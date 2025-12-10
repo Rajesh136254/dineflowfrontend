@@ -100,48 +100,26 @@ export default function SignupPage() {
           // REMOVED BLOCKING CHECK AS PER USER REQUEST TO ENABLE LIVE SUBDOMAINS
 
           // After successful admin signup, redirect to the company-specific site if available.
-          if (companyUrl) {
-            let redirectUrl = companyUrl;
-            try {
-              const url = new URL(companyUrl);
-              if (token) {
-                url.searchParams.set('token', token);
-              }
-              redirectUrl = url.toString();
-            } catch {
-              // If URL parsing fails for any reason, fall back to plain redirect
-            }
-
-            setAuthSuccess("Registration successful! Redirecting to your restaurant site...");
-            setTimeout(() => {
-              window.location.href = redirectUrl;
-            }, 2000);
-          } else {
-            // Fallback: stay on this page and show login tab
-            setMode("login");
-            setAuthSuccess("Registration successful! Please login.");
-          }
+          // REMOVED REDIRECT to companyUrl.
+          // Just navigate to dashboard/homepage.
+          setAuthSuccess("Registration successful! Redirecting...");
+          setTimeout(() => {
+            navigate('/homepage');
+          }, 2000);
+          /* if (companyUrl) { ... } */
+          // Fallback: stay on this page and show login tab
+          setMode("login");
+          setAuthSuccess("Registration successful! Please login.");
         } else {
           // Login success - Redirect
           if (user?.role === 'admin' || user?.role_id || user?.role !== 'customer') {
 
             // REMOVED BLOCKING CHECK FOR LOGIN AS WELL
 
-            if (companyUrl) {
-              let redirectUrl = companyUrl;
-              try {
-                const url = new URL(companyUrl);
-                if (token) {
-                  url.searchParams.set('token', token);
-                }
-                redirectUrl = url.toString();
-              } catch {
-                // Ignore URL parsing errors and just use raw companyUrl
-              }
-              window.location.href = redirectUrl;
-            } else {
-              navigate('/homepage');
-            }
+            // REMOVED SUBDOMAIN REDIRECT AS PER USER REQUEST
+            // relying on local state and token for auth.
+            navigate('/homepage');
+            // if (companyUrl) { ... }
             return;
           }
 
