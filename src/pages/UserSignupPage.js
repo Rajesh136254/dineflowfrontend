@@ -56,8 +56,8 @@ const UserSignupPage = ({ redirectUrl }) => {
         const result = await signup(fullName, email, password);
 
         if (result.success) {
-            // Redirect to login page with table number after successful signup
-            navigate(`/login?mode=login${tableNumber ? `&table=${tableNumber}` : ''}`);
+            // Redirect directly to customer page with table number
+            navigate(tableNumber ? `/customer.html?table=${tableNumber}` : '/customer.html');
         } else {
             setError(result.message);
         }
