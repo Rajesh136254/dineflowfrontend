@@ -142,8 +142,9 @@ function CustomerPage() {
     useEffect(() => {
         if (!token) {
             const currentTable = searchParams.get('table') || tableNumber;
-            // Force redirect to signup/login
-            navigate(`/signup?mode=login${currentTable ? `&table=${currentTable}` : ''}`);
+            // Force redirect to CustomerAuthPage (UserSignupPage)
+            // User requested flow: Scan -> UserSignupPage -> Login -> CustomerPage
+            navigate(`/login?mode=signup${currentTable ? `&table=${currentTable}` : ''}`);
         }
     }, [token, navigate, searchParams, tableNumber]);
 
