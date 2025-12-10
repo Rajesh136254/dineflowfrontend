@@ -12,14 +12,10 @@ export default function SignupPage() {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
 
-  // Logic: 
-  // If mode=login -> Go straight to form (no start, no video)
-  // If mode=signup (default) -> Start button -> Video -> Form
   const isLoginMode = searchParams.get('mode') === 'login';
 
+  // Directly manage form/login mode. Video is now background.
   const [mode, setMode] = useState(isLoginMode ? 'login' : 'signup');
-  const [phase, setPhase] = useState(isLoginMode ? "form" : "start");
-  const [showForm, setShowForm] = useState(isLoginMode);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -36,18 +32,7 @@ export default function SignupPage() {
 
   const navigate = useNavigate();
   const formRef = useRef(null);
-  const { login } = useAuth();
-
-  // Video end handler to show form
-  const handleVideoEnd = () => {
-    setPhase("form");
-    setShowForm(true);
-  };
-
-  // Transition from Start to Video
-  const startVideo = () => {
-    setPhase("video");
-  };
+  const { login, updateAuthState } = useAuth(); // Import updateAuthState
 
   const getPasswordStrengthColor = () => {
     if (passwordStrength <= 25) return "weak";
@@ -97,12 +82,10 @@ export default function SignupPage() {
 
 
       if (data.success) {
-        // Store user data and token in localStorage
-        localStorage.setItem("user", JSON.stringify(data.data));
-
-        // CRITICAL: Store the JWT token for authenticated API requests
-        if (data.data.token) {
-          localStorage.setItem("token", data.data.token);
+        // Use simpler logic: Update global auth state directly
+        // This ensures profile email/name is reflected immediately without reload
+        if (data.data && data.data.token) {
+          updateAuthState(data.data);
         }
 
         const user = data.data;
@@ -243,190 +226,167 @@ export default function SignupPage() {
 
   return (
     <div className="signup-page">
-      {/* Animated Background */}
-      <div className="signup-animated-background">
-        <div className="signup-gradient-sphere signup-sphere-1"></div>
-        <div className="signup-gradient-sphere signup-sphere-2"></div>
-        <div className="signup-gradient-sphere signup-sphere-3"></div>
+      {/* Animated Background - Replaced by Video */}
+      <div className="signup-video-background fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-black/40 z-10"></div> {/* Overlay for readability */}
+        <video
+          src="/intro-video.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover object-center"
+        />
       </div>
 
       {/* Main Content */}
-      <div className="signup-content-container">
+      <div className="signup-content-container relative z-20">
 
-        {/* Title only in Start Phase */}
-        {phase === "start" && (
-          <h1 className="signup-page-title">
-            Welcome to EndOfHunger!
-          </h1>
-        )}
-
-        {/* Start Button */}
-        {phase === "start" && (
-          <button className="signup-start-button" onClick={startVideo}>
-            I'm Starving – Sign Me Up!
-          </button>
-        )}
-
-        {/* Video Phase */}
-        {phase === "video" && (
-          <div className="signup-video-wrapper">
-            <video
-              src="/intro-video.mp4"
-              autoPlay
-              playsInline
-              className="signup-intro-video"
-              onEnded={handleVideoEnd}
-            />
-          </div>
-        )}
-
-        {/* Signup Form */}
-        {showForm && (
-          <div className="signup-form-overlay">
-            <div className="signup-form-container" ref={formRef}>
-              <div className="signup-form-card">
-                <div className="signup-form-header">
-                  <div className="signup-logo-section">
-                    <div className="signup-logo">
-                      <i className="fas fa-utensils"></i>
-                    </div>
-                    <h2>EndOfHunger</h2>
+        {/* Signup Form - Always Visible */}
+        <div className="signup-form-overlay">
+          <div className="signup-form-container" ref={formRef}>
+            <div className="signup-form-card">
+              <div className="signup-form-header">
+                <div className="signup-logo-section">
+                  <div className="signup-logo">
+                    <i className="fas fa-utensils"></i>
                   </div>
-                  <div className="signup-tabs">
-                    <div
-                      className={`signup-tab ${mode === "signup" ? "signup-active" : ""}`}
-                      onClick={() => setMode("signup")}
-                    >
-                      Sign Up
-                    </div>
-                    <div
-                      className={`signup-tab ${mode === "login" ? "signup-active" : ""}`}
-                      onClick={() => setMode("login")}
-                    >
-                      Login
-                    </div>
+                  <h2>EndOfHunger</h2>
+                </div>
+                <div className="signup-tabs">
+                  <div
+                    className={`signup-tab ${mode === "signup" ? "signup-active" : ""}`}
+                    onClick={() => setMode("signup")}
+                  >
+                    Sign Up
+                  </div>
+                  <div
+                    className={`signup-tab ${mode === "login" ? "signup-active" : ""}`}
+                    onClick={() => setMode("login")}
+                  >
+                    Login
                   </div>
                 </div>
+              </div>
 
-                <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit}>
+                {mode === "signup" && (
+                  <div className="signup-input-group">
+                    <label htmlFor="fullName">Full Name</label>
+                    <div className="signup-input-wrapper">
+                      <div className="signup-input-icon">
+                        <i className="fas fa-user"></i>
+                      </div>
+                      <input
+                        type="text"
+                        id="fullName"
+                        name="fullName"
+                        placeholder="Enter your full name"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                        className={errors.fullName ? "signup-error" : ""}
+                        required
+                      />
+                    </div>
+                    {errors.fullName && <div className="signup-error-message">{errors.fullName}</div>}
+                  </div>
+                )}
+
+                <div className="signup-input-group">
+                  <label htmlFor="email">Email Address</label>
+                  <div className="signup-input-wrapper">
+                    <div className="signup-input-icon">
+                      <i className="fas fa-envelope"></i>
+                    </div>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className={errors.email ? "signup-error" : ""}
+                      required
+                    />
+                  </div>
+                  {errors.email && <div className="signup-error-message">{errors.email}</div>}
+                </div>
+
+                <div className="signup-input-group">
+                  <label htmlFor="password">Password</label>
+                  <div className="signup-input-wrapper">
+                    <div className="signup-input-icon">
+                      <i className="fas fa-lock"></i>
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={errors.password ? "signup-error" : ""}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="signup-password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <i className="fas fa-eye-slash"></i>
+                      ) : (
+                        <i className="fas fa-eye"></i>
+                      )}
+                    </button>
+                  </div>
+                  {errors.password && <div className="signup-error-message">{errors.password}</div>}
+
                   {mode === "signup" && (
-                    <div className="signup-input-group">
-                      <label htmlFor="fullName">Full Name</label>
-                      <div className="signup-input-wrapper">
-                        <div className="signup-input-icon">
-                          <i className="fas fa-user"></i>
-                        </div>
-                        <input
-                          type="text"
-                          id="fullName"
-                          name="fullName"
-                          placeholder="Enter your full name"
-                          value={formData.fullName}
-                          onChange={handleInputChange}
-                          className={errors.fullName ? "signup-error" : ""}
-                          required
-                        />
+                    <div className="signup-password-strength">
+                      <div className="signup-strength-bar">
+                        <div
+                          className={`signup-strength-fill ${getPasswordStrengthColor()}`}
+                          style={{ width: `${passwordStrength}%` }}
+                        ></div>
                       </div>
-                      {errors.fullName && <div className="signup-error-message">{errors.fullName}</div>}
+                      <div className="signup-strength-text">{getPasswordStrengthText()}</div>
                     </div>
                   )}
 
-                  <div className="signup-input-group">
-                    <label htmlFor="email">Email Address</label>
-                    <div className="signup-input-wrapper">
-                      <div className="signup-input-icon">
-                        <i className="fas fa-envelope"></i>
-                      </div>
-                      <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        placeholder="Enter your email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        className={errors.email ? "signup-error" : ""}
-                        required
-                      />
+                  {mode === "login" && (
+                    <div className="signup-forgot-password">
+                      <span onClick={() => setShowForgotPassword(true)}>Forgot Password?</span>
                     </div>
-                    {errors.email && <div className="signup-error-message">{errors.email}</div>}
-                  </div>
-
-                  <div className="signup-input-group">
-                    <label htmlFor="password">Password</label>
-                    <div className="signup-input-wrapper">
-                      <div className="signup-input-icon">
-                        <i className="fas fa-lock"></i>
-                      </div>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className={errors.password ? "signup-error" : ""}
-                        required
-                      />
-                      <button
-                        type="button"
-                        className="signup-password-toggle"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <i className="fas fa-eye-slash"></i>
-                        ) : (
-                          <i className="fas fa-eye"></i>
-                        )}
-                      </button>
-                    </div>
-                    {errors.password && <div className="signup-error-message">{errors.password}</div>}
-
-                    {mode === "signup" && (
-                      <div className="signup-password-strength">
-                        <div className="signup-strength-bar">
-                          <div
-                            className={`signup-strength-fill ${getPasswordStrengthColor()}`}
-                            style={{ width: `${passwordStrength}%` }}
-                          ></div>
-                        </div>
-                        <div className="signup-strength-text">{getPasswordStrengthText()}</div>
-                      </div>
-                    )}
-
-                    {mode === "login" && (
-                      <div className="signup-forgot-password">
-                        <span onClick={() => setShowForgotPassword(true)}>Forgot Password?</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Authentication error message */}
-                  {authSuccess && <div className="signup-auth-success" style={{ color: '#4caf50', marginBottom: '1rem', textAlign: 'center', padding: '10px', background: 'rgba(76, 175, 80, 0.1)', borderRadius: '8px' }}>{authSuccess}</div>}
-                  {authError && <div className="signup-auth-error">{authError}</div>}
-
-                  <button type="submit" className="signup-submit-button" disabled={isLoading}>
-                    {isLoading ? (
-                      <div className="signup-loading-spinner"></div>
-                    ) : (
-                      <>
-                        <span>{mode === "signup" ? "Create Account" : "Log In"}</span>
-                        <i className="fas fa-arrow-right"></i>
-                      </>
-                    )}
-                  </button>
-                </form>
-
-                <div className="signup-form-footer">
-                  {mode === "signup" ? (
-                    <>Already have an account? <span onClick={() => setMode("login")}>Login</span></>
-                  ) : (
-                    <>Need an account? <span onClick={() => setMode("signup")}>Sign Up</span></>
                   )}
                 </div>
+
+                {/* Authentication error message */}
+                {authSuccess && <div className="signup-auth-success" style={{ color: '#4caf50', marginBottom: '1rem', textAlign: 'center', padding: '10px', background: 'rgba(76, 175, 80, 0.1)', borderRadius: '8px' }}>{authSuccess}</div>}
+                {authError && <div className="signup-auth-error">{authError}</div>}
+
+                <button type="submit" className="signup-submit-button" disabled={isLoading}>
+                  {isLoading ? (
+                    <div className="signup-loading-spinner"></div>
+                  ) : (
+                    <>
+                      <span>{mode === "signup" ? "Create Account" : "Log In"}</span>
+                      <i className="fas fa-arrow-right"></i>
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="signup-form-footer">
+                {mode === "signup" ? (
+                  <>Already have an account? <span onClick={() => setMode("login")}>Login</span></>
+                ) : (
+                  <>Need an account? <span onClick={() => setMode("signup")}>Sign Up</span></>
+                )}
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Forgot Password Modal */}

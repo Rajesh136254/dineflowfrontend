@@ -4,7 +4,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import io from 'socket.io-client';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
 const generateFoodImageURL = (itemName, imageUrl) => {
     if (imageUrl) {
@@ -610,31 +612,31 @@ function CustomerPage() {
                         backgroundPosition: 'center'
                     } : {}}
                 >
-                    <div className="container mx-auto">
+                    <div className="container mx-auto px-4">
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center">
+                            <div className="flex items-center min-w-0"> {/* min-w-0 allows shrinking */}
                                 {companyInfo?.logo_url ? (
-                                    <img src={companyInfo.logo_url} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover mr-2 sm:mr-3 border-2 border-white" />
+                                    <img src={companyInfo.logo_url} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover mr-2 sm:mr-3 border-2 border-white flex-shrink-0" />
                                 ) : (
-                                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center mr-2 sm:mr-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
                                         <i className="fas fa-utensils text-blue-600 text-sm sm:text-base"></i>
                                     </div>
                                 )}
-                                <div>
-                                    <h1 className="text-lg sm:text-2xl font-bold">{t('menu')}</h1>
-                                    <p className="text-blue-100 text-xs sm:text-sm flex items-center">
-                                        <i className="fas fa-chair mr-1"></i> {t('table')} #<span>{tableNumber}</span>
+                                <div className="truncate">
+                                    <h1 className="text-base sm:text-2xl font-bold truncate">{t('menu')}</h1>
+                                    <p className="text-blue-100 text-xs sm:text-sm flex items-center truncate">
+                                        <i className="fas fa-chair mr-1"></i> {t('table')} #<span className="font-semibold ml-0.5">{tableNumber}</span>
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 sm:gap-4">
+                            <div className="flex items-center gap-1 sm:gap-4 flex-shrink-0 ml-2">
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                                        className="bg-white/20 backdrop-blur-sm rounded-lg p-1 sm:p-2 flex items-center gap-1 text-xs sm:text-sm"
+                                        className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5 sm:p-2 flex items-center gap-1 text-xs sm:text-sm"
                                     >
                                         <i className="fas fa-globe"></i>
-                                        {language.toUpperCase()}
+                                        <span className="hidden sm:inline">{language.toUpperCase()}</span>
                                     </button>
                                     {showLanguageDropdown && (
                                         <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-50 py-1 text-gray-800">
@@ -659,21 +661,21 @@ function CustomerPage() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-1 sm:p-2">
-                                    <select value={currentCurrency} onChange={(e) => setCurrentCurrency(e.target.value)} className="bg-transparent text-white px-2 sm:px-3 py-1 sm:py-2 rounded-lg border-none outline-none text-xs sm:text-sm">
+                                <div className="hidden xs:block bg-white/20 backdrop-blur-sm rounded-lg p-1 sm:p-2"> {/* Hidden on very small screens if needed, otherwise xs:block */}
+                                    <select value={currentCurrency} onChange={(e) => setCurrentCurrency(e.target.value)} className="bg-transparent text-white px-1 sm:px-3 py-0.5 sm:py-2 rounded-lg border-none outline-none text-xs sm:text-sm w-16 sm:w-auto">
                                         <option value="INR" className="text-gray-800">₹ INR</option>
                                         <option value="USD" className="text-gray-800">$ USD</option>
                                     </select>
                                 </div>
-                                <button onClick={() => setIsOrdersModalOpen(true)} className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 hover:bg-white/30 transition">
-                                    <i className="fas fa-clipboard-list text-white"></i>
+                                <button onClick={() => setIsOrdersModalOpen(true)} className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5 sm:p-3 hover:bg-white/30 transition">
+                                    <i className="fas fa-clipboard-list text-white text-xs sm:text-base"></i>
                                 </button>
-                                <button onClick={() => setIsCartModalOpen(true)} className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 hover:bg-white/30 transition relative">
-                                    <i className="fas fa-shopping-cart text-white"></i>
-                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center cart-badge">{cartCount}</span>
+                                <button onClick={() => setIsCartModalOpen(true)} className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5 sm:p-3 hover:bg-white/30 transition relative">
+                                    <i className="fas fa-shopping-cart text-white text-xs sm:text-base"></i>
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] sm:text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center cart-badge">{cartCount}</span>
                                 </button>
-                                <button onClick={handleLogout} className="bg-white/20 backdrop-blur-sm rounded-lg p-2 sm:p-3 hover:bg-white/30 transition">
-                                    <i className="fas fa-sign-out-alt text-white"></i>
+                                <button onClick={handleLogout} className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5 sm:p-3 hover:bg-white/30 transition">
+                                    <i className="fas fa-sign-out-alt text-white text-xs sm:text-base"></i>
                                 </button>
                             </div>
                         </div>

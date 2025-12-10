@@ -66,16 +66,29 @@ const UserSignupPage = ({ redirectUrl }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+        <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+            {/* Video Background */}
+            <div className="fixed inset-0 z-0">
+                <div className="absolute inset-0 bg-black/40 z-10"></div>
+                <video
+                    src="/intro-video.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover object-center"
+                />
+            </div>
+
             {/* Language Selector */}
             <div className="absolute top-4 right-4 z-10">
                 <div className="relative">
                     <button
                         onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                        className="bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 flex items-center gap-2 hover:bg-gray-50 transition"
+                        className="bg-white/80 backdrop-blur px-4 py-2 rounded-lg shadow-sm border border-gray-200 flex items-center gap-2 hover:bg-white transition"
                     >
-                        <i className="fas fa-globe text-gray-500"></i>
-                        <span className="uppercase font-medium text-gray-700">{language}</span>
+                        <i className="fas fa-globe text-gray-700"></i>
+                        <span className="uppercase font-medium text-gray-800">{language}</span>
                     </button>
                     {showLanguageDropdown && (
                         <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-50 py-1 text-gray-800 border border-gray-100">
@@ -102,7 +115,7 @@ const UserSignupPage = ({ redirectUrl }) => {
                 </div>
             </div>
 
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
                     {companyInfo?.logo_url ? (
                         <img
@@ -127,7 +140,7 @@ const UserSignupPage = ({ redirectUrl }) => {
                 </p>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="relative z-10 mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     {error && (
                         <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">

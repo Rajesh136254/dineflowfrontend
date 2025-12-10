@@ -145,13 +145,21 @@ export const AuthProvider = ({ children }) => {
     window.location.href = '/login';
   };
 
+  const updateAuthState = (userData) => {
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', userData.token);
+    setToken(userData.token);
+    setCurrentUser(userData);
+  };
+
   const value = {
     currentUser,
     token,
     isLoading,
     login,
     signup,
-    logout
+    logout,
+    updateAuthState
   };
 
   return (
