@@ -84,7 +84,19 @@ const LoginPage = ({ redirectUrl }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative">
+        <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+            {/* Video Background */}
+            <div className="fixed inset-0 z-0">
+                <div className="absolute inset-0 bg-black/40 z-10"></div>
+                <video
+                    src="/intro-video.mp4"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover object-center"
+                />
+            </div>
             {/* Language Selector */}
             <div className="absolute top-4 right-4 z-10">
                 <div className="relative">
@@ -120,7 +132,7 @@ const LoginPage = ({ redirectUrl }) => {
                 </div>
             </div>
 
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center">
                     {companyInfo?.logo_url ? (
                         <img
@@ -134,19 +146,19 @@ const LoginPage = ({ redirectUrl }) => {
                         </div>
                     )}
                 </div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                <h2 className="mt-6 text-center text-3xl font-extrabold text-white sm:text-gray-900 drop-shadow-md sm:drop-shadow-none">
                     {t('signInTitle')}
                 </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
+                <p className="mt-2 text-center text-sm text-gray-200 sm:text-gray-600">
                     {t('or')}{' '}
-                    <Link to={`/login?mode=signup&table=${tableNumber}`} className="font-medium text-blue-600 hover:text-blue-500">
+                    <Link to={`/login?mode=signup&table=${tableNumber}`} className="font-medium text-blue-400 sm:text-blue-600 hover:text-blue-300 sm:hover:text-blue-500">
                         {t('createAccountLink')}
                     </Link>
                 </p>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="relative z-10 mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="bg-white/90 backdrop-blur-md py-8 px-4 shadow sm:rounded-lg sm:px-10">
                     {error && (
                         <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4">
                             <div className="flex">

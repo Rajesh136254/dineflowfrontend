@@ -65,6 +65,7 @@ const translations = {
         preparing: "Preparing",
         ready: "Ready",
         delivered: "Delivered",
+        noOrders: "No orders found",
 
         // Nutritional
         nutritionalInfo: "Nutritional Info",

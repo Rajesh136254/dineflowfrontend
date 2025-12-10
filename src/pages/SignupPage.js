@@ -94,15 +94,10 @@ export default function SignupPage() {
         const token = data.data.token;
 
         // Redirect based on mode
+        // Redirect based on mode
         if (mode === "signup") {
           // Check for Vercel/Render deployments where wildcards are not supported
-          const hostname = window.location.hostname;
-          if (hostname.endsWith('vercel.app') || hostname.endsWith('onrender.com')) {
-            // On Live, fallback to Login tab
-            setMode("login");
-            setAuthSuccess("Registration successful! Please login.");
-            return;
-          }
+          // REMOVED BLOCKING CHECK AS PER USER REQUEST TO ENABLE LIVE SUBDOMAINS
 
           // After successful admin signup, redirect to the company-specific site if available.
           if (companyUrl) {
@@ -129,11 +124,8 @@ export default function SignupPage() {
         } else {
           // Login success - Redirect
           if (user?.role === 'admin' || user?.role_id || user?.role !== 'customer') {
-            const hostname = window.location.hostname;
-            if (hostname.endsWith('vercel.app') || hostname.endsWith('onrender.com')) {
-              navigate('/homepage');
-              return;
-            }
+
+            // REMOVED BLOCKING CHECK FOR LOGIN AS WELL
 
             if (companyUrl) {
               let redirectUrl = companyUrl;

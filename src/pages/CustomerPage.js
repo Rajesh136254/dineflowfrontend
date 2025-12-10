@@ -585,11 +585,13 @@ function CustomerPage() {
     // --- useEffect Hooks ---
 
     // 1. Load static data on mount
+    // 1. Load static data on mount
     useEffect(() => {
         loadTables();
         loadMenu();
         loadCategories();
-    }, [loadTables, loadMenu, loadCategories]);
+        loadCustomerOrders();
+    }, [loadTables, loadMenu, loadCategories, loadCustomerOrders]);
 
     // 2. Handle URL Table Param (Run only when URL params change)
     useEffect(() => {
@@ -678,7 +680,7 @@ function CustomerPage() {
                                         <option value="USD" className="text-gray-800">$ USD</option>
                                     </select>
                                 </div>
-                                <button onClick={() => setIsOrdersModalOpen(true)} className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5 sm:p-3 hover:bg-white/30 transition">
+                                <button onClick={() => { setIsOrdersModalOpen(true); loadCustomerOrders(); }} className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5 sm:p-3 hover:bg-white/30 transition">
                                     <i className="fas fa-clipboard-list text-white text-xs sm:text-base"></i>
                                 </button>
                                 <button onClick={() => setIsCartModalOpen(true)} className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5 sm:p-3 hover:bg-white/30 transition relative">
@@ -879,7 +881,7 @@ function CustomerPage() {
                         <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl modal-content shadow-2xl">
                             <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center z-10">
                                 <h2 className="text-xl font-bold flex items-center"><i className="fas fa-clipboard-list mr-2 text-blue-600"></i>{t('yourOrders')}</h2>
-                                <button onClick={() => { setIsOrdersModalOpen(false); setCustomerOrders([]); }} className="text-gray-500 hover:text-gray-700 text-2xl transition"><i className="fas fa-times"></i></button>
+                                <button onClick={() => setIsOrdersModalOpen(false)} className="text-gray-500 hover:text-gray-700 text-2xl transition"><i className="fas fa-times"></i></button>
                             </div>
                             <div className="p-4 space-y-3 max-h-96 overflow-y-auto">
                                 {customerOrders.length === 0 ? <p className="text-gray-500 text-center py-8">{t('noOrders')}</p> : customerOrders.map(order => {
