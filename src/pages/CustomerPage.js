@@ -138,15 +138,23 @@ function CustomerPage() {
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const [companyInfo, setCompanyInfo] = useState(null);
 
+    // 0. Enforce Authentication
+    useEffect(() => {
+        if (!token) {
+            const currentTable = searchParams.get('table') || tableNumber;
+            // Force redirect to signup/login
+            navigate(`/signup?mode=login${currentTable ? `&table=${currentTable}` : ''}`);
+        }
+    }, [token, navigate, searchParams, tableNumber]);
+
+    // 1. Fetch Company Info
     useEffect(() => {
         const fetchCompanyInfo = async () => {
-            // Robust API URL definition for fetching company info
-            const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:5000'
-                : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
-
             try {
-                const res = await fetch(`${API_URL}/api/company/public`);
+                // Use token if available to get company info context
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                const res = await fetch(`${API_URL}/api/company/public`, { headers });
                 const json = await res.json();
                 if (json.success && json.data) {
                     setCompanyInfo(json.data);
@@ -156,10 +164,12 @@ function CustomerPage() {
             }
         };
         fetchCompanyInfo();
-    }, []);
+    }, [token]);
 
+    // 2. Socket Connection
     useEffect(() => {
         if (!token) return;
+
         const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
             auth: { token }
         });
@@ -171,7 +181,7 @@ function CustomerPage() {
                 // Trigger feedback if just delivered AND not already given
                 const targetOrder = prev.find(o => o.id === order.id);
                 if (targetOrder && targetOrder.order_status !== 'delivered' && order.order_status === 'delivered') {
-                    if (!order.has_feedback) { // Check flag from backend update
+                    if (!order.has_feedback) {
                         setFeedbackModal({ show: true, orderId: order.id, items: [] });
                         const audio = new Audio('/notification.mp3');
                         audio.play().catch(e => console.log(e));
