@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const UserSignupPage = ({ redirectUrl }) => {
+const UserSignupPage = () => {
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -14,6 +14,7 @@ const UserSignupPage = ({ redirectUrl }) => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const tableNumber = searchParams.get('table');
+    const companyId = searchParams.get('companyId');
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const [companyInfo, setCompanyInfo] = useState(null);
@@ -56,8 +57,16 @@ const UserSignupPage = ({ redirectUrl }) => {
         const result = await signup(fullName, email, password);
 
         if (result.success) {
-            // Redirect directly to customer page with table number
-            navigate(tableNumber ? `/customer.html?table=${tableNumber}` : '/customer.html');
+            // Redirect directly to customer page with table number and companyId
+            let url = '/customer.html';
+            const params = new URLSearchParams();
+            if (tableNumber) params.append('table', tableNumber);
+            if (companyId) params.append('companyId', companyId);
+
+            const queryString = params.toString();
+            if (queryString) url += `?${queryString}`;
+
+            navigate(url);
         } else {
             setError(result.message);
         }
@@ -134,7 +143,10 @@ const UserSignupPage = ({ redirectUrl }) => {
                 </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     {t('or')}{' '}
-                    <Link to={`/login?mode=login${tableNumber ? `&table=${tableNumber}` : ''}`} className="font-medium text-blue-600 hover:text-blue-500">
+                    <Link
+                        to={`/signup?mode=login${tableNumber ? `&table=${tableNumber}` : ''}${companyId ? `&companyId=${companyId}` : ''}`}
+                        className="font-medium text-blue-600 hover:text-blue-500"
+                    >
                         {t('signInLink')}
                     </Link>
                 </p>

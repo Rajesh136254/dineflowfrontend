@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
               // Token is invalid, clear it
               localStorage.removeItem('token');
               setToken(null);
-              window.location.href = 'http://work.localhost:3000/signup?mode=login';
+              window.location.href = '/signup?mode=login';
             }
           } catch (error) {
             console.error('❌ Error fetching user data:', error);
@@ -141,8 +141,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setCurrentUser(null);
     // Force a page reload to ensure clean state
-    // Force a page reload to ensure clean state
-    window.location.href = '/login';
+    window.location.href = '/signup?mode=login';
   };
 
   const updateAuthState = (userData) => {

@@ -153,7 +153,7 @@ function CustomerPage() {
         const fetchCompanyInfo = async () => {
             try {
                 // Use token if available to get company info context
-                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const headers = getAuthHeaders();
 
                 const res = await fetch(`${API_URL}/api/company/public`, { headers });
                 const json = await res.json();
@@ -221,7 +221,18 @@ function CustomerPage() {
     };
 
     const getAuthHeaders = () => {
-        return token ? { 'Authorization': `Bearer ${token}` } : {};
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        // Add company ID from URL if present (for testing/no-subdomain mode)
+        const params = new URLSearchParams(window.location.search);
+        const companyId = params.get('companyId');
+        if (companyId) {
+            headers['x-company-id'] = companyId;
+        } else if (currentUser && currentUser.company_id) {
+            // Fallback: if logged in user has company_id, send it. 
+            // Useful if they are on main domain but valid user.
+            headers['x-company-id'] = currentUser.company_id.toString();
+        }
+        return headers;
     };
 
     // --- Data Loading Functions ---

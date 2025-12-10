@@ -147,7 +147,13 @@ export default function SignupPage() {
 
           const searchParams = new URLSearchParams(window.location.search);
           const tableNumber = searchParams.get('table') || '1';
-          navigate(`/customer.html?table=${tableNumber}`);
+          const companyId = searchParams.get('companyId');
+
+          let targetUrl = `/customer.html?table=${tableNumber}`;
+          if (companyId) {
+            targetUrl += `&companyId=${companyId}`;
+          }
+          navigate(targetUrl);
         }
       } else {
         setAuthError(data.message || "Authentication failed");

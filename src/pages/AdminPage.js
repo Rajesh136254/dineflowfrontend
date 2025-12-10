@@ -213,7 +213,7 @@ function AdminPage() {
     if (el) {
       el.innerHTML = '';
       new window.QRCode(el, {
-        text: `${BASE_URL}/customer.html?table=${tableNumber}`,
+        text: `${BASE_URL}/customer.html?table=${tableNumber}&companyId=${authUser?.company_id}`,
         width: 200,
         height: 200,
         colorDark: "#000000",
@@ -1161,19 +1161,19 @@ function AdminPage() {
           <div className="flex gap-4 relative items-center">
             {/* User Profile */}
             {authUser && (
-              <div className="flex items-center gap-3 bg-white/80 backdrop-blur px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-                <div className="text-right hidden sm:block">
-                  <p className="text-sm font-bold text-gray-900">{authUser.full_name || 'User'}</p>
-                  <p className="text-xs text-gray-500">{authUser.email}</p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 bg-white/80 backdrop-blur px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-gray-900">{authUser.full_name || 'User'}</p>
+                    <p className="text-xs text-gray-500">{authUser.email}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 overflow-hidden border border-indigo-200">
+                    <i className="fas fa-user"></i>
+                  </div>
                 </div>
-                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 overflow-hidden border border-indigo-200">
-                  {/* Show company logo instead of user icon if preferred, or user avatar. User asked for logo "in all profiles". 
-                      Let's put the company logo here as well if available, or keep user icon. 
-                      Actually, "in all profiles you can show the logo" might refer to the company branding. 
-                      The sidebar already has it. I'll stick to user icon here for the *User* profile to avoid confusion, 
-                      but maybe make it nicer. */}
-                  <i className="fas fa-user"></i>
-                </div>
+                <button onClick={logout} className="bg-white/80 backdrop-blur p-2 rounded-lg shadow-sm border border-gray-200 hover:bg-red-50 hover:text-red-600 transition" title="Logout">
+                  <i className="fas fa-sign-out-alt"></i>
+                </button>
               </div>
             )}
             <button
