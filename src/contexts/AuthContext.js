@@ -141,7 +141,8 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setCurrentUser(null);
     // Force a page reload to ensure clean state
-    window.location.href = 'http://work.localhost:3000/signup?mode=login';
+    // Force a page reload to ensure clean state
+    window.location.href = '/login';
   };
 
   const value = {

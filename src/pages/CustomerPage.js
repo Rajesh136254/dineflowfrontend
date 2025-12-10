@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import io from 'socket.io-client';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
@@ -121,7 +122,11 @@ function CustomerPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [showOrderSuccess, setShowOrderSuccess] = useState(false);
     const [orderId, setOrderId] = useState(null);
-    const [showToast, setShowToast] = useState(false);
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    };
     const [isOrdersModalOpen, setIsOrdersModalOpen] = useState(false);
     const [customerOrders, setCustomerOrders] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -133,6 +138,11 @@ function CustomerPage() {
 
     useEffect(() => {
         const fetchCompanyInfo = async () => {
+            // Robust API URL definition for fetching company info
+            const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:5000'
+                : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
+
             try {
                 const res = await fetch(`${API_URL}/api/company/public`);
                 const json = await res.json();
@@ -145,6 +155,41 @@ function CustomerPage() {
         };
         fetchCompanyInfo();
     }, []);
+
+    useEffect(() => {
+        if (!token) return;
+        const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+            auth: { token }
+        });
+
+        socket.on('order-status-updated', (order) => {
+            setCustomerOrders(prev => {
+                const updated = prev.map(o => o.id === order.id ? { ...o, order_status: order.order_status, updated_at: order.updated_at } : o);
+
+                // Trigger feedback if just delivered AND not already given
+                const targetOrder = prev.find(o => o.id === order.id);
+                if (targetOrder && targetOrder.order_status !== 'delivered' && order.order_status === 'delivered') {
+                    if (!order.has_feedback) { // Check flag from backend update
+                        setFeedbackModal({ show: true, orderId: order.id, items: [] });
+                        const audio = new Audio('/notification.mp3');
+                        audio.play().catch(e => console.log(e));
+                    }
+                }
+                return updated;
+            });
+        });
+
+        socket.on('order-updated', (updatedOrder) => {
+            setCustomerOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+        });
+
+        return () => socket.disconnect();
+    }, [token]);
+
+    const playNotificationSound = () => {
+        const audio = new Audio('/notification.mp3');
+        audio.play().catch(e => console.log('Audio play failed', e));
+    };
 
     // Feedback & Cancellation State
     const [feedbackModal, setFeedbackModal] = useState({ show: false, orderId: null, items: [] });
@@ -255,10 +300,9 @@ function CustomerPage() {
     }, [logout]);
 
     const loadCustomerOrders = useCallback(async () => {
-        if (!token || !tableNumber) return; // Don't fetch orders if not logged in or table not selected
+        if (!token) return;
         try {
-            const customerIdParam = currentUser?.id ? `&customer_id=${currentUser.id}` : '';
-            const response = await fetch(`${API_URL}/api/orders?table_number=${tableNumber}${customerIdParam}`, {
+            const response = await fetch(`${API_URL}/api/customer/orders`, {
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json'
@@ -276,7 +320,7 @@ function CustomerPage() {
         } catch (error) {
             console.error('Error loading orders:', error);
         }
-    }, [tableNumber, currentUser, token]);
+    }, [token, logout]);
 
     // --- Cart Functions ---
     const addToCart = (itemId) => {
@@ -290,8 +334,7 @@ function CustomerPage() {
                 return [...currentCart, { ...item, quantity: 1 }];
             }
         });
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+        showToast('Item added to cart!', 'success');
     };
 
     const removeFromCart = (itemId) => {
@@ -343,12 +386,13 @@ function CustomerPage() {
                 setCart([]);
                 setIsCartModalOpen(false);
                 loadCustomerOrders();
+                showToast('Order placed successfully!', 'success');
             } else {
-                alert('Failed to place order. Please try again.');
+                showToast(data.message || 'Failed to place order. Please try again.', 'error');
             }
         } catch (error) {
             console.error('Error placing order:', error);
-            alert('Error placing order. Please try again.');
+            showToast('Error placing order. Please try again.', 'error');
         }
     };
 
@@ -360,7 +404,7 @@ function CustomerPage() {
 
     const handleCancellationSubmit = async () => {
         if (!cancellationReason.trim()) {
-            alert('Please provide a reason for cancellation');
+            showToast('Please provide a reason for cancellation', 'error');
             return;
         }
 
@@ -384,15 +428,15 @@ function CustomerPage() {
 
             const data = await response.json();
             if (data.success) {
-                alert(type === 'order' ? 'Order cancelled successfully' : 'Item cancelled successfully');
+                showToast(type === 'order' ? 'Order cancelled successfully' : 'Item cancelled successfully', 'success');
                 setCancellationModal({ show: false, type: null, orderId: null, itemId: null });
                 loadCustomerOrders(); // Refresh orders
             } else {
-                alert(data.message || 'Cancellation failed');
+                showToast(data.message || 'Cancellation failed', 'error');
             }
         } catch (error) {
             console.error('Error cancelling:', error);
-            alert('Failed to process cancellation');
+            showToast('Failed to process cancellation', 'error');
         }
     };
 
@@ -418,16 +462,79 @@ function CustomerPage() {
                 setFeedbackModal({ show: false, orderId: null, items: [] });
                 setFeedbackRating(5);
                 setFeedbackComment('');
-                alert('Thank you for your feedback!');
+                showToast('Thank you for your feedback!', 'success');
+                loadCustomerOrders(); // Refresh orders to update has_feedback status
             } else {
-                alert(data.message || 'Failed to submit feedback');
+                showToast(data.message || 'Failed to submit feedback', 'error');
             }
         } catch (error) {
             console.error('Error submitting feedback:', error);
         }
     };
 
-    // --- Derived State ---
+    // --- Derived State & Timers ---
+    // Custom hook for running timers
+    const useOrderTimer = (orders) => {
+        const [now, setNow] = useState(Date.now());
+        useEffect(() => {
+            const interval = setInterval(() => setNow(Date.now()), 1000);
+            return () => clearInterval(interval);
+        }, []);
+        return now;
+    };
+
+    const currentTime = useOrderTimer(customerOrders);
+
+    const getElapsedTime = (startTime) => {
+        if (!startTime) return '0m';
+        const start = new Date(startTime).getTime();
+        const diff = currentTime - start;
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        if (mins < 1) return `${secs}s`;
+        return `${mins}m ${secs}s`;
+    };
+
+    const getTotalWaitTime = (start, end) => {
+        const s = new Date(start).getTime();
+        const e = new Date(end).getTime();
+        const diff = e - s;
+        const mins = Math.floor(diff / 60000);
+        return `${mins} mins`;
+    };
+
+    // --- Reorder Logic ---
+    const handleReorder = (order) => {
+        const newItems = order.items.map(item => ({
+            id: item.item_id || item.id, // Handle DB field naming difference if any
+            name: item.item_name,
+            price_inr: item.price_inr, // Assuming these fields exist on item, might need lookup if not
+            price_usd: item.price_usd,
+            quantity: item.quantity
+        }));
+
+        // Check if we have price info. If not, we might need to fetch menu (already loaded)
+        // Let's match with menuItems to get current prices and details
+        const cartItems = [];
+        newItems.forEach(orderItem => {
+            const menuItem = menuItems.find(m => m.id === orderItem.id || m.name === orderItem.name); // Try ID then Name
+            if (menuItem) {
+                cartItems.push({
+                    ...menuItem,
+                    quantity: orderItem.quantity
+                });
+            }
+        });
+
+        if (cartItems.length > 0) {
+            setCart(prev => [...prev, ...cartItems]);
+            setIsCartModalOpen(true);
+            setIsOrdersModalOpen(false);
+            showToast("Items added to cart!", "success");
+        } else {
+            showToast("Could not reorder items. They may no longer be available.", "error");
+        }
+    };
 
     const uniqueVitamins = useMemo(() => {
         const vitamins = new Set();
@@ -462,19 +569,36 @@ function CustomerPage() {
     }, 0);
 
     // --- useEffect Hooks ---
+    // --- useEffect Hooks ---
+
+    // 1. Load static data on mount
     useEffect(() => {
-        const tableFromUrl = searchParams.get('table');
-        if (tableFromUrl) {
-            setTableNumber(parseInt(tableFromUrl));
-            setIsTableSelectionModalOpen(false);
-        } else {
-            // If no table in URL, open selection modal
-            setIsTableSelectionModalOpen(true);
-        }
         loadTables();
         loadMenu();
         loadCategories();
-    }, [searchParams, loadTables, loadMenu, loadCategories]);
+    }, [loadTables, loadMenu, loadCategories]);
+
+    // 2. Handle URL Table Param (Run only when URL params change)
+    useEffect(() => {
+        const tableFromUrl = searchParams.get('table');
+        if (tableFromUrl) {
+            const tNum = parseInt(tableFromUrl);
+            if (!isNaN(tNum)) {
+                setTableNumber(tNum);
+                setIsTableSelectionModalOpen(false);
+            }
+        } else {
+            // If no table in URL, and no table selected yet, open modal
+            if (!tableNumber) setIsTableSelectionModalOpen(true);
+        }
+    }, [searchParams]);
+
+    // 3. Load Orders (Run when token changes)
+    useEffect(() => {
+        if (token) {
+            loadCustomerOrders();
+        }
+    }, [token, loadCustomerOrders]);
 
     return (
         <>
@@ -489,9 +613,13 @@ function CustomerPage() {
                     <div className="container mx-auto">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center">
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center mr-2 sm:mr-3">
-                                    <i className="fas fa-utensils text-blue-600 text-sm sm:text-base"></i>
-                                </div>
+                                {companyInfo?.logo_url ? (
+                                    <img src={companyInfo.logo_url} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover mr-2 sm:mr-3 border-2 border-white" />
+                                ) : (
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-full flex items-center justify-center mr-2 sm:mr-3">
+                                        <i className="fas fa-utensils text-blue-600 text-sm sm:text-base"></i>
+                                    </div>
+                                )}
                                 <div>
                                     <h1 className="text-lg sm:text-2xl font-bold">{t('menu')}</h1>
                                     <p className="text-blue-100 text-xs sm:text-sm flex items-center">
@@ -564,9 +692,26 @@ function CustomerPage() {
                         <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('search')} className="w-full pl-10 pr-4 py-2 sm:py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm text-sm sm:text-base input-focus" />
                     </div>
                     <div className="flex gap-2 mb-4">
-                        <select value={tableNumber} onChange={(e) => setTableNumber(parseInt(e.target.value))} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-sm input-focus">
-                            {tables.map(table => <option key={table.id} value={table.table_number}>{table.table_name}</option>)}
-                        </select>
+                        <div className="flex gap-2 mb-4 w-full">
+                            <select
+                                value={tableNumber || ''}
+                                onChange={(e) => {
+                                    const val = parseInt(e.target.value);
+                                    setTableNumber(isNaN(val) ? null : val);
+                                }}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-white text-gray-700 font-medium shadow-sm transition-all outline-none appearance-none cursor-pointer"
+                            >
+                                <option value="" disabled>Choose your table...</option>
+                                {tables.map(table => (
+                                    <option key={table.id} value={table.table_number}>
+                                        {table.table_name || `Table ${table.table_number}`}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                <i className="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Categories */}
@@ -737,62 +882,141 @@ function CustomerPage() {
                                     const symbol = order.currency === 'INR' ? '₹' : '$';
                                     const amount = order[`total_amount_${order.currency.toLowerCase()}`];
                                     return (
-                                        <div key={order.id} className="order-item bg-gray-50 rounded-lg p-3">
-                                            <h4 className="font-semibold mb-2">Order #{order.id} - {createdTime}</h4>
-                                            <div className="mb-2 space-y-1">
+                                        <div key={order.id} className="order-item bg-white border border-gray-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <h4 className="font-bold text-gray-800 text-lg">Your Order <span className="text-gray-400 text-sm font-normal">#{order.id}</span></h4>
+                                                    <p className="text-xs text-gray-500">{createdTime}</p>
+                                                </div>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${order.order_status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                                    order.order_status === 'preparing' ? 'bg-blue-100 text-blue-700' :
+                                                        order.order_status === 'ready' ? 'bg-green-100 text-green-700' :
+                                                            'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                    {order.order_status}
+                                                </span>
+                                            </div>
+
+                                            <div className="mb-4 space-y-2">
                                                 {order.items.map((item, index) => (
-                                                    <div key={index} className="text-sm flex justify-between items-center">
-                                                        <span>{item.quantity}x {item.item_name}</span>
-                                                        {['pending', 'preparing'].includes(order.order_status) && item.item_status !== 'cancelled' && (
-                                                            <button
-                                                                onClick={() => openCancellationModal('item', order.id, item.id)}
-                                                                className="text-red-500 text-xs hover:text-red-700 underline ml-2"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                        )}
-                                                        {item.item_status === 'cancelled' && (
-                                                            <span className="text-red-500 text-xs italic ml-2">Cancelled</span>
-                                                        )}
+                                                    <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-gray-700 bg-white w-6 h-6 flex items-center justify-center rounded shadow-sm text-sm">{item.quantity}</span>
+                                                            <span className={`text-sm font-medium ${item.item_status === 'cancelled' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+                                                                {item.item_name}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            {item.item_status === 'cancelled' ? (
+                                                                <span className="text-red-500 text-[10px] font-bold border border-red-200 bg-red-50 px-2 py-0.5 rounded">CANCELLED</span>
+                                                            ) : (
+                                                                ['pending', 'preparing'].includes(order.order_status) && (
+                                                                    <button
+                                                                        onClick={() => openCancellationModal('item', order.id, item.id)}
+                                                                        className="text-gray-400 hover:text-red-500 transition px-2"
+                                                                        title="Cancel Item"
+                                                                    >
+                                                                        <i className="fas fa-times-circle"></i>
+                                                                    </button>
+                                                                )
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                            <div className="flex justify-between text-sm mb-2">
-                                                <span>Total: {symbol}{parseFloat(amount).toFixed(2)}</span>
-                                                <span>Payment: {order.payment_method}</span>
+
+                                            <div className="flex justify-between items-center text-sm font-medium text-gray-600 mb-4 border-t border-gray-100 pt-3">
+                                                <span>Total Amount</span>
+                                                <span className="text-lg font-bold text-gray-900">{symbol}{parseFloat(amount).toFixed(2)}</span>
                                             </div>
+
                                             {['pending', 'preparing'].includes(order.order_status) && (
                                                 <button
                                                     onClick={() => openCancellationModal('order', order.id)}
-                                                    className="w-full mb-3 bg-red-50 text-red-600 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 transition border border-red-100"
+                                                    className="w-full mb-4 py-2 rounded-lg text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 transition flex items-center justify-center gap-2"
                                                 >
-                                                    Cancel Order
+                                                    <i className="fas fa-ban"></i> Cancel Full Order
                                                 </button>
                                             )}
-                                            <div className="timeline flex justify-between items-center relative">
-                                                <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-300 -translate-y-1/2"></div>
-                                                <div className="absolute top-1/2 left-0 w-full h-1 bg-blue-600 -translate-y-1/2" style={{ width: `${(currentStep / 4) * 100}%` }}></div>
-                                                <div className={`step z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                                                    <i className="fas fa-clock"></i>
-                                                </div>
-                                                <div className={`step z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                                                    <i className="fas fa-fire"></i>
-                                                </div>
-                                                <div className={`step z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                                                    <i className="fas fa-check"></i>
-                                                </div>
-                                                <div className={`step z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs ${currentStep >= 4 ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-600'}`}>
-                                                    <i className="fas fa-truck"></i>
+
+                                            {/* Dynamic Timeline */}
+                                            <div className="relative pt-2 pb-4 px-2">
+                                                <div className="absolute top-5 left-0 w-full h-1 bg-gray-100 rounded-full"></div>
+                                                <div
+                                                    className="absolute top-5 left-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000 ease-out"
+                                                    style={{ width: `${(currentStep / 4) * 100}%` }}
+                                                ></div>
+
+                                                <div className="relative flex justify-between">
+                                                    {/* Step 1: Ordered */}
+                                                    <div className="flex flex-col items-center group">
+                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs z-10 transition-colors duration-300 ${currentStep >= 1 ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <i className="fas fa-clipboard-check"></i>
+                                                        </div>
+                                                        <span className="text-[10px] font-bold mt-1 text-gray-600">Ordered</span>
+                                                        <span className="text-[10px] text-gray-400 font-mono">
+                                                            {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Step 2: Preparing */}
+                                                    <div className="flex flex-col items-center group">
+                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs z-10 transition-colors duration-300 ${currentStep >= 2 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <i className="fas fa-fire-alt"></i>
+                                                        </div>
+                                                        <span className="text-[10px] font-bold mt-1 text-gray-600">Cooking</span>
+                                                        {currentStep === 2 && (
+                                                            <span className="text-[10px] text-indigo-600 font-bold animate-pulse font-mono">
+                                                                {getElapsedTime(order.created_at)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Step 3: Ready */}
+                                                    <div className="flex flex-col items-center group">
+                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs z-10 transition-colors duration-300 ${currentStep >= 3 ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <i className="fas fa-bell"></i>
+                                                        </div>
+                                                        <span className="text-[10px] font-bold mt-1 text-gray-600">Ready</span>
+                                                        {currentStep === 3 && (
+                                                            <span className="text-[10px] text-purple-600 font-bold font-mono">
+                                                                {getElapsedTime(order.updated_at)} ago
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Step 4: Delivered */}
+                                                    <div className="flex flex-col items-center group">
+                                                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs z-10 transition-colors duration-300 ${currentStep >= 4 ? 'bg-green-600 text-white shadow-lg shadow-green-200' : 'bg-gray-200 text-gray-400'}`}>
+                                                            <i className="fas fa-check-double"></i>
+                                                        </div>
+                                                        <span className="text-[10px] font-bold mt-1 text-gray-600">Enjoy</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="flex justify-between text-xs mt-1">
-                                                <span>Ordered</span>
-                                                <span>Preparing</span>
-                                                <span>Ready</span>
-                                                <span>Delivered</span>
-                                            </div>
-                                            <div className="text-xs text-center mt-2">
-                                                Current Status: {order.order_status.toUpperCase()} at {updatedTime}
+
+                                            {/* Footer Actions */}
+                                            <div className="mt-4 grid grid-cols-2 gap-3">
+                                                {order.order_status === 'delivered' && (
+                                                    <div className="col-span-2 text-center bg-gray-50 border border-gray-200 rounded-lg p-2 mb-2">
+                                                        <span className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Wait Time</span>
+                                                        <p className="text-sm font-black text-gray-800 font-mono">
+                                                            {getTotalWaitTime(order.created_at, order.updated_at)}
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {order.order_status === 'delivered' && !order.has_feedback && (
+                                                    <button onClick={() => setFeedbackModal({ show: true, orderId: order.id })} className="col-span-1 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2">
+                                                        <i className="fas fa-star"></i> Rate Food
+                                                    </button>
+                                                )}
+
+                                                {order.order_status === 'delivered' && (
+                                                    <button onClick={() => handleReorder(order)} className={`bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 ${order.has_feedback ? 'col-span-2' : 'col-span-1'}`}>
+                                                        <i className="fas fa-redo"></i> Reorder
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -928,10 +1152,14 @@ function CustomerPage() {
             }
 
             {/* Toast Notification */}
-            <div id="toast" className={`toast ${showToast ? 'show' : ''}`}>
-                <i className="fas fa-check-circle"></i>
-                <span id="toast-message">{t('itemAdded')}</span>
-            </div>
+            {/* Toast Notification */}
+            {toast.show && (
+                <div className={`fixed top-4 right-4 z-[9999] flex items-center gap-3 px-6 py-4 rounded-xl shadow-2xl animate-fade-in-down transition-all ${toast.type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-900 text-white'
+                    }`}>
+                    <i className={`fas ${toast.type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'} text-xl`}></i>
+                    <span className="font-medium text-sm sm:text-base">{toast.message}</span>
+                </div>
+            )}
 
         </>
     );

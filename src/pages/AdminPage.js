@@ -1131,76 +1131,91 @@ function AdminPage() {
         .btn-danger:hover { color: white !important; }
       `}</style>
 
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-        <div className="flex items-center gap-4 cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition group" onClick={() => setIsProfileModalOpen(true)}>
-          <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center overflow-hidden border-2 border-indigo-200 relative shadow-sm">
-            {companyProfile.logo_url ? (
-              <img src={companyProfile.logo_url} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <i className="fas fa-store text-indigo-600 text-xl"></i>
+      <div className={`relative mb-8 rounded-2xl shadow-sm transition-all duration-500 ${!companyProfile.banner_url ? 'bg-white' : 'text-white'}`}
+        style={companyProfile.banner_url ? {
+          backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${companyProfile.banner_url})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        } : {}}
+      >
+        <div className="flex flex-col md:flex-row justify-between items-center p-6 gap-4 backdrop-blur-sm">
+          <div className={`flex items-center gap-4 cursor-pointer p-2 rounded-lg transition group ${companyProfile.banner_url ? 'hover:bg-white/10' : 'hover:bg-gray-50'}`} onClick={() => setIsProfileModalOpen(true)}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border-2 relative shadow-md ${companyProfile.banner_url ? 'bg-black/20 border-white/20' : 'bg-indigo-100 border-indigo-200'}`}>
+              {companyProfile.logo_url ? (
+                <img src={companyProfile.logo_url} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <i className={`fas fa-store text-2xl ${companyProfile.banner_url ? 'text-white' : 'text-indigo-600'}`}></i>
+              )}
+              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <i className="fas fa-pen text-white text-base"></i>
+              </div>
+            </div>
+            <div>
+              <h1 className={`text-3xl font-bold ${companyProfile.banner_url ? 'text-white' : 'text-gray-900'}`}>{companyProfile.name || 'Admin Dashboard'}</h1>
+              <div className={`flex items-center gap-2 text-sm transition-colors ${companyProfile.banner_url ? 'text-gray-200 group-hover:text-white' : 'text-gray-500 group-hover:text-indigo-600'}`}>
+                <span>Click to edit profile</span>
+                <i className="fas fa-pen opacity-0 group-hover:opacity-100 transition-opacity duration-200"></i>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-4 relative items-center">
+            {/* User Profile */}
+            {authUser && (
+              <div className="flex items-center gap-3 bg-white/80 backdrop-blur px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm font-bold text-gray-900">{authUser.full_name || 'User'}</p>
+                  <p className="text-xs text-gray-500">{authUser.email}</p>
+                </div>
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 overflow-hidden border border-indigo-200">
+                  {/* Show company logo instead of user icon if preferred, or user avatar. User asked for logo "in all profiles". 
+                      Let's put the company logo here as well if available, or keep user icon. 
+                      Actually, "in all profiles you can show the logo" might refer to the company branding. 
+                      The sidebar already has it. I'll stick to user icon here for the *User* profile to avoid confusion, 
+                      but maybe make it nicer. */}
+                  <i className="fas fa-user"></i>
+                </div>
+              </div>
             )}
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <i className="fas fa-pen text-white text-sm"></i>
-            </div>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{companyProfile.name || 'Admin Dashboard'}</h1>
-            <div className="flex items-center gap-2 text-xs text-gray-500 group-hover:text-indigo-600 transition-colors">
-              <span>Click to edit profile</span>
-              <i className="fas fa-pen opacity-0 group-hover:opacity-100 transition-opacity duration-200"></i>
-            </div>
+            <button
+              onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+              className="flex items-center gap-2 bg-white/80 backdrop-blur px-4 py-2 rounded-lg shadow-sm border border-gray-200 hover:bg-white transition"
+            >
+              <i className="fas fa-globe text-indigo-600"></i>
+              <span className="uppercase font-medium">{language}</span>
+              <i className={`fas fa-chevron-down text-xs transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
+            </button>
           </div>
         </div>
-        <div className="flex gap-4 relative items-center">
-          {/* User Profile */}
-          {authUser && (
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-gray-900">{authUser.full_name || 'User'}</p>
-                <p className="text-xs text-gray-500">{authUser.email}</p>
-              </div>
-              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600">
-                <i className="fas fa-user"></i>
-              </div>
-            </div>
-          )}    <button
-            onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-            className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition"
-          >
-            <i className="fas fa-globe text-indigo-600"></i>
-            <span className="uppercase font-medium">{language}</span>
-            <i className={`fas fa-chevron-down text-xs transition-transform ${showLanguageDropdown ? 'rotate-180' : ''}`}></i>
-          </button>
-
-          {showLanguageDropdown && (
-            <div className="absolute right-0 mt-12 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-fade-in">
-              {[
-                { code: 'en', label: 'English' },
-                { code: 'es', label: 'Español' },
-                { code: 'fr', label: 'Français' },
-                { code: 'hi', label: 'हिन्दी' },
-                { code: 'zh', label: '中文' },
-                { code: 'ta', label: 'தமிழ்' },
-                { code: 'ml', label: 'മലയാളം' },
-                { code: 'te', label: 'తెలుగు' }
-              ].map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => {
-                    changeLanguage(lang.code);
-                    setShowLanguageDropdown(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition flex items-center justify-between ${language === lang.code ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-700'}`}
-                >
-                  <span>{lang.label}</span>
-                  {language === lang.code && <i className="fas fa-check text-xs"></i>}
-                </button>
-              ))}
-            </div>
-          )}
 
 
-        </div>
+        {showLanguageDropdown && (
+          <div className="absolute right-0 mt-12 w-48 bg-white rounded-lg shadow-xl border border-gray-100 py-1 z-50 animate-fade-in">
+            {[
+              { code: 'en', label: 'English' },
+              { code: 'es', label: 'Español' },
+              { code: 'fr', label: 'Français' },
+              { code: 'hi', label: 'हिन्दी' },
+              { code: 'zh', label: '中文' },
+              { code: 'ta', label: 'தமிழ்' },
+              { code: 'ml', label: 'മലയാളം' },
+              { code: 'te', label: 'తెలుగు' }
+            ].map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => {
+                  changeLanguage(lang.code);
+                  setShowLanguageDropdown(false);
+                }}
+                className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 transition flex items-center justify-between ${language === lang.code ? 'text-indigo-600 font-bold bg-indigo-50' : 'text-gray-700'}`}
+              >
+                <span>{lang.label}</span>
+                {language === lang.code && <i className="fas fa-check text-xs"></i>}
+              </button>
+            ))}
+          </div>
+        )}
+
+
       </div>
 
       <div className="max-w-7xl mx-auto mb-6 flex gap-4 border-b overflow-x-auto">
@@ -2131,7 +2146,7 @@ function AdminPage() {
         onClose={() => setIsSupportOpen(false)}
         currentUser={authUser}
       />
-    </div>
+    </div >
   );
 }
 

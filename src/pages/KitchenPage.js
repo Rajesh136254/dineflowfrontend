@@ -38,24 +38,32 @@ function KitchenPage() {
         : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
     // --- Helper Functions ---
+    // Custom hook for current time to drive updates
+    const useCurrentTimer = () => {
+        const [now, setNow] = useState(Date.now());
+        useEffect(() => {
+            const interval = setInterval(() => setNow(Date.now()), 1000);
+            return () => clearInterval(interval);
+        }, []);
+        return now;
+    };
+
+    const currentTime = useCurrentTimer();
+
+    const getElapsedTimeParts = (createdAt) => {
+        const created = new Date(createdAt).getTime();
+        const diff = currentTime - created;
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        return { mins, secs, totalMins: mins };
+    };
+
     const playNotificationSound = () => {
         if (audioRef.current) {
             audioRef.current.play().catch(e => console.log('Audio play failed:', e));
         }
     };
 
-    const calculateWaitTime = (createdAt, updatedAt) => {
-        const created = new Date(createdAt);
-        const updated = updatedAt ? new Date(updatedAt) : new Date();
-        const diffMs = updated - created;
-        const diffMins = Math.floor(diffMs / 60000);
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins} min`;
-        const diffHours = Math.floor(diffMins / 60);
-        if (diffHours < 24) return `${diffHours}h ${diffMins % 60}m`;
-        const diffDays = Math.floor(diffHours / 24);
-        return `${diffDays}d ${diffHours % 24}h`;
-    };
 
     // Function to get date range based on filter
     const getDateRange = (filter) => {
@@ -177,6 +185,18 @@ function KitchenPage() {
             }
         });
 
+        socket.on('order-updated', (updatedOrder) => {
+            console.log('Order updated:', updatedOrder);
+            setOrders(prevOrders => {
+                // If status changed to cancelled or updated, reflect efficiently
+                const newOrders = prevOrders.map(o =>
+                    o.id === updatedOrder.id ? updatedOrder : o
+                );
+                return newOrders.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            });
+            playNotificationSound(); // Optional: sound on update/cancel
+        });
+
         socket.on('order-status-updated', (order) => {
             console.log('Order status updated:', order);
             setOrders(prevOrders => {
@@ -247,70 +267,81 @@ function KitchenPage() {
 
     // --- Render Logic ---
     return (
-        <div className="min-h-screen bg-gray-100 p-6">
+        <div className="min-h-screen bg-[#f8fafc] text-slate-800 p-6 font-sans antialiased">
             <audio ref={audioRef} src="/notification.mp3" />
 
-            <div className={`flex justify-between items-center mb-8 p-6 rounded-xl shadow-sm transition-all duration-500 ${!companyInfo?.banner_url ? 'bg-white' : 'text-white'}`}
+            {/* Top Bar / Header */}
+            <div
+                className={`flex flex-col md:flex-row justify-between items-center mb-10 p-6 rounded-3xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-slate-100/50 backdrop-blur-xl transition-all duration-500 ${!companyInfo?.banner_url ? 'bg-white' : 'text-white'}`}
                 style={companyInfo?.banner_url ? {
                     backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${companyInfo.banner_url})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
                 } : {}}
             >
-                <div>
-                    <h1 className={`text-3xl font-bold ${!companyInfo?.banner_url ? 'text-gray-800' : 'text-white'}`}>Kitchen Display System</h1>
-                    <p className={`${!companyInfo?.banner_url ? 'text-gray-500' : 'text-gray-200'} text-sm mt-1`}>{connectionStatus}</p>
+                <div className="flex items-center gap-6 mb-4 md:mb-0">
+                    {companyInfo?.logo_url && (
+                        <div className={`p-2 rounded-2xl border backdrop-blur-sm ${companyInfo?.banner_url ? 'bg-black/20 border-white/20' : 'bg-slate-50 border-slate-100'}`}>
+                            <img src={companyInfo.logo_url} alt="Logo" className="h-14 w-14 object-contain" />
+                        </div>
+                    )}
+                    <div>
+                        <h1 className={`text-4xl font-black tracking-tight ${companyInfo?.banner_url ? 'text-white' : 'text-slate-900 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700'}`}>Kitchen Display</h1>
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className={`flex h-2.5 w-2.5 relative`}>
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${connectionStatus.includes('Connected') ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
+                                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${connectionStatus.includes('Connected') ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                            </span>
+                            <span className={`text-sm font-semibold tracking-wide ${companyInfo?.banner_url ? 'text-slate-200' : 'text-slate-500'}`}>{connectionStatus}</span>
+                        </div>
+                    </div>
                 </div>
+
                 <div className="flex gap-4">
-                    <div className="bg-white px-4 py-2 rounded-lg shadow-sm">
-                        <span className="text-gray-500 text-sm">Active Orders: </span>
-                        <span className="font-bold text-indigo-600 text-xl ml-2">
-                            {statusCounts.pending + statusCounts.preparing}
-                        </span>
+                    <div className="px-8 py-4 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200">
+                        <span className="text-slate-400 text-xs font-bold uppercase tracking-widest block mb-1">Active</span>
+                        <span className="font-bold text-4xl tracking-tight">{statusCounts.pending + statusCounts.preparing}</span>
+                    </div>
+                    <div className={`px-8 py-4 rounded-2xl backdrop-blur border shadow-xl ${companyInfo?.banner_url ? 'bg-white/10 border-white/20 shadow-none text-white' : 'bg-white border-slate-100 shadow-slate-100'}`}>
+                        <span className={`text-xs font-bold uppercase tracking-widest block mb-1 ${companyInfo?.banner_url ? 'text-slate-300' : 'text-slate-400'}`}>Completed</span>
+                        <span className={`font-bold text-4xl tracking-tight ${companyInfo?.banner_url ? 'text-emerald-400' : 'text-emerald-600'}`}>{statusCounts.delivered}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Status Tabs */}
-            <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
+            {/* Status Tabs / Filter */}
+            <div className="flex flex-wrap gap-4 mb-10 justify-center md:justify-start">
                 {['pending', 'preparing', 'ready', 'delivered'].map(status => (
                     <button
                         key={status}
                         onClick={() => setCurrentFilter(status)}
-                        className={`flex-1 min-w-[150px] p-4 rounded-xl border-2 transition-all ${currentFilter === status
-                            ? `border-${getStatusColor(status)}-500 bg-${getStatusColor(status)}-50`
-                            : 'border-white bg-white hover:border-gray-200'
+                        className={`group relative px-6 py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 ${currentFilter === status
+                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 scale-105'
+                            : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-sm border border-slate-200/50'
                             }`}
                     >
-                        <div className="flex justify-between items-center mb-2">
-                            <span className={`uppercase font-bold text-sm text-${getStatusColor(status)}-600`}>
-                                {status}
-                            </span>
-                            <span className={`bg-${getStatusColor(status)}-100 text-${getStatusColor(status)}-700 px-2 py-1 rounded-full text-xs font-bold`}>
+                        <span className="relative z-10 uppercase flex items-center gap-3">
+                            {status}
+                            <span className={`px-2 py-0.5 rounded-md text-xs ${currentFilter === status ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                                }`}>
                                 {statusCounts[status]}
                             </span>
-                        </div>
-                        <div className={`h-1 w-full bg-${getStatusColor(status)}-200 rounded-full overflow-hidden`}>
-                            <div
-                                className={`h-full bg-${getStatusColor(status)}-500 transition-all duration-500`}
-                                style={{ width: '100%' }}
-                            ></div>
-                        </div>
+                        </span>
                     </button>
                 ))}
             </div>
 
-            {/* Date Filter for Delivered Orders */}
+            {/* Date Filter for Delivered */}
             {currentFilter === 'delivered' && (
-                <div className="mb-6 flex justify-end">
-                    <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-200 inline-flex">
+                <div className="mb-8 flex justify-end animate-fade-in-down">
+                    <div className="bg-white p-1.5 rounded-xl border border-slate-100 inline-flex shadow-sm">
                         {['today', 'yesterday', 'week', 'month'].map(filter => (
                             <button
                                 key={filter}
                                 onClick={() => setDeliveredDateFilter(filter)}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${deliveredDateFilter === filter
-                                    ? 'bg-indigo-100 text-indigo-700'
-                                    : 'text-gray-600 hover:bg-gray-50'
+                                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${deliveredDateFilter === filter
+                                    ? 'bg-slate-900 text-white shadow-md'
+                                    : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
                                     }`}
                             >
                                 {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -320,93 +351,121 @@ function KitchenPage() {
                 </div>
             )}
 
-            {/* Orders Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Orders View */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {filteredOrders.length === 0 ? (
-                    <div className="col-span-full text-center py-20">
-                        <div className="text-gray-300 mb-4">
-                            <i className="fas fa-clipboard-list text-6xl"></i>
+                    <div className="col-span-full py-40 text-center rounded-[2.5rem] border border-dashed border-slate-200 bg-white/50">
+                        <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i className="fas fa-check text-4xl text-slate-300"></i>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-400">No {currentFilter} orders</h3>
+                        <span className="text-3xl font-bold text-slate-700 block mb-2">All {currentFilter} orders cleared!</span>
+                        <p className="text-slate-400 font-medium">Great job keeping up with the pace.</p>
                     </div>
                 ) : (
-                    filteredOrders.map(order => (
-                        <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col animate-fade-in">
-                            {/* Order Header */}
-                            <div className={`p-4 border-b border-gray-100 flex justify-between items-center bg-${getStatusColor(order.order_status)}-50`}>
-                                <div>
-                                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Table</span>
-                                    <div className="text-2xl font-bold text-gray-800">{order.table_number}</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Order #{order.id}</div>
-                                    <div className="text-sm font-medium text-gray-600">
-                                        {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </div>
-                                </div>
-                            </div>
+                    filteredOrders.map(order => {
+                        const { mins, secs, totalMins } = getElapsedTimeParts(order.created_at);
+                        const isLate = totalMins > 20; // 20 mins threshold
 
-                            {/* Order Items */}
-                            <div className="p-4 flex-1 overflow-y-auto max-h-[300px]">
-                                {order.items.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between items-center mb-3 last:mb-0">
-                                        <div className="flex items-center gap-3">
-                                            <span className="bg-gray-100 text-gray-800 font-bold w-8 h-8 flex items-center justify-center rounded-lg">
-                                                {item.quantity}
-                                            </span>
-                                            <span className="font-medium text-gray-700">{item.item_name}</span>
+                        return (
+                            <div key={order.id} className={`bg-white rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden flex flex-col transition-all duration-300 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1`}>
+                                {/* Card Header */}
+                                <div className={`p-5 border-b border-slate-50 flex justify-between items-start ${order.order_status === 'pending' ? 'bg-amber-50/50' :
+                                    order.order_status === 'preparing' ? 'bg-sky-50/50' :
+                                        'bg-white'
+                                    }`}>
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-slate-900 text-white tracking-widest shadow-sm">Table</span>
+                                            <span className="text-3xl font-black text-slate-800 tracking-tight">{order.table_number}</span>
                                         </div>
+                                        <span className="text-xs font-bold text-slate-400 tracking-wide">#{order.id} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     </div>
-                                ))}
-                                {order.notes && (
-                                    <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-sm rounded-lg border border-yellow-100">
-                                        <i className="fas fa-sticky-note mr-2"></i>
-                                        {order.notes}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Order Footer */}
-                            <div className="p-4 bg-gray-50 border-t border-gray-100">
-                                <div className="flex justify-between items-center mb-4 text-sm text-gray-500">
-                                    <span>Wait time:</span>
-                                    <span className="font-mono font-bold">{calculateWaitTime(order.created_at, order.updated_at)}</span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    {order.order_status === 'pending' && (
-                                        <button
-                                            onClick={() => updateOrderStatus(order.id, 'preparing')}
-                                            className="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition shadow-sm"
-                                        >
-                                            Start Preparing
-                                        </button>
-                                    )}
-                                    {order.order_status === 'preparing' && (
-                                        <button
-                                            onClick={() => updateOrderStatus(order.id, 'ready')}
-                                            className="col-span-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-bold transition shadow-sm"
-                                        >
-                                            Mark Ready
-                                        </button>
-                                    )}
-                                    {order.order_status === 'ready' && (
-                                        <button
-                                            onClick={() => updateOrderStatus(order.id, 'delivered')}
-                                            className="col-span-2 bg-gray-800 hover:bg-gray-900 text-white py-3 rounded-lg font-bold transition shadow-sm"
-                                        >
-                                            Complete Order
-                                        </button>
-                                    )}
-                                    {order.order_status === 'delivered' && (
-                                        <div className="col-span-2 text-center text-green-600 font-bold py-2 bg-green-50 rounded-lg border border-green-100">
-                                            <i className="fas fa-check-circle mr-2"></i> Completed
+                                    {order.order_status !== 'delivered' && (
+                                        <div className={`text-right px-4 py-2 rounded-xl border ${isLate ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse' : 'bg-white border-slate-100 text-slate-600 shadow-sm'}`}>
+                                            <div className="text-[10px] uppercase font-black tracking-widest opacity-60 mb-0.5">Time</div>
+                                            <div className="font-mono font-bold text-xl tracking-tight">{mins}m {secs}s</div>
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Items List */}
+                                <div className="p-5 flex-1 overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                                    <div className="space-y-4">
+                                        {order.items.map((item, idx) => (
+                                            <div key={idx} className={`flex justify-between items-start group ${item.item_status === 'cancelled' ? 'opacity-50 grayscale' : ''
+                                                }`}>
+                                                <div className="flex items-start gap-4">
+                                                    <span className={`flex items-center justify-center w-7 h-7 rounded-lg font-bold text-sm shadow-sm border ${item.item_status === 'cancelled'
+                                                        ? 'bg-slate-100 text-slate-400 border-slate-200 line-through'
+                                                        : 'bg-slate-900 text-white border-slate-900'
+                                                        }`}>
+                                                        {item.quantity}
+                                                    </span>
+                                                    <div>
+                                                        <div className={`font-bold text-[15px] leading-snug transition-colors ${item.item_status === 'cancelled'
+                                                            ? 'text-slate-400 line-through'
+                                                            : 'text-slate-700'
+                                                            }`}>
+                                                            {item.item_name}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {item.item_status === 'cancelled' && (
+                                                    <span className="ml-2 text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-md border border-rose-100 uppercase tracking-wide">
+                                                        Cancelled
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {order.notes && (
+                                        <div className="mt-5 p-4 bg-amber-50 text-amber-900 text-sm rounded-xl border-l-4 border-amber-400 flex items-start gap-3">
+                                            <i className="fas fa-sticky-note mt-1 text-amber-500"></i>
+                                            <span className="font-medium">{order.notes}</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Actions Footer */}
+                                <div className="p-4 bg-slate-50 border-t border-slate-100">
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {order.order_status === 'pending' && (
+                                            <button
+                                                onClick={() => updateOrderStatus(order.id, 'preparing')}
+                                                className="w-full bg-slate-900 hover:bg-slate-800 text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-slate-900/10 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                            >
+                                                Start Preparation <i className="fas fa-fire-alt"></i>
+                                            </button>
+                                        )}
+                                        {order.order_status === 'preparing' && (
+                                            <button
+                                                onClick={() => updateOrderStatus(order.id, 'ready')}
+                                                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-sm uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                            >
+                                                Mark Ready <i className="fas fa-check"></i>
+                                            </button>
+                                        )}
+                                        {order.order_status === 'ready' && (
+                                            <button
+                                                onClick={() => updateOrderStatus(order.id, 'delivered')}
+                                                className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-3.5 rounded-xl font-bold text-sm uppercase tracking-widest shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                                            >
+                                                Complete <i className="fas fa-check-double"></i>
+                                            </button>
+                                        )}
+                                        {order.order_status === 'delivered' && (
+                                            <div className="w-full py-3.5 bg-white border border-slate-200 rounded-xl text-center">
+                                                <span className="text-emerald-600 font-bold flex items-center justify-center gap-2 uppercase tracking-wide text-xs">
+                                                    <i className="fas fa-check-circle text-lg"></i> Completed
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        )
+                    })
                 )}
             </div>
         </div>
@@ -416,11 +475,12 @@ function KitchenPage() {
 // Helper to get color based on status
 const getStatusColor = (status) => {
     switch (status) {
-        case 'pending': return 'yellow';
-        case 'preparing': return 'blue';
-        case 'ready': return 'green';
-        case 'delivered': return 'gray';
-        default: return 'gray';
+        // Updated colors slightly for the new theme
+        case 'pending': return { text: 'text-amber-500', bg: 'bg-amber-500' };
+        case 'preparing': return { text: 'text-sky-500', bg: 'bg-sky-500' };
+        case 'ready': return { text: 'text-emerald-500', bg: 'bg-emerald-500' };
+        case 'delivered': return { text: 'text-slate-400', bg: 'bg-slate-400' };
+        default: return { text: 'text-slate-400', bg: 'bg-slate-400' };
     }
 };
 

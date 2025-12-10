@@ -156,10 +156,11 @@ function AnalyticsPage() {
 
         try {
             const canvas = await html2canvas(element, {
-                scale: 2,
+                scale: 3, // Increased scale for better quality
                 useCORS: true,
                 logging: false,
-                backgroundColor: '#f9fafb' // match bg-gray-50
+                allowTaint: true,
+                backgroundColor: null // Use actual background color
             });
 
             const imgData = canvas.toDataURL('image/png');
@@ -662,7 +663,11 @@ function AnalyticsPage() {
                     <div className="header-content flex justify-between items-start sm:items-center">
                         <div>
                             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold flex items-center">
-                                <i className="fas fa-chart-line mr-2 sm:mr-3"></i>
+                                {companyInfo?.logo_url ? (
+                                    <img src={companyInfo.logo_url} alt="Logo" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover mr-3 border-2 border-white/30" />
+                                ) : (
+                                    <i className="fas fa-chart-line mr-2 sm:mr-3"></i>
+                                )}
                                 Analytics Dashboard
                             </h1>
                             <p className="text-white/80 mt-2">Real-time insights into your restaurant's performance</p>

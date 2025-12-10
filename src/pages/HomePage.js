@@ -217,8 +217,14 @@ function HomePage() {
     return (
         <div className="pattern-bg min-h-screen">
             {/* Premium Header with Navigation */}
-            <header className={`hero-gradient text-white transition-all duration-500 sticky top-0 z-[90] ${isScrolled ? 'py-3 shadow-2xl' : 'py-6'}`}>
-                <div className="w-full px-4">
+            <header
+                className={`text-white transition-all duration-500 sticky top-0 z-[90] bg-cover bg-center relative ${isScrolled ? 'py-3 shadow-2xl' : 'py-6'} ${!companyInfo?.banner_url ? 'hero-gradient' : ''}`}
+                style={companyInfo?.banner_url ? {
+                    backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(${companyInfo.banner_url})`
+                } : {}}
+            >
+
+                <div className="w-full px-4 relative z-10">
                     {/* Desktop Layout - Relative container with absolute positioned children */}
                     <div className="hidden lg:block relative">
                         {/* Restaurant Name - Absolute Left Edge */}
