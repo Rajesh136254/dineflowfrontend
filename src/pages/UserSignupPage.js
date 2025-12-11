@@ -57,9 +57,10 @@ const UserSignupPage = () => {
         const result = await signup(fullName, email, password);
 
         if (result.success) {
-            // Redirect directly to customer page with table number and companyId
-            let url = '/customer.html';
+            // Redirect to Login Page
+            let url = '/login';
             const params = new URLSearchParams();
+            params.append('mode', 'login');
             if (tableNumber) params.append('table', tableNumber);
             if (companyId) params.append('companyId', companyId);
 

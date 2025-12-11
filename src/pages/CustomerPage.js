@@ -220,7 +220,7 @@ function CustomerPage() {
         navigate('/login');
     };
 
-    const getAuthHeaders = () => {
+    const getAuthHeaders = useCallback(() => {
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
         // Add company ID from URL if present (for testing/no-subdomain mode)
         const params = new URLSearchParams(window.location.search);
@@ -228,12 +228,20 @@ function CustomerPage() {
         if (companyId) {
             headers['x-company-id'] = companyId;
         } else if (currentUser && currentUser.company_id) {
-            // Fallback: if logged in user has company_id, send it. 
-            // Useful if they are on main domain but valid user.
             headers['x-company-id'] = currentUser.company_id.toString();
+        } else if (token) {
+            // Fallback: If currentUser not loaded yet, try to parse token
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(window.atob(base64));
+                if (payload.company_id) {
+                    headers['x-company-id'] = payload.company_id.toString();
+                }
+            } catch (e) {/* ignore */ }
         }
         return headers;
-    };
+    }, [token, currentUser]);
 
     // --- Data Loading Functions ---
     const loadTables = useCallback(async () => {
@@ -257,7 +265,7 @@ function CustomerPage() {
         } catch (error) {
             console.error('Error loading tables:', error);
         }
-    }, [logout]);
+    }, [getAuthHeaders, logout, API_URL]);
 
     const loadCategories = useCallback(async () => {
         try {
@@ -281,7 +289,7 @@ function CustomerPage() {
             console.error('Error loading categories:', error);
             setCategories([]);
         }
-    }, [logout]);
+    }, [getAuthHeaders, logout, API_URL]);
 
     const loadMenu = useCallback(async () => {
         setIsLoading(true);
@@ -321,7 +329,7 @@ function CustomerPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [logout]);
+    }, [getAuthHeaders, logout, API_URL]);
 
     const loadCustomerOrders = useCallback(async () => {
         if (!token) return;
@@ -344,7 +352,7 @@ function CustomerPage() {
         } catch (error) {
             console.error('Error loading orders:', error);
         }
-    }, [token, logout]);
+    }, [token, getAuthHeaders, logout, API_URL]);
 
     // --- Cart Functions ---
     const addToCart = (itemId) => {
@@ -718,7 +726,7 @@ function CustomerPage() {
                         <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('search')} className="w-full pl-10 pr-4 py-2 sm:py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm text-sm sm:text-base input-focus" />
                     </div>
                     <div className="flex gap-2 mb-4">
-                        <div className="flex gap-2 mb-4 w-full">
+                        <div className="flex gap-2 mb-4 w-full relative">
                             <select
                                 value={tableNumber || ''}
                                 onChange={(e) => {
@@ -1110,24 +1118,30 @@ function CustomerPage() {
                             <p className="text-gray-600 mb-6">Please select the table number you are seated at.</p>
 
                             <div className="grid grid-cols-3 gap-3 max-h-60 overflow-y-auto mb-6 p-2">
-                                {tables.map(table => (
-                                    <button
-                                        key={table.id}
-                                        onClick={() => {
-                                            setTableNumber(table.table_number);
-                                            setIsTableSelectionModalOpen(false);
-                                            // Optionally update URL without reload
-                                            navigate(`?table=${table.table_number}`, { replace: true });
-                                        }}
-                                        className="bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-xl p-3 transition flex flex-col items-center justify-center gap-1"
-                                    >
-                                        <span className="text-lg font-bold text-gray-800">{table.table_number}</span>
-                                        <span className="text-[10px] text-gray-500 truncate w-full">{table.table_name || 'Table'}</span>
-                                    </button>
-                                ))}
+                                {isLoading ? (
+                                    <div className="col-span-3 text-center py-4 text-gray-500">Loading tables...</div>
+                                ) : (
+                                    <>
+                                        {tables.map(table => (
+                                            <button
+                                                key={table.id}
+                                                onClick={() => {
+                                                    setTableNumber(table.table_number);
+                                                    setIsTableSelectionModalOpen(false);
+                                                    // Optionally update URL without reload
+                                                    navigate(`?table=${table.table_number}`, { replace: true });
+                                                }}
+                                                className="bg-gray-50 hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-xl p-3 transition flex flex-col items-center justify-center gap-1"
+                                            >
+                                                <span className="text-lg font-bold text-gray-800">{table.table_number}</span>
+                                                <span className="text-[10px] text-gray-500 truncate w-full">{table.table_name || 'Table'}</span>
+                                            </button>
+                                        ))}
+                                    </>
+                                )}
                             </div>
 
-                            {tables.length === 0 && (
+                            {!isLoading && tables.length === 0 && (
                                 <p className="text-red-500 text-sm mb-4">No tables found. Please contact staff.</p>
                             )}
                         </div>
