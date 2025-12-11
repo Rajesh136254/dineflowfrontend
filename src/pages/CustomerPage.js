@@ -246,24 +246,29 @@ function CustomerPage() {
     // --- Data Loading Functions ---
     const loadTables = useCallback(async () => {
         try {
+            console.log('[CustomerPage] Loading tables...');
             const response = await fetch(`${API_URL}/api/tables`, {
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json'
                 }
             });
+            console.log('[CustomerPage] Tables response status:', response.status);
             if (response.status === 401 || response.status === 403) {
+                console.log('[CustomerPage] Tables auth failed, logging out');
                 logout();
                 return;
             }
             const data = await response.json();
+            console.log('[CustomerPage] Tables data:', data);
             if (data.success) {
+                console.log('[CustomerPage] Setting tables, count:', data.data?.length);
                 setTables(data.data);
             } else {
-                console.error('API Error:', data.message);
+                console.error('[CustomerPage] Tables API Error:', data.message);
             }
         } catch (error) {
-            console.error('Error loading tables:', error);
+            console.error('[CustomerPage] Error loading tables:', error);
         }
     }, [getAuthHeaders, logout, API_URL]);
 
