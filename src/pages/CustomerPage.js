@@ -608,10 +608,23 @@ function CustomerPage() {
     // 1. Load data explicitly when token/user is ready
     useEffect(() => {
         if (token) {
+            console.log('[CustomerPage] Token available, loading data...');
             loadTables();
             loadMenu();
             loadCategories();
             loadCustomerOrders();
+
+            // Retry after 1 second if menu is still empty (handles new signup edge case)
+            const retryTimer = setTimeout(() => {
+                if (menuItems.length === 0) {
+                    console.log('[CustomerPage] Retrying data load (menu still empty)...');
+                    loadTables();
+                    loadMenu();
+                    loadCategories();
+                }
+            }, 1000);
+
+            return () => clearTimeout(retryTimer);
         }
     }, [token, loadTables, loadMenu, loadCategories, loadCustomerOrders]);
 
