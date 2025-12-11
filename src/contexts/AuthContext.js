@@ -136,12 +136,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // Capture user role BEFORE clearing storage
+    let role = null;
+    if (currentUser && currentUser.role) {
+      role = currentUser.role;
+    } else {
+      try {
+        const stored = JSON.parse(localStorage.getItem('user'));
+        if (stored) role = stored.role;
+      } catch (e) { }
+    }
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
     setCurrentUser(null);
-    // Force a page reload to ensure clean state
-    window.location.href = '/signup?mode=login';
+
+    // Force a page reload to ensure clean state with correct redirect
+    if (role === 'admin' || role === 'staff') {
+      window.location.href = '/signup?mode=login';
+    } else {
+      window.location.href = '/login?mode=login';
+    }
   };
 
   const updateAuthState = (userData) => {
