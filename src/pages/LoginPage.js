@@ -72,7 +72,17 @@ const LoginPage = ({ redirectUrl }) => {
             // For QR flow (LoginPage), everyone goes to CustomerPage
             // We removed the admin redirect logic from here as requested
             if (result.user && (['user', 'customer'].includes(result.user.role))) {
-                navigate(tableNumber ? `/customer.html?table=${tableNumber}` : '/customer.html');
+                const companyId = searchParams.get('companyId');
+                let targetUrl = '/customer.html';
+                const params = new URLSearchParams();
+
+                if (tableNumber) params.append('table', tableNumber);
+                if (companyId) params.append('companyId', companyId);
+
+                const queryString = params.toString();
+                if (queryString) targetUrl += `?${queryString}`;
+
+                navigate(targetUrl);
             } else {
                 navigate(redirectTo);
             }

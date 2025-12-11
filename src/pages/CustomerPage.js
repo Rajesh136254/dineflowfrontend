@@ -605,12 +605,15 @@ function CustomerPage() {
 
     // 1. Load static data on mount
     // 1. Load static data on mount
+    // 1. Load data explicitly when token/user is ready
     useEffect(() => {
-        loadTables();
-        loadMenu();
-        loadCategories();
-        loadCustomerOrders();
-    }, [loadTables, loadMenu, loadCategories, loadCustomerOrders]);
+        if (token) {
+            loadTables();
+            loadMenu();
+            loadCategories();
+            loadCustomerOrders();
+        }
+    }, [token, loadTables, loadMenu, loadCategories, loadCustomerOrders]);
 
     // 2. Handle URL Table Param (Run only when URL params change)
     useEffect(() => {
@@ -628,11 +631,7 @@ function CustomerPage() {
     }, [searchParams]);
 
     // 3. Load Orders (Run when token changes)
-    useEffect(() => {
-        if (token) {
-            loadCustomerOrders();
-        }
-    }, [token, loadCustomerOrders]);
+
 
     return (
         <>
