@@ -660,13 +660,13 @@ function CustomerPage() {
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2">
+                            <div className="flex items-center gap-1 sm:gap-4 flex-shrink-0 ml-2">
                                 <div className="relative">
                                     <button
                                         onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
-                                        className="bg-white/20 backdrop-blur-sm rounded-lg h-9 sm:h-10 px-3 flex items-center gap-2 text-sm transition hover:bg-white/30"
+                                        className="bg-white/20 backdrop-blur-sm rounded-lg h-9 sm:h-10 px-2 sm:px-3 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm transition hover:bg-white/30"
                                     >
-                                        <i className="fas fa-globe text-lg"></i>
+                                        <i className="fas fa-globe text-base sm:text-lg"></i>
                                         <span className="hidden sm:inline">{language.toUpperCase()}</span>
                                     </button>
                                     {showLanguageDropdown && (
@@ -692,21 +692,21 @@ function CustomerPage() {
                                         </div>
                                     )}
                                 </div>
-                                <div className="hidden xs:block bg-white/20 backdrop-blur-sm rounded-lg h-9 sm:h-10 flex items-center px-2 hover:bg-white/30 transition">
-                                    <select value={currentCurrency} onChange={(e) => setCurrentCurrency(e.target.value)} className="bg-transparent text-white border-none outline-none text-sm font-medium cursor-pointer">
+                                <div className="hidden xs:block bg-white/20 backdrop-blur-sm rounded-lg h-9 sm:h-10 flex items-center px-1 sm:px-2 hover:bg-white/30 transition">
+                                    <select value={currentCurrency} onChange={(e) => setCurrentCurrency(e.target.value)} className="bg-transparent text-white border-none outline-none text-xs sm:text-sm font-medium cursor-pointer w-full">
                                         <option value="INR" className="text-gray-800">₹ INR</option>
                                         <option value="USD" className="text-gray-800">$ USD</option>
                                     </select>
                                 </div>
                                 <button onClick={() => { setIsOrdersModalOpen(true); loadCustomerOrders(); }} className="bg-white/20 backdrop-blur-sm rounded-lg w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center hover:bg-white/30 transition" title="My Orders">
-                                    <i className="fas fa-clipboard-list text-white text-lg"></i>
+                                    <i className="fas fa-clipboard-list text-white text-base sm:text-lg"></i>
                                 </button>
                                 <button onClick={() => setIsCartModalOpen(true)} className="bg-white/20 backdrop-blur-sm rounded-lg w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center hover:bg-white/30 transition relative" title="Cart">
-                                    <i className="fas fa-shopping-cart text-white text-lg"></i>
-                                    {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-transparent">{cartCount}</span>}
+                                    <i className="fas fa-shopping-cart text-white text-base sm:text-lg"></i>
+                                    {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-transparent">{cartCount}</span>}
                                 </button>
                                 <button onClick={handleLogout} className="bg-white/20 backdrop-blur-sm rounded-lg w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center hover:bg-white/30 transition" title="Logout">
-                                    <i className="fas fa-sign-out-alt text-white text-lg"></i>
+                                    <i className="fas fa-sign-out-alt text-white text-base sm:text-lg"></i>
                                 </button>
                             </div>
                         </div>

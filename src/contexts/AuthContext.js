@@ -141,7 +141,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setCurrentUser(null);
     // Force a page reload to ensure clean state
-    window.location.href = '/login?mode=login';
+    window.location.href = '/signup?mode=login';
   };
 
   const updateAuthState = (userData) => {
