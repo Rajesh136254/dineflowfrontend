@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useBranch } from '../contexts/BranchContext';
 import SupportTicketModal from '../components/SupportTicketModal';
 
 function HomePage() {
     const navigate = useNavigate();
     const { currentUser, logout, token } = useAuth();
+    const { selectedBranch, branches, setSelectedBranch } = useBranch();
     const location = useLocation();
 
     // State for UI elements
@@ -378,6 +380,29 @@ function HomePage() {
             {/* Main Content Area */}
             {isHomePage && (
                 <main className="container mx-auto px-4 py-8">
+                    {/* Branch Indicator */}
+                    {selectedBranch && (
+                        <div className="mb-8 flex justify-between items-center bg-white p-6 rounded-3xl shadow-lg border border-purple-50 transform hover:scale-[1.01] transition-transform duration-300">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-purple-100 rounded-2xl">
+                                    <i className="fas fa-code-branch text-purple-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Current Branch Context</p>
+                                    <h3 className="text-2xl font-black text-gray-800 tracking-tight">
+                                        {branches.find(b => b.id === selectedBranch)?.name || 'Unknown Branch'}
+                                    </h3>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setSelectedBranch(null); navigate('/branches'); }}
+                                className="px-6 py-3 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-md transition-all shadow-purple-200"
+                            >
+                                Switch Branch
+                            </button>
+                        </div>
+                    )}
+
                     {/* Hero Section */}
                     <div className="relative rounded-3xl overflow-hidden mb-16 shadow-2xl fade-in min-h-[400px] md:min-h-[500px]">
                         {companyInfo?.banner_url ? (
@@ -404,9 +429,6 @@ function HomePage() {
                             <p className="text-lg md:text-xl lg:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed mb-8">
                                 A modern QR-based restaurant ordering system that enhances customer experience and streamlines operations
                             </p>
-                            <button onClick={() => handleCardNavigation('/customer.html')} className="bg-white text-purple-900 font-bold py-3 px-8 rounded-full shadow-lg hover:bg-gray-100 transition transform hover:scale-105">
-                                Order Now
-                            </button>
                         </div>
                     </div>
 
@@ -591,16 +613,16 @@ function HomePage() {
                     </div>
                 </div>
             )}
-            {/* Moved Profile Dropdown to Root Level for Correct Stacking */}
+            {/* Moved Profile Dropdown to Root Level for Correct Stacking - DESKTOP ONLY */}
             {isProfileDropdownOpen && currentUser && (
                 <>
                     {/* Backdrop to close dropdown when clicking outside */}
                     <div
-                        className="fixed inset-0 z-[10000]"
+                        className="fixed inset-0 z-[10000] hidden lg:block"
                         onClick={() => setIsProfileDropdownOpen(false)}
                     ></div>
 
-                    <div className="fixed top-20 right-4 w-56 bg-white rounded-2xl shadow-2xl overflow-hidden z-[10001] animate-fade-in">
+                    <div className="fixed top-20 right-4 w-56 bg-white rounded-2xl shadow-2xl overflow-hidden z-[10001] animate-fade-in hidden lg:block">
                         <div className="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
                             <p className="font-bold text-sm">{currentUser.full_name || 'User'}</p>
                             <p className="text-xs opacity-90 mt-1">{currentUser.email}</p>

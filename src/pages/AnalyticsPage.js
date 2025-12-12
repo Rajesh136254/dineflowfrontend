@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useBranch } from '../contexts/BranchContext';
 import Chart from 'chart.js/auto';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
+import BranchSelector from '../components/BranchSelector';
 
 function AnalyticsPage() {
     const { token, logout } = useAuth();
@@ -15,6 +17,7 @@ function AnalyticsPage() {
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [companyInfo, setCompanyInfo] = useState(null);
+    const { selectedBranch, branches } = useBranch();
 
     useEffect(() => {
         const fetchCompanyInfo = async () => {
@@ -229,15 +232,16 @@ function AnalyticsPage() {
         };
 
         try {
+            const branchQuery = selectedBranch ? `&branch_id=${selectedBranch}` : '';
             const [summaryRes, revenueOrdersRes, topItemsRes, categoryRes, paymentRes, tableRes, hourlyRes, customerRes] = await Promise.all([
-                authFetch(`${API_URL}/api/analytics/summary?period=${timePeriod}&currency=${currentCurrency}`),
-                authFetch(`${API_URL}/api/analytics/revenue-orders?period=${timePeriod}&currency=${currentCurrency}`),
-                authFetch(`${API_URL}/api/analytics/top-items?period=${timePeriod}&currency=${currentCurrency}`),
-                authFetch(`${API_URL}/api/analytics/category-performance?period=${timePeriod}&currency=${currentCurrency}`),
-                authFetch(`${API_URL}/api/analytics/payment-methods?period=${timePeriod}`),
-                authFetch(`${API_URL}/api/analytics/table-performance?period=${timePeriod}&currency=${currentCurrency}`),
-                authFetch(`${API_URL}/api/analytics/hourly-orders?period=${timePeriod}`),
-                authFetch(`${API_URL}/api/analytics/customer-retention?period=${timePeriod}`)
+                authFetch(`${API_URL}/api/analytics/summary?period=${timePeriod}&currency=${currentCurrency}${branchQuery}`),
+                authFetch(`${API_URL}/api/analytics/revenue-orders?period=${timePeriod}&currency=${currentCurrency}${branchQuery}`),
+                authFetch(`${API_URL}/api/analytics/top-items?period=${timePeriod}&currency=${currentCurrency}${branchQuery}`),
+                authFetch(`${API_URL}/api/analytics/category-performance?period=${timePeriod}&currency=${currentCurrency}${branchQuery}`),
+                authFetch(`${API_URL}/api/analytics/payment-methods?period=${timePeriod}${branchQuery}`),
+                authFetch(`${API_URL}/api/analytics/table-performance?period=${timePeriod}&currency=${currentCurrency}${branchQuery}`),
+                authFetch(`${API_URL}/api/analytics/hourly-orders?period=${timePeriod}${branchQuery}`),
+                authFetch(`${API_URL}/api/analytics/customer-retention?period=${timePeriod}${branchQuery}`)
             ]);
 
             if (!summaryRes.ok) throw new Error(`Summary API error: ${summaryRes.status}`);
@@ -280,7 +284,8 @@ function AnalyticsPage() {
 
             // Fetch previous period data
             try {
-                const prevRes = await authFetch(`${API_URL}/api/analytics/previous-period?period=${timePeriod}&currency=${currentCurrency}`);
+                const branchQuery = selectedBranch ? `&branch_id=${selectedBranch}` : '';
+                const prevRes = await authFetch(`${API_URL}/api/analytics/previous-period?period=${timePeriod}&currency=${currentCurrency}${branchQuery}`);
                 if (prevRes.ok) {
                     const prevData = await prevRes.json();
                     if (prevData.success) {
@@ -297,7 +302,7 @@ function AnalyticsPage() {
         } finally {
             setLoading(false);
         }
-    }, [timePeriod, currentCurrency, token, logout, API_URL]);
+    }, [timePeriod, currentCurrency, token, logout, API_URL, selectedBranch]);
 
     // Initial fetch
     useEffect(() => {
@@ -697,7 +702,10 @@ function AnalyticsPage() {
                 </div>
             </div>
 
+
+
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+                <BranchSelector API_URL={API_URL} />
                 {renderTimePeriodButtons()}
 
                 {error && renderErrorState()}

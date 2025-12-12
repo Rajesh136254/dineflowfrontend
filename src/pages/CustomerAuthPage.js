@@ -23,11 +23,20 @@ const CustomerAuthPage = () => {
     // If you want a specific intro video only for this wrapper, we could keep it, but user request implies
     // they want the "UserSignupPage" (with video BG) to be the experience.
 
+    const table = searchParams.get('table');
+    const branch = searchParams.get('branch_id');
+    const getQuery = (prefix = '?') => {
+        const parts = [];
+        if (table) parts.push(`table=${table}`);
+        if (branch) parts.push(`branch_id=${branch}`);
+        return parts.length ? `${prefix}${parts.join('&')}` : '';
+    };
+
     return (
         <div>
             {isSignup ?
-                <UserSignupPage redirectUrl={`/login?mode=login${searchParams.get('table') ? `&table=${searchParams.get('table')}` : ''}`} /> :
-                <LoginPage redirectUrl={`/customer.html${searchParams.get('table') ? `?table=${searchParams.get('table')}` : ''}`} />
+                <UserSignupPage redirectUrl={`/login?mode=login${getQuery('&')}`} /> :
+                <LoginPage redirectUrl={`/customer.html${getQuery('?')}`} />
             }
             <div className="fixed bottom-4 w-full text-center z-20">
                 <button

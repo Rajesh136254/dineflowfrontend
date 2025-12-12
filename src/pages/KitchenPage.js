@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import io from 'socket.io-client';
 import { useAuth } from '../contexts/AuthContext';
+import { useBranch } from '../contexts/BranchContext';
+import BranchSelector from '../components/BranchSelector';
 
 function KitchenPage() {
     // State variables
@@ -11,6 +13,7 @@ function KitchenPage() {
     const { token, logout } = useAuth();
     const [deliveredDateFilter, setDeliveredDateFilter] = useState('today'); // New state for date filter
     const [companyInfo, setCompanyInfo] = useState(null);
+    const { selectedBranch, branches } = useBranch();
 
     useEffect(() => {
         const fetchCompanyInfo = async () => {
@@ -98,7 +101,11 @@ function KitchenPage() {
 
     const loadOrders = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/orders`, {
+            let url = `${API_URL}/api/orders`;
+            if (selectedBranch) {
+                url += `?branch_id=${selectedBranch}`;
+            }
+            const response = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.status === 401 || response.status === 403) {
@@ -112,7 +119,7 @@ function KitchenPage() {
         } catch (error) {
             console.error('Error loading orders:', error);
         }
-    }, [API_URL, token, logout]);
+    }, [API_URL, token, logout, selectedBranch]);
 
     const updateOrderStatus = async (orderId, newStatus) => {
         try {
@@ -169,6 +176,11 @@ function KitchenPage() {
         });
 
         socket.on('new-order', (order) => {
+            // Filter incoming orders by selected branch
+            if (selectedBranch && order.branch_id && order.branch_id !== selectedBranch) {
+                return;
+            }
+
             console.log('New order received:', order);
             setOrders(prevOrders => {
                 const updatedOrders = [order, ...prevOrders];
@@ -293,9 +305,12 @@ function KitchenPage() {
                                 <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${connectionStatus.includes('Connected') ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                             </span>
                             <span className={`text-sm font-semibold tracking-wide ${companyInfo?.banner_url ? 'text-slate-200' : 'text-slate-500'}`}>{connectionStatus}</span>
+
                         </div>
                     </div>
                 </div>
+
+
 
                 <div className="flex gap-4">
                     <div className="px-8 py-4 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200">
@@ -307,49 +322,57 @@ function KitchenPage() {
                         <span className={`font-bold text-4xl tracking-tight ${companyInfo?.banner_url ? 'text-emerald-400' : 'text-emerald-600'}`}>{statusCounts.delivered}</span>
                     </div>
                 </div>
-            </div>
+            </div >
+
+
+
+            <BranchSelector API_URL={API_URL} />
 
             {/* Status Tabs / Filter */}
-            <div className="flex flex-wrap gap-4 mb-10 justify-center md:justify-start">
-                {['pending', 'preparing', 'ready', 'delivered'].map(status => (
-                    <button
-                        key={status}
-                        onClick={() => setCurrentFilter(status)}
-                        className={`group relative px-6 py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 ${currentFilter === status
-                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 scale-105'
-                            : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-sm border border-slate-200/50'
-                            }`}
-                    >
-                        <span className="relative z-10 uppercase flex items-center gap-3">
-                            {status}
-                            <span className={`px-2 py-0.5 rounded-md text-xs ${currentFilter === status ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
-                                }`}>
-                                {statusCounts[status]}
+            < div className="flex flex-wrap gap-4 mb-10 justify-center md:justify-start" >
+                {
+                    ['pending', 'preparing', 'ready', 'delivered'].map(status => (
+                        <button
+                            key={status}
+                            onClick={() => setCurrentFilter(status)}
+                            className={`group relative px-6 py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 ${currentFilter === status
+                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20 scale-105'
+                                : 'bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-sm border border-slate-200/50'
+                                }`}
+                        >
+                            <span className="relative z-10 uppercase flex items-center gap-3">
+                                {status}
+                                <span className={`px-2 py-0.5 rounded-md text-xs ${currentFilter === status ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                                    }`}>
+                                    {statusCounts[status]}
+                                </span>
                             </span>
-                        </span>
-                    </button>
-                ))}
-            </div>
+                        </button>
+                    ))
+                }
+            </div >
 
             {/* Date Filter for Delivered */}
-            {currentFilter === 'delivered' && (
-                <div className="mb-8 flex justify-end animate-fade-in-down">
-                    <div className="bg-white p-1.5 rounded-xl border border-slate-100 inline-flex shadow-sm">
-                        {['today', 'yesterday', 'week', 'month'].map(filter => (
-                            <button
-                                key={filter}
-                                onClick={() => setDeliveredDateFilter(filter)}
-                                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${deliveredDateFilter === filter
-                                    ? 'bg-slate-900 text-white shadow-md'
-                                    : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
-                                    }`}
-                            >
-                                {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                            </button>
-                        ))}
+            {
+                currentFilter === 'delivered' && (
+                    <div className="mb-8 flex justify-end animate-fade-in-down">
+                        <div className="bg-white p-1.5 rounded-xl border border-slate-100 inline-flex shadow-sm">
+                            {['today', 'yesterday', 'week', 'month'].map(filter => (
+                                <button
+                                    key={filter}
+                                    onClick={() => setDeliveredDateFilter(filter)}
+                                    className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${deliveredDateFilter === filter
+                                        ? 'bg-slate-900 text-white shadow-md'
+                                        : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Orders View */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -468,7 +491,7 @@ function KitchenPage() {
                     })
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 

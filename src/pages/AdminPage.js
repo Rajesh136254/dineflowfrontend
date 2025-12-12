@@ -2,8 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import SupportTicketModal from '../components/SupportTicketModal';
+import BranchesTab from '../components/BranchesTab';
+import BranchSelector from '../components/BranchSelector';
+import { useBranch } from '../contexts/BranchContext';
 
 function AdminPage() {
+  const { selectedBranch } = useBranch();
   // ── State ───────────────────────────────────────
   const [activeTab, setActiveTab] = useState('menu');
   const [menuItems, setMenuItems] = useState([]);
@@ -27,6 +31,18 @@ function AdminPage() {
   const [currentRole, setCurrentRole] = useState({ name: '', permissions: {} });
   const [currentUser, setCurrentUser] = useState({ full_name: '', email: '', phone: '', password: '', role_id: '' });
 
+  // Branch Management State
+  const [branchesList, setBranchesList] = useState([]);
+  const [isBranchesLoading, setIsBranchesLoading] = useState(false);
+  const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
+  const [currentBranch, setCurrentBranch] = useState({
+    name: '',
+    address: '',
+    phone: '',
+    manager_name: '',
+    is_active: true
+  });
+
   const AVAILABLE_PERMISSIONS = [
     { id: 'admin', label: 'Admin Dashboard' },
     { id: 'kitchen', label: 'Kitchen Display' },
@@ -36,6 +52,7 @@ function AdminPage() {
     { id: 'staff', label: 'Staff Management' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'ingredients', label: 'Ingredients' },
+    { id: 'branches', label: 'Branch Management' },
     { id: 'settings', label: 'Company Settings' },
     { id: 'users', label: 'User Management' },
     { id: 'roles', label: 'Role Management' }
@@ -189,7 +206,18 @@ function AdminPage() {
       loadTableGroups();
       loadCompanyProfile();
     }
-  }, [token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // Only token - callbacks are stable via useCallback
+
+  // ── Reload data when branch changes ─────────────
+  useEffect(() => {
+    if (token && selectedBranch !== undefined) {
+      loadMenu();
+      loadTables();
+      loadOrders();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBranch, token]); // Callbacks are stable via useCallback
 
   useEffect(() => {
     if (activeTab === 'tables' && token) loadOrders();
@@ -206,14 +234,15 @@ function AdminPage() {
   }, [activeTab, token]);
 
   // ── Generate QR ───────────────────────────
-  const generateQRCode = (tableId, tableNumber) => {
+  const generateQRCode = (tableId, tableNumber, branchId) => {
     if (typeof window.QRCode === 'undefined') return;
 
     const el = qrRefs.current[tableId];
     if (el) {
       el.innerHTML = '';
+      const branchParam = branchId ? `&branch_id=${branchId}` : '';
       new window.QRCode(el, {
-        text: `${BASE_URL}/customer.html?table=${tableNumber}&companyId=${authUser?.company_id}`,
+        text: `${BASE_URL}/customer.html?table=${tableNumber}&companyId=${authUser?.company_id}${branchParam}`,
         width: 200,
         height: 200,
         colorDark: "#000000",
@@ -227,7 +256,10 @@ function AdminPage() {
   const loadMenu = useCallback(async () => {
     setIsMenuLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/menu`, {
+      let url = `${API_URL}/api/menu`;
+      if (selectedBranch) url += `?branch_id=${selectedBranch}`;
+
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 401 || res.status === 403) {
@@ -248,12 +280,15 @@ function AdminPage() {
     } finally {
       setIsMenuLoading(false);
     }
-  }, [API_URL, token, logout]);
+  }, [API_URL, token, logout, selectedBranch]);
 
   const loadTables = useCallback(async () => {
     setIsTablesLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/tables`, {
+      let url = `${API_URL}/api/tables`;
+      if (selectedBranch) url += `?branch_id=${selectedBranch}`;
+
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 401 || res.status === 403) {
@@ -275,7 +310,7 @@ function AdminPage() {
     } finally {
       setIsTablesLoading(false);
     }
-  }, [API_URL, token, logout]);
+  }, [API_URL, token, logout, selectedBranch]);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -298,7 +333,10 @@ function AdminPage() {
   const loadOrders = useCallback(async () => {
     setIsOrdersLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/orders`, {
+      let url = `${API_URL}/api/orders`;
+      if (selectedBranch) url += `?branch_id=${selectedBranch}`;
+
+      const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 401 || res.status === 403) {
@@ -312,7 +350,7 @@ function AdminPage() {
     } finally {
       setIsOrdersLoading(false);
     }
-  }, [API_URL, token, logout]);
+  }, [API_URL, token, logout, selectedBranch]);
 
   const loadTableGroups = useCallback(async () => {
     setIsGroupsLoading(true);
@@ -773,6 +811,7 @@ function AdminPage() {
       image_url,
       nutritional_info: f.get('nutritional_info'),
       vitamins: f.get('vitamins'),
+      branch_id: selectedBranch || null,
     };
     try {
       const url = id ? `${API_URL}/api/menu/${id}` : `${API_URL}/api/menu`;
@@ -817,6 +856,7 @@ function AdminPage() {
       table_number: num,
       table_name: f.get('table_name') || null,
       group_id: groupId,
+      branch_id: selectedBranch || null, // Add branch context
     };
 
     try {
@@ -965,7 +1005,7 @@ function AdminPage() {
     setSelectedTableForQR(t);
     setIsQRModalOpen(true);
     setTimeout(() => {
-      generateQRCode(t.id, t.table_number);
+      generateQRCode(t.id, t.table_number, t.branch_id);
     }, 100);
   };
 
@@ -1218,8 +1258,12 @@ function AdminPage() {
 
       </div>
 
+      <div className="max-w-7xl mx-auto mb-6">
+        <BranchSelector API_URL={API_URL} />
+      </div>
+
       <div className="max-w-7xl mx-auto mb-6 flex gap-4 border-b overflow-x-auto">
-        {['menu', 'tables', 'groups', 'staff', 'users', 'roles'].map(tab => (
+        {['menu', 'tables', 'groups', 'staff', 'users', 'roles', 'branches'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-2 px-4 capitalize whitespace-nowrap ${activeTab === tab ? 'border-b-2 border-indigo-600 text-indigo-600 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>
             {tab}
           </button>
@@ -1953,6 +1997,14 @@ function AdminPage() {
                 </table>
               </div>
             </div>
+          </div>
+        )
+      }
+
+      {
+        activeTab === 'branches' && (
+          <div className="max-w-7xl mx-auto fade">
+            <BranchesTab token={token} API_URL={API_URL} />
           </div>
         )
       }

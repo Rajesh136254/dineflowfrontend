@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useBranch } from '../contexts/BranchContext';
+import BranchSelector from '../components/BranchSelector';
 import io from 'socket.io-client';
 
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -137,14 +139,28 @@ function CustomerPage() {
     const { t, language, changeLanguage } = useLanguage();
     const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
     const [companyInfo, setCompanyInfo] = useState(null);
+    const { selectedBranch, setSelectedBranch } = useBranch();
+
+
+    // Handle Branch ID from URL (QR Scan)
+    useEffect(() => {
+        const branchParam = searchParams.get('branch_id');
+        if (branchParam) {
+            const bId = parseInt(branchParam);
+            if (!isNaN(bId) && selectedBranch !== bId) {
+                console.log('[CustomerPage] Setting branch from URL:', bId);
+                setSelectedBranch(bId);
+            }
+        }
+    }, [searchParams, selectedBranch, setSelectedBranch]);
 
     // 0. Enforce Authentication
     useEffect(() => {
         if (!token) {
             const currentTable = searchParams.get('table') || tableNumber;
+            const currentBranchParam = searchParams.get('branch_id');
             // Force redirect to CustomerAuthPage (UserSignupPage)
-            // User requested flow: Scan -> UserSignupPage -> Login -> CustomerPage
-            navigate(`/login?mode=signup${currentTable ? `&table=${currentTable}` : ''}`);
+            navigate(`/login?mode=signup${currentTable ? `&table=${currentTable}` : ''}${currentBranchParam ? `&branch_id=${currentBranchParam}` : ''}`);
         }
     }, [token, navigate, searchParams, tableNumber]);
 
@@ -247,7 +263,8 @@ function CustomerPage() {
     const loadTables = useCallback(async () => {
         try {
             console.log('[CustomerPage] Loading tables...');
-            const response = await fetch(`${API_URL}/api/tables`, {
+            const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
+            const response = await fetch(`${API_URL}/api/tables${branchQuery}`, {
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json'
@@ -270,11 +287,12 @@ function CustomerPage() {
         } catch (error) {
             console.error('[CustomerPage] Error loading tables:', error);
         }
-    }, [getAuthHeaders, logout, API_URL]);
+    }, [getAuthHeaders, logout, API_URL, selectedBranch]);
 
     const loadCategories = useCallback(async () => {
         try {
-            const response = await fetch(`${API_URL}/api/categories`, {
+            const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
+            const response = await fetch(`${API_URL}/api/categories${branchQuery}`, {
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json'
@@ -294,12 +312,13 @@ function CustomerPage() {
             console.error('Error loading categories:', error);
             setCategories([]);
         }
-    }, [getAuthHeaders, logout, API_URL]);
+    }, [getAuthHeaders, logout, API_URL, selectedBranch]);
 
     const loadMenu = useCallback(async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/menu`, {
+            const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
+            const response = await fetch(`${API_URL}/api/menu${branchQuery}`, {
                 headers: {
                     ...getAuthHeaders(),
                     'Content-Type': 'application/json'
@@ -334,7 +353,7 @@ function CustomerPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [getAuthHeaders, logout, API_URL]);
+    }, [getAuthHeaders, logout, API_URL, selectedBranch]);
 
     const loadCustomerOrders = useCallback(async () => {
         if (!token) return;
@@ -404,7 +423,8 @@ function CustomerPage() {
             })),
             currency: currentCurrency,
             payment_method: paymentMethod,
-            customer_id: currentUser?.id
+            customer_id: currentUser?.id,
+            branch_id: selectedBranch // Pass branch context for uniqueness
         };
         try {
             const response = await fetch(`${API_URL}/api/orders`, {
@@ -734,6 +754,8 @@ function CustomerPage() {
 
             {/* Main Content */}
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+                <BranchSelector API_URL={API_URL} />
+
                 {/* Search and Filter Section */}
                 <div className="mb-4 sm:mb-6">
                     <div className="relative mb-4">
