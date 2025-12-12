@@ -90,39 +90,91 @@ export default function SignupPage() {
 
         const user = data.data;
         const company = data.company;
-        const companyUrl = company?.url || company?.subdomainUrl;
         const token = data.data.token;
 
-        // Redirect based on mode
+        console.log('[AUTH] User data:', user);
+        console.log('[AUTH] Company data:', company);
+
         // Redirect based on mode
         if (mode === "signup") {
-          // Check for Vercel/Render deployments where wildcards are not supported
-          // REMOVED BLOCKING CHECK AS PER USER REQUEST TO ENABLE LIVE SUBDOMAINS
+          setAuthSuccess("Registration successful! Redirecting to your company site...");
 
-          // After successful admin signup, redirect to the company-specific site if available.
-          // REMOVED REDIRECT to companyUrl.
-          // Just navigate to dashboard/homepage.
-          setAuthSuccess("Registration successful! Redirecting...");
-          setTimeout(() => {
-            navigate('/homepage');
-          }, 2000);
-          /* if (companyUrl) { ... } */
-          // Fallback: stay on this page and show login tab
-          setMode("login");
-          setAuthSuccess("Registration successful! Please login.");
+          // For signup, ALWAYS redirect to company subdomain
+          if (company && company.slug) {
+            // Redirect to company-specific subdomain
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const port = window.location.port ? `:${window.location.port}` : '';
+
+            if (isLocalhost) {
+              // Local: Use subdomain.localhost:3000 format
+              const companyUrl = `http://${company.slug}.localhost${port}/homepage?token=${token}`;
+              console.log('[SIGNUP] Redirecting to:', companyUrl);
+              setTimeout(() => {
+                window.location.href = companyUrl;
+              }, 1500);
+            } else {
+              // Production: Use company URL from backend
+              const companyUrl = company.url ? `${company.url}/homepage?token=${token}` : '/homepage';
+              console.log('[SIGNUP] Redirecting to:', companyUrl);
+              setTimeout(() => {
+                window.location.href = companyUrl;
+              }, 1500);
+            }
+          } else {
+            // Fallback if no company slug
+            setTimeout(() => {
+              navigate('/homepage');
+            }, 1500);
+          }
         } else {
-          // Login success - Redirect
+          // Login success - Redirect to company subdomain
           if (user?.role === 'admin' || user?.role_id || user?.role !== 'customer') {
+            // Admin/Staff users - redirect to company subdomain
+            if (company && company.slug) {
+              const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+              const currentHostname = window.location.hostname;
+              const expectedHostname = isLocalhost ? `${company.slug}.localhost` : company.slug;
 
-            // REMOVED BLOCKING CHECK FOR LOGIN AS WELL
+              console.log('[LOGIN DEBUG] Current hostname:', currentHostname);
+              console.log('[LOGIN DEBUG] Company slug:', company.slug);
+              console.log('[LOGIN DEBUG] Expected hostname:', expectedHostname);
+              console.log('[LOGIN DEBUG] Is localhost:', isLocalhost);
 
-            // REMOVED SUBDOMAIN REDIRECT AS PER USER REQUEST
-            // relying on local state and token for auth.
-            navigate('/homepage');
-            // if (companyUrl) { ... }
+              // Check if we're already on the correct subdomain
+              const alreadyOnCorrectSubdomain = isLocalhost
+                ? currentHostname === `${company.slug}.localhost`
+                : currentHostname.startsWith(company.slug);
+
+              console.log('[LOGIN DEBUG] Already on correct subdomain?', alreadyOnCorrectSubdomain);
+
+              if (alreadyOnCorrectSubdomain) {
+                // Already on correct subdomain, just navigate locally
+                console.log('[LOGIN] Already on correct subdomain, navigating to /homepage');
+                navigate('/homepage');
+              } else {
+                // Need to redirect to correct subdomain
+                const port = window.location.port ? `:${window.location.port}` : '';
+
+                if (isLocalhost) {
+                  // Local: Use subdomain.localhost:3000 format
+                  const companyUrl = `http://${company.slug}.localhost${port}/homepage?token=${token}`;
+                  console.log('[LOGIN] Redirecting admin to:', companyUrl);
+                  window.location.href = companyUrl;
+                } else {
+                  // Production: Use company URL from backend
+                  const companyUrl = company.url || '/homepage';
+                  console.log('[LOGIN] Redirecting admin to:', companyUrl);
+                  window.location.href = companyUrl;
+                }
+              }
+            } else {
+              // Fallback if no company slug
+              navigate('/homepage');
+            }
             return;
           }
 
+          // Customer users - redirect to customer page with table param
           const searchParams = new URLSearchParams(window.location.search);
           const tableNumber = searchParams.get('table') || '1';
           const companyId = searchParams.get('companyId');

@@ -61,8 +61,12 @@ export const AuthProvider = ({ children }) => {
               const data = await response.json();
               if (data.success && data.user) {
                 console.log('✅ User data fetched from backend:', data.user);
-                localStorage.setItem('user', JSON.stringify(data.user));
-                setCurrentUser(data.user);
+                const userData = {
+                  ...data.user,
+                  permissions: data.user.permissions || null
+                };
+                localStorage.setItem('user', JSON.stringify(userData));
+                setCurrentUser(userData);
               }
             } else {
               console.warn('⚠️ Failed to fetch user data - token may be invalid');
@@ -99,11 +103,15 @@ export const AuthProvider = ({ children }) => {
 
       if (data.success) {
         const authToken = data.data.token;
+        const userData = {
+          ...data.data,
+          permissions: data.data.permissions || null
+        };
         localStorage.setItem('token', authToken);
-        localStorage.setItem('user', JSON.stringify(data.data));
+        localStorage.setItem('user', JSON.stringify(userData));
         setToken(authToken);
-        setCurrentUser(data.data);
-        return { success: true, user: data.data, company: data.company };
+        setCurrentUser(userData);
+        return { success: true, user: userData, company: data.company };
       } else {
         return { success: false, message: data.message };
       }

@@ -5,7 +5,7 @@ import SupportTicketModal from '../components/SupportTicketModal';
 
 function HomePage() {
     const navigate = useNavigate();
-    const { currentUser, logout } = useAuth();
+    const { currentUser, logout, token } = useAuth();
     const location = useLocation();
 
     // State for UI elements
@@ -27,10 +27,24 @@ function HomePage() {
                     ? 'http://localhost:5000'
                     : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
-                const res = await fetch(`${API_URL}/api/company/public`);
-                const json = await res.json();
-                if (json.success && json.data) {
-                    setCompanyInfo(json.data);
+                // If user is logged in (has token), use authenticated endpoint
+                // Otherwise use public endpoint
+                if (token) {
+                    const res = await fetch(`${API_URL}/api/company/profile`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        setCompanyInfo(json.data);
+                    }
+                } else {
+                    const res = await fetch(`${API_URL}/api/company/public`);
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        setCompanyInfo(json.data);
+                    }
                 }
             } catch (err) {
                 console.error("Failed to fetch company info", err);
@@ -40,7 +54,7 @@ function HomePage() {
 
         const interval = setInterval(fetchCompanyInfo, 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, [token]);
 
     const isHomePage = location.pathname === '/' || location.pathname === '/homepage';
 
@@ -154,14 +168,14 @@ function HomePage() {
     ];
 
     const filterItems = (item) => {
-        // console.log('Filtering item:', item.id, 'User:', currentUser);
+        console.log('[FILTER] Checking:', item.id, '| User:', currentUser?.email, '| Role:', currentUser?.role, '| Has role_id:', !!currentUser?.role_id, '| Permissions:', currentUser?.permissions);
         if (item.id === 'home') return true;
         if (!currentUser) return true;
 
         // Super Admin (Legacy or explicit admin role without specific permissions)
         // Only allow if NO role_id is present. If role_id exists, we MUST use permissions.
         if (currentUser.role === 'admin' && !currentUser.role_id) {
-            // console.log('User is Super Admin (no role_id), allowing all');
+            console.log('[FILTER] ✅ Super Admin - showing all');
             return true;
         }
 
@@ -178,7 +192,7 @@ function HomePage() {
 
         // Role-based Users (with permissions)
         if (perms && Object.keys(perms).length > 0) {
-            // console.log('Checking permissions for:', item.id, perms);
+            console.log('[FILTER] Permissions check for', item.id, ':', perms);
             if (item.id === 'admin') {
                 return !!(perms.admin ||
                     perms.menu ||
