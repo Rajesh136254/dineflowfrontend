@@ -279,7 +279,7 @@ export default function SignupPage() {
                   <div className="signup-logo">
                     <i className="fas fa-utensils"></i>
                   </div>
-                  <h2>EndOfHunger</h2>
+                  <h2>RedSorm</h2>
                 </div>
                 <div className="signup-tabs">
                   <div

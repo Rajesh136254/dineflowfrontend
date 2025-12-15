@@ -13,6 +13,9 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import StaffPage from './pages/StaffPage';
 import BranchesPage from './pages/BranchesPage';
+import AboutPage from './pages/AboutPage';
+import FeaturesPage from './pages/FeaturesPage';
+import FAQsPage from './pages/FAQsPage';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { BranchProvider } from './contexts/BranchContext';
@@ -67,6 +70,9 @@ function App() {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/staff" element={<StaffPage />} />
               <Route path="/branches" element={<BranchesPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/features" element={<FeaturesPage />} />
+              <Route path="/faqs" element={<FAQsPage />} />
 
               {/* Customer authentication flow */}
               <Route path="/login" element={<CustomerAuthPage />} />

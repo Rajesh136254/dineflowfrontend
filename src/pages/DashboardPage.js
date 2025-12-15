@@ -28,7 +28,7 @@ function DashboardPage() {
 
     // Testimonials
     const testimonials = [
-        { name: "Sarah Johnson", position: "Owner, The Garden Bistro", image: "https://picsum.photos/seed/restaurant-owner/100/100.jpg", quote: "EndOfHunger transformed our operations. Orders are 40% faster.", rating: 5 },
+        { name: "Sarah Johnson", position: "Owner, The Garden Bistro", image: "https://picsum.photos/seed/restaurant-owner/100/100.jpg", quote: "RedSorm transformed our operations. Orders are 40% faster.", rating: 5 },
         { name: "Michael Chen", position: "Manager, Urban Eats", image: "https://picsum.photos/seed/restaurant-manager/100/100.jpg", quote: "The analytics insight increased our profits by 25% in two months.", rating: 5 },
         { name: "Emily Rodriguez", position: "Chef, Coastal Kitchen", image: "https://picsum.photos/seed/restaurant-chef/100/100.jpg", quote: "The KDS is a lifesaver. The kitchen is calm, organized, and efficient.", rating: 5 }
     ];
@@ -96,6 +96,15 @@ function DashboardPage() {
             color: '#5352ED',
             image: '/dash-feature-team.png',
             icon: 'fa-user-shield',
+            size: 'medium'
+        },
+        {
+            id: 'branches',
+            title: 'Branch Management',
+            description: 'Manage multiple locations from one dashboard.',
+            color: '#FF6348',
+            image: '/dash-feature-branches.png',
+            icon: 'fa-code-branch',
             size: 'medium'
         }
     ];
@@ -167,13 +176,14 @@ function DashboardPage() {
                     <div className="header-content">
                         <div className="logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                             <div className="logo-icon glass-icon"><i className="fas fa-utensils"></i></div>
-                            <span className="logo-text">EndOfHunger</span>
+                            <span className="logo-text">RedSorm</span>
                         </div>
                         <nav className={`nav ${mobileMenuOpen ? 'open' : ''}`}>
                             <ul className="nav-list">
                                 <li><a href="#home" onClick={(e) => { e.preventDefault(); scrollToSection(heroRef); }}>{t('home')}</a></li>
                                 <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>{t('features')}</a></li>
                                 <li><a href="#pricing" onClick={(e) => { e.preventDefault(); scrollToSection(pricingRef); }}>{t('pricing')}</a></li>
+                                <li><a href="/faqs" onClick={(e) => { e.preventDefault(); navigate('/faqs'); }}>FAQs</a></li>
                             </ul>
                         </nav>
                         <div className="header-actions">
@@ -208,7 +218,7 @@ function DashboardPage() {
                 <div className="container">
                     <div className="hero-content">
                         <div className="hero-text glass-panel animate-on-scroll">
-                            <div className="hero-badge"><span>🚀 World Class Restaurant OS</span></div>
+                            <div className="hero-badge"><span>🍽️ Restaurant dining & Smart order management</span></div>
                             <h1 className="hero-title">{t('heroTitle')}</h1>
                             <p className="hero-description">{t('heroSubtitle')}</p>
                             <div className="hero-actions">
@@ -241,7 +251,26 @@ function DashboardPage() {
 
                     <div className="bento-grid">
                         {features.map((feature, index) => (
-                            <div key={index} className={`feature-card glass-card bento-${feature.size} animate-on-scroll`}>
+                            <div
+                                key={index}
+                                className={`feature-card glass-card bento-${feature.size} animate-on-scroll`}
+                                onClick={() => {
+                                    // Map dashboard feature IDs to features page IDs
+                                    const featureMapping = {
+                                        'qr': 'qr-ordering',
+                                        'kds': 'kds',
+                                        'analytics': 'analytics',
+                                        'tables': 'table-management',
+                                        'menu': 'menu-management',
+                                        'inventory': 'inventory',
+                                        'team': 'role-management',
+                                        'branches': 'branch-management'
+                                    };
+                                    const targetFeature = featureMapping[feature.id] || 'qr-ordering';
+                                    navigate(`/features?feature=${targetFeature}`);
+                                }}
+                                style={{ cursor: 'pointer' }}
+                            >
                                 <div className="feature-image-wrapper">
                                     <img src={feature.image} alt={feature.title} className="feature-realistic-img" />
                                     <div className="feature-overlay"></div>
@@ -297,7 +326,7 @@ function DashboardPage() {
                                 <div className="logo-icon glass-icon" style={{ width: '40px', height: '40px', fontSize: '1.2rem' }}>
                                     <i className="fas fa-utensils"></i>
                                 </div>
-                                <span className="logo-text">EndOfHunger</span>
+                                <span className="logo-text">RedSorm</span>
                             </div>
                             <p>Empowering restaurants with world-class technology. Join the dining revolution and scale your business today.</p>
                             <div className="social-icons">
@@ -311,17 +340,17 @@ function DashboardPage() {
                         <div className="footer-links-col">
                             <h4>Product</h4>
                             <ul>
-                                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>Features</a></li>
+                                <li><a href="/features" onClick={(e) => { e.preventDefault(); navigate('/features'); }}>Features</a></li>
                                 <li><a href="#pricing" onClick={(e) => { e.preventDefault(); scrollToSection(pricingRef); }}>Pricing</a></li>
-                                <li><a href="#" onClick={(e) => e.preventDefault()}>KDS System</a></li>
-                                <li><a href="#" onClick={(e) => e.preventDefault()}>Smart Inventory</a></li>
+                                <li><a href="/faqs" onClick={(e) => { e.preventDefault(); navigate('/faqs'); }}>FAQs</a></li>
+                                <li><a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection(featuresRef); }}>Overview</a></li>
                             </ul>
                         </div>
 
                         <div className="footer-links-col">
                             <h4>Company</h4>
                             <ul>
-                                <li><a href="#" onClick={(e) => e.preventDefault()}>About Us</a></li>
+                                <li><a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); }}>About Us</a></li>
                                 <li><a href="#" onClick={(e) => e.preventDefault()}>Careers</a></li>
                                 <li><a href="#" onClick={(e) => e.preventDefault()}>Blog</a></li>
                                 <li><a href="#" onClick={(e) => e.preventDefault()}>Contact Support</a></li>
@@ -339,7 +368,7 @@ function DashboardPage() {
                     </div>
 
                     <div className="footer-bottom">
-                        <p>&copy; {new Date().getFullYear()} EndOfHunger Inc. All rights reserved.</p>
+                        <p>&copy; {new Date().getFullYear()} RedSorm Inc. All rights reserved.</p>
                         <div className="footer-legal">
                             <a href="#" onClick={(e) => e.preventDefault()}>Privacy Policy</a>
                             <a href="#" onClick={(e) => e.preventDefault()}>Terms of Service</a>

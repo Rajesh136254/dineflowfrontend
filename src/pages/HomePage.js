@@ -252,7 +252,7 @@ function HomePage() {
                                     <i className="fas fa-utensils text-purple-600 text-xl"></i>
                                 )}
                             </div>
-                            <h1 className="text-3xl font-bold tracking-tight whitespace-nowrap">{companyInfo ? companyInfo.name : 'EndOfHunger'}</h1>
+                            <h1 className="text-3xl font-bold tracking-tight whitespace-nowrap">{companyInfo ? companyInfo.name : 'RedSorm'}</h1>
                         </div>
 
                         {/* Desktop Navigation - Absolute Center */}
@@ -304,7 +304,7 @@ function HomePage() {
                                     <i className="fas fa-utensils text-purple-600 text-xl"></i>
                                 )}
                             </div>
-                            <h1 className="text-3xl font-bold tracking-tight">{companyInfo ? companyInfo.name : 'EndOfHunger'}</h1>
+                            <h1 className="text-3xl font-bold tracking-tight">{companyInfo ? companyInfo.name : 'RedSorm'}</h1>
                         </div>
 
                         {/* Mobile Menu Button */}
@@ -423,7 +423,7 @@ function HomePage() {
                             <h2 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight text-shadow">
                                 Welcome to <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500">
-                                    {companyInfo ? companyInfo.name : 'EndOfHunger'}
+                                    {companyInfo ? companyInfo.name : 'RedSorm'}
                                 </span>
                             </h2>
                             <p className="text-lg md:text-xl lg:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed mb-8">
@@ -457,7 +457,7 @@ function HomePage() {
 
                     {/* Why Choose Us Section */}
                     < div className="glass-effect rounded-3xl shadow-2xl p-10 mb-16 fade-in" >
-                        <h3 className="text-3xl font-bold text-gray-800 mb-10 text-center">Why Choose EndOfHunger?</h3>
+                        <h3 className="text-3xl font-bold text-gray-800 mb-10 text-center">Why Choose RedSorm?</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {[
                                 {
@@ -496,7 +496,7 @@ function HomePage() {
                         <div className="relative z-10 max-w-4xl mx-auto text-center">
                             <i className="fas fa-quote-left text-6xl mb-8 opacity-50"></i>
                             <p className="text-2xl md:text-3xl mb-8 italic leading-relaxed">
-                                "EndOfHunger transformed our restaurant operations. Orders are processed 40% faster, and our customers love the convenience of ordering from their tables."
+                                "RedSorm transformed our restaurant operations. Orders are processed 40% faster, and our customers love the convenience of ordering from their tables."
                             </p>
                             <div className="flex items-center justify-center">
                                 <img src="https://picsum.photos/seed/restaurant-owner/60/60.jpg" alt="Restaurant Owner" className="w-16 h-16 rounded-full mr-6 border-4 border-white shadow-lg" />
@@ -523,22 +523,22 @@ function HomePage() {
                                         <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
                                             <i className="fas fa-utensils text-purple-600"></i>
                                         </div>
-                                        <h3 className="text-xl font-bold">EndOfHunger</h3>
+                                        <h3 className="text-xl font-bold">RedSorm</h3>
                                     </div>
                                     <p className="text-gray-400 leading-relaxed">Modern QR-based restaurant ordering system for enhanced dining experiences.</p>
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-lg mb-4">Product</h4>
                                     <ul className="space-y-3 text-gray-400">
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Features</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Pricing</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">FAQ</a></li>
+                                        <li><a onClick={() => navigate('/features')} className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block cursor-pointer">Features</a></li>
+                                        <li><a onClick={() => navigate('/dashboard')} className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block cursor-pointer">Pricing</a></li>
+                                        <li><a onClick={() => navigate('/faqs')} className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block cursor-pointer">FAQ</a></li>
                                     </ul>
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-lg mb-4">Company</h4>
                                     <ul className="space-y-3 text-gray-400">
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">About</a></li>
+                                        <li><a onClick={() => navigate('/about')} className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block cursor-pointer">About</a></li>
                                         <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Blog</a></li>
                                         <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Careers</a></li>
                                     </ul>
@@ -553,7 +553,7 @@ function HomePage() {
                                 </div>
                             </div>
                             <div className="border-t border-gray-800 pt-8 text-center text-gray-500">
-                                <p>&copy; 2024 EndOfHunger. All rights reserved.</p>
+                                <p>&copy; 2024 RedSorm. All rights reserved.</p>
                             </div>
                         </div>
                     </footer>
