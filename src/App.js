@@ -35,16 +35,16 @@ const RootRoute = () => {
     // Handle sub.localhost
     isSubdomain = true;
   }
-  // Explicit dev subdomain used for development environment should show HomePage
+  // Explicit dev subdomain used for development environment should show Dashboard
   else if (hostname === 'dev.redsorm.in') {
-    isSubdomain = true;
+    isSubdomain = false;
   }
   // Handle Render and Vercel deployments (e.g. appname.onrender.com or appname.vercel.app is Main)
   else if (hostname.endsWith('onrender.com') || hostname.endsWith('vercel.app')) {
     // Vercel preview URLs for the dev branch typically include a git-dev marker
-    // e.g. `...-git-dev-...vercel.app` — treat those as tenant (HomePage)
+    // e.g. `...-git-dev-...vercel.app` — treat those as Dashboard (main app)
     if (hostname.endsWith('vercel.app') && hostname.includes('git-dev')) {
-      isSubdomain = true;
+      isSubdomain = false;
     } else if (parts.length === 3) {
       isSubdomain = false; // Main App (Dashboard)
     } else if (parts.length > 3) {
