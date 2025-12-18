@@ -139,14 +139,14 @@ function AdminPage() {
   }, [authUser, activeTab]);
 
   // ── Helpers ─────────────────────────────────────
-  const showToast = (msg, type = 'success') => {
+  const showToast = useCallback((msg, type = 'success') => {
     setToast({ show: true, message: msg, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
+  }, []);
 
-  const openConfirm = (message, onYes) => {
+  const openConfirm = useCallback((message, onYes) => {
     setConfirmModal({ show: true, message, onConfirm: onYes });
-  };
+  }, []);
 
   const getTableCounts = useCallback((tableNumber) => {
     const tableOrders = orders.filter(o => o.table_number == tableNumber);
@@ -231,7 +231,8 @@ function AdminPage() {
       loadUsers();
       loadRoles(); // Need roles for dropdown
     }
-  }, [activeTab, token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, token]); // Functions are stable via useCallback
 
   // ── Generate QR ───────────────────────────
   const generateQRCode = (tableId, tableNumber, branchId) => {

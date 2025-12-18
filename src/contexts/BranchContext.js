@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const BranchContext = createContext();
 
@@ -16,7 +16,7 @@ export const BranchProvider = ({ children }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     // Load branches when provider mounts
-    const loadBranches = async (token, API_URL) => {
+    const loadBranches = useCallback(async (token, API_URL) => {
         if (!token) return;
 
         setIsLoading(true);
@@ -33,7 +33,7 @@ export const BranchProvider = ({ children }) => {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []); // Empty deps - function is stable
 
     const value = {
         selectedBranch,

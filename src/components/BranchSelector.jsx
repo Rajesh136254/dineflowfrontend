@@ -12,10 +12,6 @@ function BranchSelector({ API_URL }) {
         }
     }, [token, API_URL, branches.length, loadBranches]);
 
-    if (branches.length === 0 && !isLoading) {
-        return null; // Don't show selector if no branches
-    }
-
     return (
         <div className="bg-white rounded-lg shadow-md p-4 mb-6">
             <div className="flex items-center gap-4">
@@ -32,11 +28,12 @@ function BranchSelector({ API_URL }) {
                     className="flex-1 max-w-md px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all outline-none text-gray-700 font-medium"
                     disabled={isLoading}
                 >
-                    <option value="all">🌐 All Branches (Combined View)</option>
+                    <option value="all">
+                        {isLoading ? '⏳ Loading branches...' : '🌐 All Branches (Combined View)'}
+                    </option>
                     {branches.map(branch => (
                         <option key={branch.id} value={branch.id}>
                             {branch.is_active ? '🟢' : '⚪'} {branch.name}
-                            {branch.address ? ` - ${branch.address.substring(0, 30)}...` : ''}
                         </option>
                     ))}
                 </select>
