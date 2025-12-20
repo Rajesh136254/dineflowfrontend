@@ -113,17 +113,8 @@ export default function SignupPage() {
                 window.location.href = companyUrl;
               }, 1500);
             } else {
-              // Production: Use HTTPS for company URL
-              let companyUrl;
-              if (company.url) {
-                // Force HTTPS if not already present
-                companyUrl = company.url.startsWith('http')
-                  ? company.url.replace(/^http:/, 'https:')
-                  : `https://${company.url}`;
-                companyUrl += `/homepage?token=${token}`;
-              } else {
-                companyUrl = '/homepage';
-              }
+              // Production: Use company URL from backend (now has correct root domain)
+              const companyUrl = company.url || '/homepage';
               console.log('[SIGNUP] Redirecting to:', companyUrl);
               setTimeout(() => {
                 window.location.href = companyUrl;
@@ -170,17 +161,9 @@ export default function SignupPage() {
                   console.log('[LOGIN] Redirecting admin to:', companyUrl);
                   window.location.href = companyUrl;
                 } else {
-                  // Production: Use HTTPS for company URL
-                  let companyUrl;
-                  if (company.url) {
-                    // Force HTTPS if not already present
-                    companyUrl = company.url.startsWith('http')
-                      ? company.url.replace(/^http:/, 'https:')
-                      : `https://${company.url}`;
-                  } else {
-                    companyUrl = '/homepage';
-                  }
-                  console.log('[LOGIN] Redirecting admin to:', companyUrl);
+                  // Production: Use company URL from backend (now has correct root domain)
+                  const companyUrl = company.url || '/homepage';
+                  console.log('[LOGIN] Redirecting to:', companyUrl);
                   window.location.href = companyUrl;
                 }
               }
