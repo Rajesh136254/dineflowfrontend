@@ -14,6 +14,21 @@ export default function SignupPage() {
 
   const isLoginMode = searchParams.get('mode') === 'login';
 
+  // Save QR Params to localStorage as fallback
+  useEffect(() => {
+    const tableParam = searchParams.get('table');
+    const branchParam = searchParams.get('branch_id');
+    if (tableParam || branchParam) {
+      const context = {
+        table: tableParam,
+        branch_id: branchParam,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('scanned_qr_context', JSON.stringify(context));
+      console.log('[SignupPage] Saved QR Context:', context);
+    }
+  }, [location.search]);
+
   // Directly manage form/login mode. Video is now background.
   const [mode, setMode] = useState(isLoginMode ? 'login' : 'signup');
 

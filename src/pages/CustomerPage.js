@@ -115,7 +115,17 @@ function CustomerPage() {
     const [searchParams] = useSearchParams();
     const [tableNumber, setTableNumber] = useState(() => {
         const t = searchParams.get('table');
-        return t ? parseInt(t) : null;
+        if (t) return parseInt(t);
+
+        // Fallback: Check localStorage
+        try {
+            const stored = JSON.parse(localStorage.getItem('scanned_qr_context'));
+            if (stored && stored.table) {
+                console.log('[CustomerPage] Recovered table from localStorage:', stored.table);
+                return parseInt(stored.table);
+            }
+        } catch (e) { }
+        return null;
     });
     const [isTableSelectionModalOpen, setIsTableSelectionModalOpen] = useState(false);
     const [tables, setTables] = useState([]);
@@ -142,15 +152,27 @@ function CustomerPage() {
     const { selectedBranch, setSelectedBranch } = useBranch();
 
 
-    // Handle Branch ID from URL (QR Scan)
+    // Handle Branch ID from URL (QR Scan) or LocalStorage Fallback
     useEffect(() => {
+        let bId = null;
         const branchParam = searchParams.get('branch_id');
+
         if (branchParam) {
-            const bId = parseInt(branchParam);
-            if (!isNaN(bId) && selectedBranch !== bId) {
-                console.log('[CustomerPage] Setting branch from URL:', bId);
-                setSelectedBranch(bId);
-            }
+            bId = parseInt(branchParam);
+        } else {
+            // Check localStorage Fallback
+            try {
+                const stored = JSON.parse(localStorage.getItem('scanned_qr_context'));
+                if (stored && stored.branch_id) {
+                    bId = parseInt(stored.branch_id);
+                    console.log('[CustomerPage] Recovered branch from localStorage:', bId);
+                }
+            } catch (e) { }
+        }
+
+        if (bId !== null && !isNaN(bId) && selectedBranch !== bId) {
+            console.log('[CustomerPage] Setting branch:', bId);
+            setSelectedBranch(bId);
         }
     }, [searchParams, selectedBranch, setSelectedBranch]);
 
