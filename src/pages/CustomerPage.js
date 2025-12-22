@@ -754,7 +754,10 @@ function CustomerPage() {
 
             {/* Main Content */}
             <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-                <BranchSelector API_URL={API_URL} />
+                {/* Only show branch selector for admin/staff, not for customers */}
+                {currentUser?.role && (currentUser.role === 'admin' || currentUser.role === 'staff') && (
+                    <BranchSelector API_URL={API_URL} />
+                )}
 
                 {/* Search and Filter Section */}
                 <div className="mb-4 sm:mb-6">
@@ -764,26 +767,24 @@ function CustomerPage() {
                         </div>
                         <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t('search')} className="w-full pl-10 pr-4 py-2 sm:py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm text-sm sm:text-base input-focus" />
                     </div>
-                    <div className="flex gap-2 mb-4">
-                        <div className="flex gap-2 mb-4 w-full relative">
-                            <select
-                                value={tableNumber || ''}
-                                onChange={(e) => {
-                                    const val = parseInt(e.target.value);
-                                    setTableNumber(isNaN(val) ? null : val);
-                                }}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-white text-gray-700 font-medium shadow-sm transition-all outline-none appearance-none cursor-pointer"
-                            >
-                                <option value="" disabled>Choose your table...</option>
-                                {tables.map(table => (
-                                    <option key={table.id} value={table.table_number}>
-                                        {table.table_name || `Table ${table.table_number}`}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                <i className="fas fa-chevron-down text-xs"></i>
-                            </div>
+                    <div className="mb-4 w-full relative">
+                        <select
+                            value={tableNumber || ''}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setTableNumber(isNaN(val) ? null : val);
+                            }}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-white text-gray-700 font-medium shadow-sm transition-all outline-none appearance-none cursor-pointer"
+                        >
+                            <option value="" disabled>Choose your table...</option>
+                            {tables.map(table => (
+                                <option key={table.id} value={table.table_number}>
+                                    {table.table_name || `Table ${table.table_number}`}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                            <i className="fas fa-chevron-down text-xs"></i>
                         </div>
                     </div>
 
@@ -832,7 +833,7 @@ function CustomerPage() {
 
                 {/* Menu Items */}
                 {isLoading ? (
-                    <div className="menu-grid grid gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {Array(6).fill().map((_, i) => (
                             <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden">
                                 <div className="h-48 shimmer"></div>
@@ -841,7 +842,7 @@ function CustomerPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="menu-grid grid gap-4 sm:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         {filteredMenu.length === 0 ? (
                             <div className="col-span-full bg-gray-50 rounded-xl p-8 text-center">
                                 <i className="fas fa-search text-gray-400 text-4xl mb-4"></i>
