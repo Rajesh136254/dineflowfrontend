@@ -108,11 +108,17 @@ export default function SignupPage() {
               window.location.href = companyUrl;
             }, 1500);
           } else {
-            // Production: Use company URL from backend and append token
+            // Production: Use company URL from backend and append token + QR params
             const baseUrl = company.url || '/homepage';
-            // Add token to URL, handling existing query parameters
             const separator = baseUrl.includes('?') ? '&' : '?';
-            const companyUrl = `${baseUrl}${separator}token=${token}`;
+
+            const tableParam = searchParams.get('table');
+            const branchParam = searchParams.get('branch_id');
+
+            let companyUrl = `${baseUrl}${separator}token=${token}`;
+            if (tableParam) companyUrl += `&table=${tableParam}`;
+            if (branchParam) companyUrl += `&branch_id=${branchParam}`;
+
             console.log('[SIGNUP] Redirecting to:', companyUrl);
             setTimeout(() => {
               window.location.href = companyUrl;
@@ -159,10 +165,17 @@ export default function SignupPage() {
                 console.log('[LOGIN] Redirecting admin to:', companyUrl);
                 window.location.href = companyUrl;
               } else {
-                // Production: Use company URL from backend and append token
+                // Production: Use company URL from backend and append token + QR params
                 const baseUrl = company.url || '/homepage';
                 const separator = baseUrl.includes('?') ? '&' : '?';
-                const companyUrl = `${baseUrl}${separator}token=${token}`;
+
+                const tableParam = searchParams.get('table');
+                const branchParam = searchParams.get('branch_id');
+
+                let companyUrl = `${baseUrl}${separator}token=${token}`;
+                if (tableParam) companyUrl += `&table=${tableParam}`;
+                if (branchParam) companyUrl += `&branch_id=${branchParam}`;
+
                 console.log('[LOGIN] Redirecting to:', companyUrl);
                 window.location.href = companyUrl;
               }
