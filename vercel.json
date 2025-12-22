@@ -1,46 +1,4 @@
 {
-    "buildCommand": "npm run build",
-    "outputDirectory": "build",
-    "framework": "create-react-app",
-    "installCommand": "npm install",
-    "devCommand": "npm start",
-    "headers": [
-        {
-            "source": "/(.*)",
-            "headers": [
-                {
-                    "key": "Strict-Transport-Security",
-                    "value": "max-age=31536000; includeSubDomains; preload"
-                },
-                {
-                    "key": "X-Content-Type-Options",
-                    "value": "nosniff"
-                },
-                {
-                    "key": "X-Frame-Options",
-                    "value": "SAMEORIGIN"
-                },
-                {
-                    "key": "X-XSS-Protection",
-                    "value": "1; mode=block"
-                }
-            ]
-        }
-    ],
-    "redirects": [
-        {
-            "source": "/:path*",
-            "has": [
-                {
-                    "type": "header",
-                    "key": "x-forwarded-proto",
-                    "value": "http"
-                }
-            ],
-            "destination": "https://:host/:path*",
-            "permanent": true
-        }
-    ],
     "rewrites": [
         {
             "source": "/(.*)",
