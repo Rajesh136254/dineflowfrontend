@@ -284,8 +284,15 @@ function CustomerPage() {
     // --- Data Loading Functions ---
     const loadTables = useCallback(async () => {
         try {
-            console.log('[loadTables] Selected Branch:', selectedBranch);
-            const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
+            let currentBranch = selectedBranch;
+            if (!currentBranch) {
+                try {
+                    const stored = JSON.parse(localStorage.getItem('scanned_qr_context'));
+                    if (stored?.branch_id) currentBranch = parseInt(stored.branch_id);
+                } catch (e) { }
+            }
+            console.log('[loadTables] Selected Branch:', currentBranch);
+            const branchQuery = currentBranch ? `?branch_id=${currentBranch}` : '';
             console.log('[loadTables] API URL:', `${API_URL}/api/tables${branchQuery}`);
 
             const response = await fetch(`${API_URL}/api/tables${branchQuery}`, {
@@ -315,7 +322,14 @@ function CustomerPage() {
 
     const loadCategories = useCallback(async () => {
         try {
-            const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
+            let currentBranch = selectedBranch;
+            if (!currentBranch) {
+                try {
+                    const stored = JSON.parse(localStorage.getItem('scanned_qr_context'));
+                    if (stored?.branch_id) currentBranch = parseInt(stored.branch_id);
+                } catch (e) { }
+            }
+            const branchQuery = currentBranch ? `?branch_id=${currentBranch}` : '';
             const response = await fetch(`${API_URL}/api/categories${branchQuery}`, {
                 headers: {
                     ...getAuthHeaders(),
@@ -341,8 +355,15 @@ function CustomerPage() {
     const loadMenu = useCallback(async () => {
         setIsLoading(true);
         try {
-            const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
-            console.log('[loadMenu] Selected Branch:', selectedBranch);
+            let currentBranch = selectedBranch;
+            if (!currentBranch) {
+                try {
+                    const stored = JSON.parse(localStorage.getItem('scanned_qr_context'));
+                    if (stored?.branch_id) currentBranch = parseInt(stored.branch_id);
+                } catch (e) { }
+            }
+            const branchQuery = currentBranch ? `?branch_id=${currentBranch}` : '';
+            console.log('[loadMenu] Selected Branch:', currentBranch);
             console.log('[loadMenu] API URL:', `${API_URL}/api/menu${branchQuery}`);
 
             const response = await fetch(`${API_URL}/api/menu${branchQuery}`, {
