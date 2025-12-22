@@ -1,4 +1,9 @@
 {
+    "buildCommand": "npm run build",
+    "outputDirectory": "build",
+    "framework": "create-react-app",
+    "installCommand": "npm install",
+    "devCommand": "npm start",
     "headers": [
         {
             "source": "/(.*)",
@@ -13,7 +18,7 @@
                 },
                 {
                     "key": "X-Frame-Options",
-                    "value": "DENY"
+                    "value": "SAMEORIGIN"
                 },
                 {
                     "key": "X-XSS-Protection",
@@ -34,6 +39,12 @@
             ],
             "destination": "https://:host/:path*",
             "permanent": true
+        }
+    ],
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }
