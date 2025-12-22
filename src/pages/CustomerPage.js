@@ -262,8 +262,10 @@ function CustomerPage() {
     // --- Data Loading Functions ---
     const loadTables = useCallback(async () => {
         try {
-            console.log('[CustomerPage] Loading tables...');
+            console.log('[loadTables] Selected Branch:', selectedBranch);
             const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
+            console.log('[loadTables] API URL:', `${API_URL}/api/tables${branchQuery}`);
+
             const response = await fetch(`${API_URL}/api/tables${branchQuery}`, {
                 headers: {
                     ...getAuthHeaders(),
@@ -318,6 +320,9 @@ function CustomerPage() {
         setIsLoading(true);
         try {
             const branchQuery = selectedBranch ? `?branch_id=${selectedBranch}` : '';
+            console.log('[loadMenu] Selected Branch:', selectedBranch);
+            console.log('[loadMenu] API URL:', `${API_URL}/api/menu${branchQuery}`);
+
             const response = await fetch(`${API_URL}/api/menu${branchQuery}`, {
                 headers: {
                     ...getAuthHeaders(),
@@ -337,6 +342,9 @@ function CustomerPage() {
             }
 
             const data = await response.json();
+            console.log('[loadMenu] Response data:', data);
+            console.log('[loadMenu] Items received:', data.data?.length || 0);
+
             if (data.success) {
                 // Filter out placeholder items
                 const validItems = (data.data || []).filter(item =>
@@ -344,6 +352,7 @@ function CustomerPage() {
                     item.category !== 'add-new' &&
                     item.is_available !== false
                 );
+                console.log('[loadMenu] Valid items after filter:', validItems.length);
                 setMenuItems(validItems);
             } else {
                 console.error('API Error:', data.message);
@@ -668,7 +677,17 @@ function CustomerPage() {
         }
     }, [searchParams]);
 
-    // 3. Load Orders (Run when token changes)
+    // 3. Reload data when branch changes (important for QR code scans)
+    useEffect(() => {
+        if (token && selectedBranch) {
+            console.log('[CustomerPage] Branch changed to:', selectedBranch, '- Reloading data...');
+            loadTables();
+            loadMenu();
+            loadCategories();
+        }
+    }, [selectedBranch, token, loadTables, loadMenu, loadCategories]);
+
+    // 4. Load Orders (Run when token changes)
 
 
     return (
