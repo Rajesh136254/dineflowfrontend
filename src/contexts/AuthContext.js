@@ -21,9 +21,14 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
+      console.log('[AUTH INIT] Starting authentication initialization...');
+
       // 1. Load any existing auth state from localStorage
       let storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
+
+      console.log('[AUTH INIT] Stored token:', storedToken ? 'EXISTS' : 'NULL');
+      console.log('[AUTH INIT] Stored user:', storedUser ? 'EXISTS' : 'NULL');
 
       // 2. If there is no token yet, but a `token` is present in the URL
       //    (e.g. after redirect from main domain to company subdomain),
@@ -32,24 +37,32 @@ export const AuthProvider = ({ children }) => {
         const searchParams = new URLSearchParams(window.location.search);
         const urlToken = searchParams.get('token');
 
+        console.log('[AUTH INIT] URL token:', urlToken ? 'FOUND' : 'NOT FOUND');
+
         if (urlToken) {
           storedToken = urlToken;
           localStorage.setItem('token', urlToken);
+          console.log('[AUTH INIT] ✅ Token saved from URL to localStorage');
 
           // Clean token from the URL for security / neatness
           searchParams.delete('token');
           const newQuery = searchParams.toString();
           const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`;
           window.history.replaceState({}, '', newUrl);
+          console.log('[AUTH INIT] ✅ Token removed from URL');
         }
       }
 
       if (storedToken) {
         setToken(storedToken);
+        console.log('[AUTH INIT] Token set in state');
 
         // If we have a token but no user data, fetch it from the backend
         if (!storedUser) {
           console.log('🔄 Token found but no user data - fetching from backend...');
+          console.log('[AUTH INIT] API URL:', API_URL);
+          console.log('[AUTH INIT] Making request to:', `${API_URL}/api/auth/me`);
+
           try {
             const response = await fetch(`${API_URL}/api/auth/me`, {
               headers: {
@@ -57,8 +70,13 @@ export const AuthProvider = ({ children }) => {
               }
             });
 
+            console.log('[AUTH INIT] Response status:', response.status);
+            console.log('[AUTH INIT] Response ok:', response.ok);
+
             if (response.ok) {
               const data = await response.json();
+              console.log('[AUTH INIT] Response data:', data);
+
               if (data.success && data.user) {
                 console.log('✅ User data fetched from backend:', data.user);
                 const userData = {
@@ -67,9 +85,15 @@ export const AuthProvider = ({ children }) => {
                 };
                 localStorage.setItem('user', JSON.stringify(userData));
                 setCurrentUser(userData);
+                console.log('[AUTH INIT] ✅ User data saved to localStorage and state');
+              } else {
+                console.error('[AUTH INIT] ❌ Response success is false or no user in response');
               }
             } else {
+              const errorText = await response.text();
               console.warn('⚠️ Failed to fetch user data - token may be invalid');
+              console.warn('[AUTH INIT] Error response:', errorText);
+
               // Token is invalid, clear it
               localStorage.removeItem('token');
               setToken(null);
@@ -77,13 +101,20 @@ export const AuthProvider = ({ children }) => {
             }
           } catch (error) {
             console.error('❌ Error fetching user data:', error);
+            console.error('[AUTH INIT] Error details:', error.message, error.stack);
           }
         } else {
-          setCurrentUser(JSON.parse(storedUser));
+          console.log('[AUTH INIT] Using stored user data');
+          const parsedUser = JSON.parse(storedUser);
+          setCurrentUser(parsedUser);
+          console.log('[AUTH INIT] ✅ User loaded from localStorage:', parsedUser);
         }
+      } else {
+        console.log('[AUTH INIT] No token available - user not authenticated');
       }
 
       setIsLoading(false);
+      console.log('[AUTH INIT] ✅ Authentication initialization complete');
     };
 
     initAuth();
