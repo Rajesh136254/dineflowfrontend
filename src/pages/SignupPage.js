@@ -32,7 +32,8 @@ export default function SignupPage() {
 
   const navigate = useNavigate();
   const formRef = useRef(null);
-  const { login, updateAuthState } = useAuth(); // Import updateAuthState
+  const { login, signup, updateAuthState } = useAuth(); // Import signup as well
+
 
   const getPasswordStrengthColor = () => {
     if (passwordStrength <= 25) return "weak";
@@ -51,142 +52,133 @@ export default function SignupPage() {
     setAuthSuccess("");
 
     try {
-      const endpoint = mode === "signup" ? "/api/auth/register" : "/api/auth/login";
-      const payload = mode === "signup"
-        ? { fullName: formData.fullName, email: formData.email, password: formData.password, role: 'admin' }
-        : { email: formData.email, password: formData.password };
+      let user, company, token, result;
 
-      // Enhanced fetch with proper CORS configuration
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-        credentials: 'include', // Important for CORS
-        mode: 'cors', // Explicitly set CORS mode
-      });
+      if (mode === "signup") {
+        // Use signup function from AuthContext
+        result = await signup(formData.fullName, formData.email, formData.password, 'admin');
 
-      // Handle non-JSON responses
-      const contentType = response.headers.get("content-type");
-      let data;
-
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        throw new Error(`Server returned non-JSON response: ${text}`);
-      }
-
-      console.log('=== LOGIN DEBUG ===', 'data:', data, 'data.data:', data.data, 'token:', data.data?.token);
-
-
-      if (data.success) {
-        // Use simpler logic: Update global auth state directly
-        // This ensures profile email/name is reflected immediately without reload
-        if (data.data && data.data.token) {
-          updateAuthState(data.data);
+        if (!result.success) {
+          setAuthError(result.message || "Registration failed");
+          setIsLoading(false);
+          return;
         }
 
-        const user = data.data;
-        const company = data.company;
-        const token = data.data.token;
+        user = result.user;
+        company = result.company;
+        token = result.user.token;
 
-        console.log('[AUTH] User data:', user);
-        console.log('[AUTH] Company data:', company);
+        console.log('[SIGNUP] Result:', result);
+        console.log('[SIGNUP] User data:', user);
+        console.log('[SIGNUP] Company data:', company);
+      } else {
+        // Use login function from AuthContext
+        result = await login(formData.email, formData.password);
 
-        // Redirect based on mode
-        if (mode === "signup") {
-          setAuthSuccess("Registration successful! Redirecting to your company site...");
+        if (!result.success) {
+          setAuthError(result.message || "Login failed");
+          setIsLoading(false);
+          return;
+        }
 
-          // For signup, ALWAYS redirect to company subdomain
-          if (company && company.slug) {
-            // Redirect to company-specific subdomain
-            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            const port = window.location.port ? `:${window.location.port}` : '';
+        user = result.user;
+        company = result.company;
+        token = result.user.token;
 
-            if (isLocalhost) {
-              // Local: Use subdomain.localhost:3000 format
-              const companyUrl = `http://${company.slug}.localhost${port}/homepage?token=${token}`;
-              console.log('[SIGNUP] Redirecting to:', companyUrl);
-              setTimeout(() => {
-                window.location.href = companyUrl;
-              }, 1500);
-            } else {
-              // Production: Use company URL from backend (now has correct root domain)
-              const companyUrl = company.url || '/homepage';
-              console.log('[SIGNUP] Redirecting to:', companyUrl);
-              setTimeout(() => {
-                window.location.href = companyUrl;
-              }, 1500);
-            }
-          } else {
-            // Fallback if no company slug
+        console.log('[LOGIN] Result:', result);
+        console.log('[LOGIN] User data:', user);
+        console.log('[LOGIN] Company data:', company);
+      }
+
+      // Redirect based on mode
+      if (mode === "signup") {
+        setAuthSuccess("Registration successful! Redirecting to your company site...");
+
+        // For signup, ALWAYS redirect to company subdomain
+        if (company && company.slug) {
+          // Redirect to company-specific subdomain
+          const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          const port = window.location.port ? `:${window.location.port}` : '';
+
+          if (isLocalhost) {
+            // Local: Use subdomain.localhost:3000 format
+            const companyUrl = `http://${company.slug}.localhost${port}/homepage?token=${token}`;
+            console.log('[SIGNUP] Redirecting to:', companyUrl);
             setTimeout(() => {
-              navigate('/homepage');
+              window.location.href = companyUrl;
+            }, 1500);
+          } else {
+            // Production: Use company URL from backend (now has correct root domain)
+            const companyUrl = company.url || '/homepage';
+            console.log('[SIGNUP] Redirecting to:', companyUrl);
+            setTimeout(() => {
+              window.location.href = companyUrl;
             }, 1500);
           }
         } else {
-          // Login success - Redirect to company subdomain
-          if (user?.role === 'admin' || user?.role_id || user?.role !== 'customer') {
-            // Admin/Staff users - redirect to company subdomain
-            if (company && company.slug) {
-              const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-              const currentHostname = window.location.hostname;
-              const expectedHostname = isLocalhost ? `${company.slug}.localhost` : company.slug;
-
-              console.log('[LOGIN DEBUG] Current hostname:', currentHostname);
-              console.log('[LOGIN DEBUG] Company slug:', company.slug);
-              console.log('[LOGIN DEBUG] Expected hostname:', expectedHostname);
-              console.log('[LOGIN DEBUG] Is localhost:', isLocalhost);
-
-              // Check if we're already on the correct subdomain
-              const alreadyOnCorrectSubdomain = isLocalhost
-                ? currentHostname === `${company.slug}.localhost`
-                : currentHostname.startsWith(company.slug);
-
-              console.log('[LOGIN DEBUG] Already on correct subdomain?', alreadyOnCorrectSubdomain);
-
-              if (alreadyOnCorrectSubdomain) {
-                // Already on correct subdomain, just navigate locally
-                console.log('[LOGIN] Already on correct subdomain, navigating to /homepage');
-                navigate('/homepage');
-              } else {
-                // Need to redirect to correct subdomain
-                const port = window.location.port ? `:${window.location.port}` : '';
-
-                if (isLocalhost) {
-                  // Local: Use subdomain.localhost:3000 format
-                  const companyUrl = `http://${company.slug}.localhost${port}/homepage?token=${token}`;
-                  console.log('[LOGIN] Redirecting admin to:', companyUrl);
-                  window.location.href = companyUrl;
-                } else {
-                  // Production: Use company URL from backend (now has correct root domain)
-                  const companyUrl = company.url || '/homepage';
-                  console.log('[LOGIN] Redirecting to:', companyUrl);
-                  window.location.href = companyUrl;
-                }
-              }
-            } else {
-              // Fallback if no company slug
-              navigate('/homepage');
-            }
-            return;
-          }
-
-          // Customer users - redirect to customer page with table param
-          const searchParams = new URLSearchParams(window.location.search);
-          const tableNumber = searchParams.get('table') || '1';
-          const companyId = searchParams.get('companyId');
-
-          let targetUrl = `/customer.html?table=${tableNumber}`;
-          if (companyId) {
-            targetUrl += `&companyId=${companyId}`;
-          }
-          navigate(targetUrl);
+          // Fallback if no company slug
+          setTimeout(() => {
+            navigate('/homepage');
+          }, 1500);
         }
       } else {
-        setAuthError(data.message || "Authentication failed");
+        // Login success - Redirect to company subdomain
+        if (user?.role === 'admin' || user?.role_id || user?.role !== 'customer') {
+          // Admin/Staff users - redirect to company subdomain
+          if (company && company.slug) {
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const currentHostname = window.location.hostname;
+            const expectedHostname = isLocalhost ? `${company.slug}.localhost` : company.slug;
+
+            console.log('[LOGIN DEBUG] Current hostname:', currentHostname);
+            console.log('[LOGIN DEBUG] Company slug:', company.slug);
+            console.log('[LOGIN DEBUG] Expected hostname:', expectedHostname);
+            console.log('[LOGIN DEBUG] Is localhost:', isLocalhost);
+
+            // Check if we're already on the correct subdomain
+            const alreadyOnCorrectSubdomain = isLocalhost
+              ? currentHostname === `${company.slug}.localhost`
+              : currentHostname.startsWith(company.slug);
+
+            console.log('[LOGIN DEBUG] Already on correct subdomain?', alreadyOnCorrectSubdomain);
+
+            if (alreadyOnCorrectSubdomain) {
+              // Already on correct subdomain, just navigate locally
+              console.log('[LOGIN] Already on correct subdomain, navigating to /homepage');
+              navigate('/homepage');
+            } else {
+              // Need to redirect to correct subdomain
+              const port = window.location.port ? `:${window.location.port}` : '';
+
+              if (isLocalhost) {
+                // Local: Use subdomain.localhost:3000 format
+                const companyUrl = `http://${company.slug}.localhost${port}/homepage?token=${token}`;
+                console.log('[LOGIN] Redirecting admin to:', companyUrl);
+                window.location.href = companyUrl;
+              } else {
+                // Production: Use company URL from backend (now has correct root domain)
+                const companyUrl = company.url || '/homepage';
+                console.log('[LOGIN] Redirecting to:', companyUrl);
+                window.location.href = companyUrl;
+              }
+            }
+          } else {
+            // Fallback if no company slug
+            navigate('/homepage');
+          }
+          return;
+        }
+
+        // Customer users - redirect to customer page with table param
+        const searchParams = new URLSearchParams(window.location.search);
+        const tableNumber = searchParams.get('table') || '1';
+        const companyId = searchParams.get('companyId');
+
+        let targetUrl = `/customer.html?table=${tableNumber}`;
+        if (companyId) {
+          targetUrl += `&companyId=${companyId}`;
+        }
+        navigate(targetUrl);
       }
     } catch (error) {
       console.error("Auth error:", error);

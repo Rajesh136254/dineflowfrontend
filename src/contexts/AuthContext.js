@@ -133,12 +133,32 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (data.success) {
-        // Don't auto-login after signup, let user go to login page
-        return { success: true, message: 'Registration successful. Please login.' };
+        // Auto-login after successful signup
+        // Backend returns: { success, data: { id, full_name, email, role, company_id, token }, company }
+        const authToken = data.data.token;
+        const userData = {
+          ...data.data,
+          permissions: data.data.permissions || null
+        };
+
+        console.log('[SIGNUP] Storing auth data:', { token: authToken, user: userData });
+
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('user', JSON.stringify(userData));
+        setToken(authToken);
+        setCurrentUser(userData);
+
+        return {
+          success: true,
+          message: 'Registration successful!',
+          user: userData,
+          company: data.company
+        };
       } else {
         return { success: false, message: data.message };
       }
     } catch (error) {
+      console.error('[SIGNUP] Error:', error);
       return { success: false, message: 'An error occurred during registration' };
     }
   };
