@@ -73,11 +73,25 @@ const LoginPage = ({ redirectUrl }) => {
             // We removed the admin redirect logic from here as requested
             if (result.user && (['user', 'customer'].includes(result.user.role))) {
                 const companyId = searchParams.get('companyId');
+                const branchId = searchParams.get('branch_id'); // Capture branch_id
                 let targetUrl = '/customer.html';
                 const params = new URLSearchParams();
 
                 if (tableNumber) params.append('table', tableNumber);
                 if (companyId) params.append('companyId', companyId);
+                if (branchId) params.append('branch_id', branchId); // Append branch_id
+
+                // Fallback: Save to localStorage (Mirroring SignupPage logic)
+                if (tableNumber || branchId) {
+                    try {
+                        const context = {
+                            table: tableNumber,
+                            branch_id: branchId,
+                            timestamp: Date.now()
+                        };
+                        localStorage.setItem('scanned_qr_context', JSON.stringify(context));
+                    } catch (e) { }
+                }
 
                 const queryString = params.toString();
                 if (queryString) targetUrl += `?${queryString}`;

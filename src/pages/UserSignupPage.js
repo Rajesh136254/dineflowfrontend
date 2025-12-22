@@ -60,9 +60,24 @@ const UserSignupPage = () => {
             // Redirect to Login Page
             let url = '/login';
             const params = new URLSearchParams();
+            const branchId = searchParams.get('branch_id'); // Capture branch_id
+
             params.append('mode', 'login');
             if (tableNumber) params.append('table', tableNumber);
             if (companyId) params.append('companyId', companyId);
+            if (branchId) params.append('branch_id', branchId); // Append branch_id
+
+            // Fallback: Save to localStorage
+            if (tableNumber || branchId) {
+                try {
+                    const context = {
+                        table: tableNumber,
+                        branch_id: branchId,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('scanned_qr_context', JSON.stringify(context));
+                } catch (e) { }
+            }
 
             const queryString = params.toString();
             if (queryString) url += `?${queryString}`;
