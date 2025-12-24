@@ -130,7 +130,20 @@ function StaffPage() {
                 fetchAttendance(s.id, token);
                 fetchLeaves(token);
             } else {
-                setToken(null);
+                // Fallback: If no staff details but we have a token, check if it's the Admin token
+                const adminToken = localStorage.getItem('token');
+                if (token === adminToken) {
+                    setStaff({ id: 0, name: 'Admin', role: 'admin' });
+                    fetchLeaves(token);
+                } else {
+                    setToken(null);
+                }
+            }
+        } else {
+            // No active staff session? Auto-login if Admin token exists
+            const adminToken = localStorage.getItem('token');
+            if (adminToken) {
+                setToken(adminToken);
             }
         }
     }, [token, fetchAttendance, fetchLeaves]);

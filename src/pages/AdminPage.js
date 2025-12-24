@@ -110,6 +110,7 @@ function AdminPage() {
   const [customEnd, setCustomEnd] = useState('');
   const [showNewRoleInput, setShowNewRoleInput] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
+  const [editingStaff, setEditingStaff] = useState(null);
   const { t, language, changeLanguage } = useLanguage();
   const { token, logout, currentUser: authUser, isLoading } = useAuth();
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -705,10 +706,18 @@ function AdminPage() {
       role: f.get('role'),
       pin: f.get('pin'),
     };
-    // Add staff endpoint
+    // Add or Edit staff endpoint
     try {
-      const res = await fetch(`${API_URL}/api/staff`, {
-        method: 'POST',
+      let url = `${API_URL}/api/staff`;
+      let method = 'POST';
+
+      if (editingStaff) {
+        url = `${API_URL}/api/staff/${editingStaff.id}`;
+        method = 'PUT';
+      }
+
+      const res = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -717,14 +726,17 @@ function AdminPage() {
       });
       const json = await res.json();
       if (json.success) {
-        showToast('Staff added');
+        showToast(editingStaff ? 'Staff updated' : 'Staff added');
         loadStaff();
         e.target.reset();
+        setEditingStaff(null);
+        setNewRoleName('');
+        setShowNewRoleInput(false);
       } else {
         showToast(json.message, 'error');
       }
     } catch (err) {
-      showToast('Failed to add staff', 'error');
+      showToast('Failed to save staff', 'error');
     }
   };
 
@@ -1579,37 +1591,40 @@ function AdminPage() {
                     <i className="fas fa-qrcode mr-2"></i> Portal QR
                   </button>
                 </div>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
 
-                  // Calculate the final role to send
-                  const roleSelect = e.target.elements.role_select.value;
-                  let finalRole = roleSelect;
+                <form
+                  key={editingStaff ? editingStaff.id : 'default'}
+                  onSubmit={(e) => {
+                    e.preventDefault();
 
-                  if (roleSelect === 'add-new') {
-                    const customRole = newRoleName.trim();
-                    if (!customRole) {
-                      showToast('Please enter a custom role name', 'error');
-                      return;
+                    // Calculate the final role to send
+                    const roleSelect = e.target.elements.role_select.value;
+                    let finalRole = roleSelect;
+
+                    if (roleSelect === 'add-new') {
+                      const customRole = newRoleName.trim();
+                      if (!customRole) {
+                        showToast('Please enter a custom role name', 'error');
+                        return;
+                      }
+                      finalRole = customRole.toLowerCase();
                     }
-                    finalRole = customRole.toLowerCase();
-                  }
 
-                  // Force update the hidden input 'role' which handleStaffSubmit reads
-                  if (e.target.elements.role) {
-                    e.target.elements.role.value = finalRole;
-                  }
+                    // Force update the hidden input 'role' which handleStaffSubmit reads
+                    if (e.target.elements.role) {
+                      e.target.elements.role.value = finalRole;
+                    }
 
-                  handleStaffSubmit(e);
-                }} className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold mb-3">Add New Staff</h3>
+                    handleStaffSubmit(e);
+                  }} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold mb-3">{editingStaff ? 'Edit Staff' : 'Add New Staff'}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <input name="name" placeholder="Name" required className="input-field" />
+                    <input name="name" defaultValue={editingStaff?.name || ''} placeholder="Name" required className="input-field" />
                     <div>
                       <select
-                        name="role_select" // Changed name so it doesn't conflict if we want to send 'role'
+                        name="role_select"
                         className="input-field w-full"
-                        defaultValue="waiter"
+                        defaultValue={editingStaff ? (['waiter', 'kitchen', 'manager', 'chef', 'cashier', 'cleaner', 'other'].includes(editingStaff.role) ? editingStaff.role : 'add-new') : 'waiter'}
                         onChange={(e) => setShowNewRoleInput(e.target.value === 'add-new')}
                       >
                         <option value="waiter">Waiter</option>
@@ -1621,7 +1636,7 @@ function AdminPage() {
                         <option value="other">Other</option>
                         <option value="add-new">➕ Add New Role</option>
                       </select>
-                      {showNewRoleInput && (
+                      {(showNewRoleInput || (editingStaff && !['waiter', 'kitchen', 'manager', 'chef', 'cashier', 'cleaner', 'other'].includes(editingStaff.role))) && (
                         <div className="mt-2">
                           <input
                             type="text"
@@ -1629,22 +1644,37 @@ function AdminPage() {
                             className="input-field w-full"
                             value={newRoleName}
                             onChange={(e) => setNewRoleName(e.target.value)}
-                            autoFocus
+                          // On initial load of edit, we might need to sync newRoleName if it was empty. 
+                          // But better: use defaultValue for this input too if we don't control it fully here?
+                          // Actually newRoleName is state. We must set it when entering edit mode.
+                          // I will handle that in the Edit button click handler instead of here.
                           />
                         </div>
                       )}
-                      {/* Hidden input to pass the actual 'role' expected by backend/handler */}
                       <input
                         type="hidden"
                         name="role"
-                        value={showNewRoleInput ? newRoleName : (document.querySelector('select[name="role_select"]')?.value || 'waiter')}
+                      // Logic handled in onSubmit
                       />
-                      {/* The above value logic for hidden input is tricky in React render. 
-                           Better to handle in the onSubmit wrapper. */}
                     </div>
-                    <input name="pin" placeholder="PIN (6 digits)" maxLength="6" required className="input-field" />
+                    <input name="pin" defaultValue={editingStaff?.pin || ''} placeholder="PIN (6 digits)" maxLength="6" required className="input-field" />
                   </div>
-                  <button type="submit" className="btn btn-primary w-full">Add Staff</button>
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn btn-primary flex-1">{editingStaff ? 'Update Staff' : 'Add Staff'}</button>
+                    {editingStaff && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingStaff(null);
+                          setNewRoleName('');
+                          setShowNewRoleInput(false);
+                        }}
+                        className="btn btn-secondary px-4"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </form>
 
                 <div className="overflow-x-auto">
@@ -1683,13 +1713,34 @@ function AdminPage() {
                             </div>
                           </td>
                           <td className="p-3 text-right">
-                            <button
-                              onClick={() => deleteStaff(s.id)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition-colors"
-                              title="Delete Staff"
-                            >
-                              <i className="fas fa-trash-alt"></i>
-                            </button>
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingStaff(s);
+                                  const standardRoles = ['waiter', 'kitchen', 'manager', 'chef', 'cashier', 'cleaner', 'other'];
+                                  if (!standardRoles.includes(s.role)) {
+                                    setShowNewRoleInput(true);
+                                    setNewRoleName(s.role);
+                                  } else {
+                                    setShowNewRoleInput(false);
+                                    setNewRoleName('');
+                                  }
+                                  // Scroll to form?
+                                  document.querySelector('form')?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                                title="Edit Staff"
+                              >
+                                <i className="fas fa-edit"></i>
+                              </button>
+                              <button
+                                onClick={() => deleteStaff(s.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition-colors"
+                                title="Delete Staff"
+                              >
+                                <i className="fas fa-trash-alt"></i>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
