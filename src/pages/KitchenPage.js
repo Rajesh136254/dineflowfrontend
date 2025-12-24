@@ -10,21 +10,35 @@ function KitchenPage() {
     const [currentFilter, setCurrentFilter] = useState('pending');
     const [connectionStatus, setConnectionStatus] = useState('Connecting...');
     const [notificationPermission, setNotificationPermission] = useState(Notification.permission);
-    const { token, logout } = useAuth();
+    const { token, logout, isLoading: authLoading } = useAuth();
     const [deliveredDateFilter, setDeliveredDateFilter] = useState('today'); // New state for date filter
     const [companyInfo, setCompanyInfo] = useState(null);
     const { selectedBranch, branches } = useBranch();
 
     useEffect(() => {
+        let isMounted = true;
         const fetchCompanyInfo = async () => {
+            if (authLoading) return;
             try {
                 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                     ? 'http://localhost:5000'
                     : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
-                const res = await fetch(`${API_URL}/api/company/public`);
+                let url = `${API_URL}/api/company/public`;
+                let options = {};
+
+                if (token) {
+                    url = `${API_URL}/api/company/profile`;
+                    options = {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    };
+                }
+
+                const res = await fetch(url, options);
                 const json = await res.json();
-                if (json.success && json.data) {
+                if (isMounted && json.success && json.data) {
                     setCompanyInfo(json.data);
                 }
             } catch (err) {
@@ -32,7 +46,8 @@ function KitchenPage() {
             }
         };
         fetchCompanyInfo();
-    }, []);
+        return () => { isMounted = false; };
+    }, [token, authLoading]);
 
     // Refs for non-state values
     const audioRef = useRef(null);

@@ -17,17 +17,27 @@ function IngredientsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [confirmModal, setConfirmModal] = useState({ show: false, message: '', onConfirm: null });
-    const { token, logout } = useAuth();
+    const { token, logout, isLoading: authLoading } = useAuth();
     const { selectedBranch, branches } = useBranch();
     const navigate = useNavigate();
     const [companyInfo, setCompanyInfo] = useState(null);
 
     useEffect(() => {
+        let isMounted = true;
         const fetchCompanyInfo = async () => {
+            if (authLoading) return;
             try {
-                const res = await fetch(`${API_URL}/api/company/public`);
+                const url = token
+                    ? `${API_URL}/api/company/profile`
+                    : `${API_URL}/api/company/public`;
+
+                const options = token
+                    ? { headers: { 'Authorization': `Bearer ${token}` } }
+                    : {};
+
+                const res = await fetch(url, options);
                 const json = await res.json();
-                if (json.success && json.data) {
+                if (isMounted && json.success && json.data) {
                     setCompanyInfo(json.data);
                 }
             } catch (err) {
@@ -35,7 +45,8 @@ function IngredientsPage() {
             }
         };
         fetchCompanyInfo();
-    }, []);
+        return () => { isMounted = false; };
+    }, [token, authLoading]);
 
     const showToast = (message, type = 'success') => {
         setToast({ show: true, message, type });

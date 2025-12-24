@@ -6,7 +6,7 @@ import SupportTicketModal from '../components/SupportTicketModal';
 
 function HomePage() {
     const navigate = useNavigate();
-    const { currentUser, logout, token } = useAuth();
+    const { currentUser, logout, token, isLoading: authLoading } = useAuth();
     const { selectedBranch, branches, setSelectedBranch } = useBranch();
     const location = useLocation();
 
@@ -23,28 +23,33 @@ function HomePage() {
     const [companyInfo, setCompanyInfo] = useState(null);
 
     useEffect(() => {
+        let isMounted = true;
+
         const fetchCompanyInfo = async () => {
+            // Don't fetch if auth is clearly loading (avoids race condition on refresh)
+            if (authLoading) return;
+
             try {
                 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                     ? 'http://localhost:5000'
                     : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
                 // If user is logged in (has token), use authenticated endpoint
-                // Otherwise use public endpoint
-                if (token) {
-                    const res = await fetch(`${API_URL}/api/company/profile`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
+                const url = token
+                    ? `${API_URL}/api/company/profile`
+                    : `${API_URL}/api/company/public`;
+
+                const options = token
+                    ? { headers: { 'Authorization': `Bearer ${token}` } }
+                    : {};
+
+                // console.log('[HomePage] Fetching company info from:', url);
+                const res = await fetch(url, options);
+
+                if (res.ok) {
                     const json = await res.json();
-                    if (json.success && json.data) {
-                        setCompanyInfo(json.data);
-                    }
-                } else {
-                    const res = await fetch(`${API_URL}/api/company/public`);
-                    const json = await res.json();
-                    if (json.success && json.data) {
+                    if (isMounted && json.success && json.data) {
+                        // console.log('[HomePage] Info loaded:', json.data.name);
                         setCompanyInfo(json.data);
                     }
                 }
@@ -52,11 +57,15 @@ function HomePage() {
                 console.error("Failed to fetch company info", err);
             }
         };
+
         fetchCompanyInfo();
 
         const interval = setInterval(fetchCompanyInfo, 10000);
-        return () => clearInterval(interval);
-    }, [token]);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
+    }, [token, authLoading]);
 
     const isHomePage = location.pathname === '/' || location.pathname === '/homepage';
 
@@ -225,7 +234,8 @@ function HomePage() {
         { id: 'kitchen', path: '/kitchen.html', icon: 'fa-chef-hat', label: 'Kitchen' },
         { id: 'customer', path: '/customer.html', icon: 'fa-user', label: 'Customer' },
         { id: 'analytics', path: '/analytics.html', icon: 'fa-chart-line', label: 'Analytics' },
-        { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' }
+        { id: 'ingredients', path: '/ingredients', icon: 'fa-cubes', label: 'Ingredients' },
+        { id: 'staff', path: '/staff', icon: 'fa-users', label: 'Staff' }
     ];
 
     const visibleNavItems = navItems.filter(filterItems);
@@ -241,27 +251,27 @@ function HomePage() {
             >
 
                 <div className="w-full px-4 relative z-10">
-                    {/* Desktop Layout - Relative container with absolute positioned children */}
-                    <div className="hidden lg:block relative">
-                        {/* Restaurant Name - Absolute Left Edge */}
-                        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center space-x-3 group z-10">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:rotate-12 group-hover:scale-110 shadow-lg">
+                    {/* Desktop Layout - Flexbox container for better responsiveness */}
+                    <div className="hidden md:flex justify-between items-center gap-4 py-2">
+                        {/* Restaurant Name - Left */}
+                        <div className="flex items-center space-x-3 group flex-shrink-0 w-48 lg:w-64">
+                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:rotate-12 group-hover:scale-110 shadow-lg">
                                 {companyInfo?.logo_url ? (
-                                    <img src={companyInfo.logo_url} alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                    <img src={companyInfo.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" />
                                 ) : (
-                                    <i className="fas fa-utensils text-purple-600 text-xl"></i>
+                                    <i className="fas fa-utensils text-purple-600 text-lg lg:text-xl"></i>
                                 )}
                             </div>
-                            <h1 className="text-3xl font-bold tracking-tight whitespace-nowrap">{companyInfo ? companyInfo.name : 'RedSorm'}</h1>
+                            <h1 className="text-xl lg:text-3xl font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{companyInfo ? companyInfo.name : 'Restaurant'}</h1>
                         </div>
 
-                        {/* Desktop Navigation - Absolute Center */}
-                        <nav className="flex items-center justify-center space-x-2 py-2 relative z-20">
+                        {/* Desktop Navigation - Center */}
+                        <nav className="flex-1 flex flex-wrap items-center justify-center gap-1.5 lg:gap-2">
                             {visibleNavItems.map((item) => (
                                 <button
                                     key={item.id}
                                     onClick={() => item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path)}
-                                    className="nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2 hover:shadow-xl"
+                                    className="nav-item bg-white bg-opacity-20 hover:bg-opacity-30 px-2 lg:px-4 py-1.5 lg:py-2 rounded-full font-medium shadow-md flex items-center space-x-1 lg:space-x-2 hover:shadow-xl transition-all text-[11px] md:text-xs lg:text-sm xl:text-base whitespace-nowrap"
                                 >
                                     <i className={`fas ${item.icon}`}></i>
                                     <span>{item.label}</span>
@@ -269,58 +279,56 @@ function HomePage() {
                             ))}
                         </nav>
 
-                        {/* User Profile Section - Absolute Right Edge */}
-                        {currentUser && (
-                            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 z-[10000]">
-                                <div className="relative">
+                        {/* User Profile Section - Right */}
+                        <div className="flex items-center justify-end flex-shrink-0 w-48 lg:w-64 relative">
+                            {currentUser && (
+                                <div className="relative z-[50]">
                                     <button
                                         onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                                        className="flex items-center space-x-4 bg-white/10 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white/20 transition-all duration-300 cursor-pointer"
+                                        className="flex items-center space-x-2 lg:space-x-4 bg-white/10 px-3 lg:px-4 py-1.5 lg:py-2 rounded-full backdrop-blur-sm hover:bg-white/20 transition-all duration-300 cursor-pointer border border-white/10"
                                     >
-                                        <div className="text-right">
+                                        <div className="text-right hidden lg:block">
                                             <p className="text-sm font-bold leading-none">{currentUser.full_name || 'User'}</p>
-                                            <p className="text-xs opacity-75 leading-none mt-1">{currentUser.email}</p>
+                                            <p className="text-xs opacity-75 leading-none mt-1 max-w-[100px] truncate">{currentUser.email}</p>
                                         </div>
-                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-purple-600 shadow-md">
-                                            <i className="fas fa-user"></i>
+                                        <div className="w-8 h-8 lg:w-10 lg:h-10 bg-white rounded-full flex items-center justify-center text-purple-600 shadow-md">
+                                            <i className="fas fa-user text-sm lg:text-base"></i>
                                         </div>
-                                        <i className={`fas fa-chevron-down text-sm transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
+                                        <i className={`fas fa-chevron-down text-xs transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
                                     </button>
-
-
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
 
                     {/* Mobile Layout */}
-                    <div className="flex lg:hidden justify-between items-center">
+                    <div className="flex md:hidden justify-between items-center py-2">
                         {/* Restaurant Name - Mobile */}
                         <div className="flex items-center space-x-3 group">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:rotate-12 group-hover:scale-110 shadow-lg">
+                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center transform transition-all duration-300 group-hover:rotate-12 group-hover:scale-110 shadow-lg">
                                 {companyInfo?.logo_url ? (
-                                    <img src={companyInfo.logo_url} alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                    <img src={companyInfo.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" />
                                 ) : (
-                                    <i className="fas fa-utensils text-purple-600 text-xl"></i>
+                                    <i className="fas fa-utensils text-purple-600 text-lg"></i>
                                 )}
                             </div>
-                            <h1 className="text-3xl font-bold tracking-tight">{companyInfo ? companyInfo.name : 'RedSorm'}</h1>
+                            <h1 className="text-xl font-bold tracking-tight truncate max-w-[200px]">{companyInfo ? companyInfo.name : 'Restaurant'}</h1>
                         </div>
 
                         {/* Mobile Menu Button */}
                         <button
-                            className="lg:hidden p-2 hover:scale-110 transition-transform active:scale-95"
+                            className="md:hidden p-2 hover:scale-110 transition-transform active:scale-95 bg-white/10 rounded-lg backdrop-blur-md"
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             aria-label="Toggle Menu"
                         >
-                            <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
+                            <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
                         </button>
                     </div>
 
                     {/* Mobile Menu */}
                     {isMobileMenuOpen && (
-                        <nav className="lg:hidden mt-4 pb-4">
-                            <div className="flex flex-wrap gap-2 mb-4">
+                        <nav className="md:hidden mt-4 pb-4 animate-fade-in-down bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                            <div className="flex flex-wrap gap-2 mb-4 justify-center">
                                 {visibleNavItems.map((item) => (
                                     <button
                                         key={item.id}
@@ -328,7 +336,7 @@ function HomePage() {
                                             item.id === 'home' ? handleCardNavigation(item.path) : handleTopNavigation(item.path);
                                             setIsMobileMenuOpen(false);
                                         }}
-                                        className="mobile-nav-item nav-item bg-white bg-opacity-20 px-4 py-2 rounded-full font-medium shadow-md flex items-center space-x-2"
+                                        className="mobile-nav-item nav-item bg-white bg-opacity-90 px-4 py-2 rounded-xl font-bold shadow-md flex items-center space-x-2 text-purple-900 w-full sm:w-auto justify-center"
                                     >
                                         <i className={`fas ${item.icon}`}></i>
                                         <span>{item.label}</span>
@@ -337,33 +345,33 @@ function HomePage() {
                             </div>
                             {/* Mobile User Profile & Logout */}
                             {currentUser && (
-                                <div className="bg-white/10 rounded-2xl backdrop-blur-sm overflow-hidden">
+                                <div className="bg-white/10 rounded-xl overflow-hidden border border-white/10">
                                     <button
                                         onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                                         className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-all duration-300"
                                     >
                                         <div className="flex items-center space-x-3">
-                                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-purple-600 shadow-md">
+                                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-purple-600 shadow-md">
                                                 <i className="fas fa-user"></i>
                                             </div>
-                                            <div className="flex-1 text-left">
+                                            <div className="flex-1 text-left text-white">
                                                 <p className="text-sm font-bold leading-none">{currentUser.full_name || 'User'}</p>
                                                 <p className="text-xs opacity-75 leading-none mt-1">{currentUser.email}</p>
                                             </div>
                                         </div>
-                                        <i className={`fas fa-chevron-down text-sm transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
+                                        <i className={`fas fa-chevron-down text-sm text-white transition-transform duration-300 ${isProfileDropdownOpen ? 'rotate-180' : ''}`}></i>
                                     </button>
 
                                     {/* Collapsible Logout Section */}
                                     {isProfileDropdownOpen && (
-                                        <div className="px-4 pb-4 pt-2 border-t border-white/20 animate-fade-in">
+                                        <div className="px-4 pb-4 pt-2 border-t border-white/10 animate-fade-in">
                                             <button
                                                 onClick={() => {
                                                     logout();
                                                     setIsMobileMenuOpen(false);
                                                     setIsProfileDropdownOpen(false);
                                                 }}
-                                                className="w-full bg-red-500 hover:bg-red-600 px-4 py-3 rounded-xl font-medium shadow-md transition-all duration-300 flex items-center justify-center space-x-2"
+                                                className="w-full bg-red-500 hover:bg-red-600 px-4 py-3 rounded-xl font-medium shadow-md transition-all duration-300 flex items-center justify-center space-x-2 text-white"
                                             >
                                                 <i className="fas fa-sign-out-alt"></i>
                                                 <span>Logout</span>
@@ -403,6 +411,37 @@ function HomePage() {
                         </div>
                     )}
 
+                    {/* Moved Profile Dropdown to Root Level for Correct Stacking - DESKTOP ONLY */}
+                    {isProfileDropdownOpen && currentUser && (
+                        <>
+                            {/* Backdrop to close dropdown when clicking outside */}
+                            <div
+                                className="fixed inset-0 z-[10000] hidden md:block"
+                                onClick={() => setIsProfileDropdownOpen(false)}
+                            ></div>
+
+                            <div className="fixed top-20 right-4 w-56 bg-white rounded-2xl shadow-2xl overflow-hidden z-[10001] animate-fade-in hidden md:block">
+                                <div className="p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+                                    <p className="font-bold text-sm">{currentUser.full_name || 'User'}</p>
+                                    <p className="text-xs opacity-90 mt-1">{currentUser.email}</p>
+                                    <p className="text-xs opacity-75 mt-1 capitalize">Role: {currentUser.role}</p>
+                                </div>
+                                <div className="p-2">
+                                    <button
+                                        onClick={() => {
+                                            logout();
+                                            setIsProfileDropdownOpen(false);
+                                        }}
+                                        className="w-full flex items-center space-x-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 group"
+                                    >
+                                        <i className="fas fa-sign-out-alt text-lg group-hover:scale-110 transition-transform"></i>
+                                        <span className="font-medium">Logout</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
                     {/* Hero Section */}
                     <div className="relative rounded-3xl overflow-hidden mb-16 shadow-2xl fade-in min-h-[400px] md:min-h-[500px]">
                         {companyInfo?.banner_url ? (
@@ -423,7 +462,7 @@ function HomePage() {
                             <h2 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-6 leading-tight text-shadow">
                                 Welcome to <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-pink-500">
-                                    {companyInfo ? companyInfo.name : 'RedSorm'}
+                                    {companyInfo ? companyInfo.name : 'Restaurant'}
                                 </span>
                             </h2>
                             <p className="text-lg md:text-xl lg:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed mb-8">
@@ -546,9 +585,10 @@ function HomePage() {
                                 <div>
                                     <h4 className="font-bold text-lg mb-4">Connect</h4>
                                     <ul className="space-y-3 text-gray-400">
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Twitter</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">LinkedIn</a></li>
-                                        <li><a href="#" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block">Instagram</a></li>
+                                        {companyInfo?.twitter_url && <li><a href={companyInfo.twitter_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"><i className="fab fa-twitter mr-2"></i>Twitter</a></li>}
+                                        {companyInfo?.youtube_url && <li><a href={companyInfo.youtube_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"><i className="fab fa-youtube mr-2"></i>YouTube</a></li>}
+                                        {companyInfo?.instagram_url && <li><a href={companyInfo.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"><i className="fab fa-instagram mr-2"></i>Instagram</a></li>}
+                                        {!companyInfo?.twitter_url && !companyInfo?.youtube_url && !companyInfo?.instagram_url && <li className="text-gray-600 italic">No social links added</li>}
                                     </ul>
                                 </div>
                             </div>

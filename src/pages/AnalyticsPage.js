@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import BranchSelector from '../components/BranchSelector';
 
 function AnalyticsPage() {
-    const { token, logout } = useAuth();
+    const { token, logout, isLoading: authLoading } = useAuth();
     const [timePeriod, setTimePeriod] = useState('daily');
     const [currentCurrency, setCurrentCurrency] = useState('INR');
     const [analyticsData, setAnalyticsData] = useState(null);
@@ -20,15 +20,25 @@ function AnalyticsPage() {
     const { selectedBranch, branches } = useBranch();
 
     useEffect(() => {
+        let isMounted = true;
         const fetchCompanyInfo = async () => {
+            if (authLoading) return;
             try {
                 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                     ? 'http://localhost:5000'
                     : (process.env.REACT_APP_API_URL || 'https://dineflowbackend.onrender.com');
 
-                const res = await fetch(`${API_URL}/api/company/public`);
+                const url = token
+                    ? `${API_URL}/api/company/profile`
+                    : `${API_URL}/api/company/public`;
+
+                const options = token
+                    ? { headers: { 'Authorization': `Bearer ${token}` } }
+                    : {};
+
+                const res = await fetch(url, options);
                 const json = await res.json();
-                if (json.success && json.data) {
+                if (isMounted && json.success && json.data) {
                     setCompanyInfo(json.data);
                 }
             } catch (err) {
@@ -36,7 +46,8 @@ function AnalyticsPage() {
             }
         };
         fetchCompanyInfo();
-    }, []);
+        return () => { isMounted = false; };
+    }, [token, authLoading]);
 
     // Refs for chart canvases
     const revenueChartRef = useRef(null);

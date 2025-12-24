@@ -16,7 +16,14 @@ function AdminPage() {
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('all');
-  const [companyProfile, setCompanyProfile] = useState({ name: '', logo_url: '', banner_url: '' });
+  const [companyProfile, setCompanyProfile] = useState({
+    name: '',
+    logo_url: '',
+    banner_url: '',
+    twitter_url: '',
+    youtube_url: '',
+    instagram_url: ''
+  });
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [staffList, setStaffList] = useState([]);
   const [leavesList, setLeavesList] = useState([]);
@@ -89,6 +96,7 @@ function AdminPage() {
   // Loading & Filters
   const [isMenuLoading, setIsMenuLoading] = useState(false);
   const [isTablesLoading, setIsTablesLoading] = useState(false);
+  const [isTableSubmitting, setIsTableSubmitting] = useState(false);
   const [isGroupsLoading, setIsGroupsLoading] = useState(false);
   const [isOrdersLoading, setIsOrdersLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,6 +104,10 @@ function AdminPage() {
 
   // Toast
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
+  const [attendanceDateFilter, setAttendanceDateFilter] = useState('today');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const { t, language, changeLanguage } = useLanguage();
   const { token, logout, currentUser: authUser, isLoading } = useAuth();
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -225,8 +237,11 @@ function AdminPage() {
     if (activeTab === 'staff' && token) {
       loadStaff();
       loadLeaves();
+      loadAttendanceLogs();
     }
-    if (activeTab === 'roles' && token) loadRoles();
+    if (activeTab === 'roles' && token) {
+      loadRoles();
+    }
     if (activeTab === 'users' && token) {
       loadUsers();
       loadRoles(); // Need roles for dropdown
@@ -458,6 +473,8 @@ function AdminPage() {
         }
       } catch (err) {
         showToast('Error deleting role', 'error');
+      } finally {
+        setConfirmModal({ show: false });
       }
     });
   };
@@ -521,6 +538,8 @@ function AdminPage() {
         }
       } catch (err) {
         showToast('Error deleting user', 'error');
+      } finally {
+        setConfirmModal({ show: false });
       }
     });
   };
@@ -553,6 +572,9 @@ function AdminPage() {
       name: f.get('name'),
       logo_url: companyProfile.logo_url, // Use state value
       banner_url: companyProfile.banner_url, // Use state value
+      twitter_url: f.get('twitter_url'),
+      youtube_url: f.get('youtube_url'),
+      instagram_url: f.get('instagram_url'),
     };
 
     try {
@@ -600,6 +622,44 @@ function AdminPage() {
     }
   }, [API_URL, token]);
 
+  const loadAttendanceLogs = useCallback(async () => {
+    try {
+      let url = `${API_URL}/api/staff/attendance`;
+
+      const now = new Date();
+      let start = new Date();
+      let end = new Date();
+
+      if (attendanceDateFilter === 'today') {
+        // start and end are already now
+      } else if (attendanceDateFilter === 'yesterday') {
+        start.setDate(now.getDate() - 1);
+        end.setDate(now.getDate() - 1);
+      } else if (attendanceDateFilter === 'last7') {
+        start.setDate(now.getDate() - 7);
+      } else if (attendanceDateFilter === 'thisMonth') {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+      } else if (attendanceDateFilter === 'custom' && customStart && customEnd) {
+        start = new Date(customStart);
+        end = new Date(customEnd);
+      } else if (attendanceDateFilter === 'custom') {
+        // If incomplete custom range, don't fetch or fetch default (e.g. today)
+        return;
+      }
+
+      const formatDate = (d) => d.toISOString().split('T')[0];
+      url += `?startDate=${formatDate(start)}&endDate=${formatDate(end)}`;
+
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const json = await res.json();
+      if (json.success) setAttendanceLogs(json.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }, [API_URL, token, attendanceDateFilter, customStart, customEnd]);
+
   const loadLeaves = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/staff/leaves`, {
@@ -629,6 +689,8 @@ function AdminPage() {
       } catch (err) {
         console.error(err);
         showToast('Network error', 'error');
+      } finally {
+        setConfirmModal({ show: false });
       }
     });
   };
@@ -788,6 +850,8 @@ function AdminPage() {
     reader.readAsDataURL(file);
   };
 
+  const isTableSubmittingRef = useRef(false);
+
   // ── Submit Handlers ─────────────────────────────
   const handleMenuSubmit = async (e) => {
     e.preventDefault();
@@ -849,6 +913,8 @@ function AdminPage() {
 
   const handleTableSubmit = async (e) => {
     e.preventDefault();
+    if (isTableSubmittingRef.current) return;
+
     const f = new FormData(e.target);
     const id = f.get('id');
     const num = parseInt(f.get('table_number'), 10);
@@ -859,6 +925,9 @@ function AdminPage() {
       group_id: groupId,
       branch_id: selectedBranch || null, // Add branch context
     };
+
+    isTableSubmittingRef.current = true;
+    setIsTableSubmitting(true);
 
     try {
       const url = id ? `${API_URL}/api/tables/${id}` : `${API_URL}/api/tables`;
@@ -902,6 +971,9 @@ function AdminPage() {
       }
     } catch (err) {
       showToast('Network error', 'error');
+    } finally {
+      isTableSubmittingRef.current = false;
+      setIsTableSubmitting(false);
     }
   };
 
@@ -951,6 +1023,8 @@ function AdminPage() {
         }
       } catch {
         showToast('Error', 'error');
+      } finally {
+        setConfirmModal({ show: false });
       }
     });
   };
@@ -1183,7 +1257,7 @@ function AdminPage() {
           <div className={`flex items-center gap-4 cursor-pointer p-2 rounded-lg transition group ${companyProfile.banner_url ? 'hover:bg-white/10' : 'hover:bg-gray-50'}`} onClick={() => setIsProfileModalOpen(true)}>
             <div className={`w-16 h-16 rounded-full flex items-center justify-center overflow-hidden border-2 relative shadow-md ${companyProfile.banner_url ? 'bg-black/20 border-white/20' : 'bg-indigo-100 border-indigo-200'}`}>
               {companyProfile.logo_url ? (
-                <img src={companyProfile.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                <img src={companyProfile.logo_url} alt="Logo" className="w-full h-full object-contain" />
               ) : (
                 <i className={`fas fa-store text-2xl ${companyProfile.banner_url ? 'text-white' : 'text-indigo-600'}`}></i>
               )}
@@ -1491,6 +1565,71 @@ function AdminPage() {
       {
         activeTab === 'staff' && (
           <div className="max-w-7xl mx-auto fade">
+            {/* Attendance Logs - Promoted to Top */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h2 className="text-xl font-bold">Attendance Logs (All Staff)</h2>
+                <div className="flex gap-2 items-center flex-wrap">
+                  <select
+                    value={attendanceDateFilter}
+                    onChange={e => setAttendanceDateFilter(e.target.value)}
+                    className="input-field py-1 text-sm w-auto"
+                  >
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="last7">Last 7 Days</option>
+                    <option value="thisMonth">This Month</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                  {attendanceDateFilter === 'custom' && (
+                    <div className="flex gap-2">
+                      <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="input-field py-1 text-sm w-auto" />
+                      <span className="text-gray-400">-</span>
+                      <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="input-field py-1 text-sm w-auto" />
+                    </div>
+                  )}
+                  <button onClick={loadAttendanceLogs} className="btn btn-secondary px-3 py-1 text-sm">
+                    <i className="fas fa-sync-alt"></i> Refresh
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-x-auto max-h-80 overflow-y-auto">
+                <table className="w-full text-left">
+                  <thead className="sticky top-0 bg-white shadow-sm z-10">
+                    <tr className="bg-gray-50 text-gray-600 text-sm">
+                      <th className="p-3">Staff Name</th>
+                      <th className="p-3">Date</th>
+                      <th className="p-3">Check In</th>
+                      <th className="p-3">Check Out</th>
+                      <th className="p-3">Working Hours</th>
+                      <th className="p-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendanceLogs.map(log => (
+                      <tr key={log.id} className="border-b hover:bg-gray-50">
+                        <td className="p-3 font-medium">{log.staff_name}</td>
+                        <td className="p-3">{new Date(log.date).toLocaleDateString()}</td>
+                        <td className="p-3">{new Date(log.check_in).toLocaleTimeString()}</td>
+                        <td className="p-3">{log.check_out ? new Date(log.check_out).toLocaleTimeString() : '-'}</td>
+                        <td className="p-3 font-mono text-sm">{log.duration || '-'}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${log.check_out ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                            {log.check_out ? 'Completed' : 'Active'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {attendanceLogs.length === 0 && (
+                      <tr>
+                        <td colSpan="5" className="p-8 text-center text-gray-500">No attendance records found yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Staff Management */}
               {/* Staff Management */}
@@ -1760,6 +1899,28 @@ function AdminPage() {
                   </div>
                   <input type="hidden" name="banner_url" value={companyProfile.banner_url || ''} />
                 </div>
+
+                <h4 className="font-bold text-gray-800 mb-3 mt-6">Social Media Links</h4>
+                <div className="space-y-3 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <i className="fab fa-twitter text-blue-400 mr-2"></i> Twitter
+                    </label>
+                    <input name="twitter_url" defaultValue={companyProfile.twitter_url} placeholder="https://twitter.com/yourhandle" className="input-field" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <i className="fab fa-youtube text-red-600 mr-2"></i> YouTube
+                    </label>
+                    <input name="youtube_url" defaultValue={companyProfile.youtube_url} placeholder="https://youtube.com/@yourchannel" className="input-field" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <i className="fab fa-instagram text-pink-600 mr-2"></i> Instagram
+                    </label>
+                    <input name="instagram_url" defaultValue={companyProfile.instagram_url} placeholder="https://instagram.com/yourhandle" className="input-field" />
+                  </div>
+                </div>
                 <div className="flex gap-3">
                   <button type="submit" className="btn btn-primary flex-1 py-2">Save Changes</button>
                   <button type="button" onClick={() => setIsProfileModalOpen(false)} className="btn btn-secondary flex-1 py-2">Cancel</button>
@@ -1786,7 +1947,9 @@ function AdminPage() {
                   ))}
                 </select>
                 <div className="flex gap-3">
-                  <button type="submit" className="btn btn-primary flex-1 py-2">Save</button>
+                  <button type="submit" disabled={isTableSubmitting} className={`btn btn-primary flex-1 py-2 ${isTableSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                    {isTableSubmitting ? 'Saving...' : 'Save'}
+                  </button>
                   <button type="button" onClick={closeTableModal} className="btn btn-secondary flex-1 py-2">Cancel</button>
                 </div>
               </form>
@@ -2199,6 +2362,7 @@ function AdminPage() {
         onClose={() => setIsSupportOpen(false)}
         currentUser={authUser}
       />
+
     </div >
   );
 }

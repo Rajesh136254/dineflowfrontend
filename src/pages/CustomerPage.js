@@ -176,6 +176,30 @@ function CustomerPage() {
         }
     }, [searchParams, selectedBranch, setSelectedBranch]);
 
+    // --- Helper Functions ---
+    const getAuthHeaders = useCallback(() => {
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        // Add company ID from URL if present (for testing/no-subdomain mode)
+        const params = new URLSearchParams(window.location.search);
+        const companyId = params.get('companyId');
+        if (companyId) {
+            headers['x-company-id'] = companyId;
+        } else if (currentUser && currentUser.company_id) {
+            headers['x-company-id'] = currentUser.company_id.toString();
+        } else if (token) {
+            // Fallback: If currentUser not loaded yet, try to parse token
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(window.atob(base64));
+                if (payload.company_id) {
+                    headers['x-company-id'] = payload.company_id.toString();
+                }
+            } catch (e) {/* ignore */ }
+        }
+        return headers;
+    }, [token, currentUser]);
+
     // 0. Enforce Authentication
     useEffect(() => {
         if (!token) {
@@ -193,7 +217,11 @@ function CustomerPage() {
                 // Use token if available to get company info context
                 const headers = getAuthHeaders();
 
-                const res = await fetch(`${API_URL}/api/company/public`, { headers });
+                const url = token
+                    ? `${API_URL}/api/company/profile`
+                    : `${API_URL}/api/company/public`;
+
+                const res = await fetch(url, { headers });
                 const json = await res.json();
                 if (json.success && json.data) {
                     setCompanyInfo(json.data);
@@ -203,7 +231,7 @@ function CustomerPage() {
             }
         };
         fetchCompanyInfo();
-    }, [token]);
+    }, [token, getAuthHeaders]);
 
     // 2. Socket Connection
     useEffect(() => {
@@ -258,28 +286,8 @@ function CustomerPage() {
         navigate('/login');
     };
 
-    const getAuthHeaders = useCallback(() => {
-        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        // Add company ID from URL if present (for testing/no-subdomain mode)
-        const params = new URLSearchParams(window.location.search);
-        const companyId = params.get('companyId');
-        if (companyId) {
-            headers['x-company-id'] = companyId;
-        } else if (currentUser && currentUser.company_id) {
-            headers['x-company-id'] = currentUser.company_id.toString();
-        } else if (token) {
-            // Fallback: If currentUser not loaded yet, try to parse token
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const payload = JSON.parse(window.atob(base64));
-                if (payload.company_id) {
-                    headers['x-company-id'] = payload.company_id.toString();
-                }
-            } catch (e) {/* ignore */ }
-        }
-        return headers;
-    }, [token, currentUser]);
+
+
 
     // --- Data Loading Functions ---
     const loadTables = useCallback(async () => {

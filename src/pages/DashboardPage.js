@@ -330,10 +330,9 @@ function DashboardPage() {
                             </div>
                             <p>Empowering restaurants with world-class technology. Join the dining revolution and scale your business today.</p>
                             <div className="social-icons">
-                                <a href="#" className="social-icon" aria-label="Twitter"><i className="fab fa-twitter"></i></a>
-                                <a href="#" className="social-icon" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
-                                <a href="#" className="social-icon" aria-label="LinkedIn"><i className="fab fa-linkedin-in"></i></a>
-                                <a href="#" className="social-icon" aria-label="Facebook"><i className="fab fa-facebook-f"></i></a>
+                                <a href="https://x.com/Redsorm_S" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="X (Twitter)"><i className="fab fa-twitter"></i></a>
+                                <a href="https://www.instagram.com/redsorm.in?igsh=N2Q1bDduZjl1N2tt" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Instagram"><i className="fab fa-instagram"></i></a>
+                                <a href="https://youtube.com/@redsorm_s?si=46Uw-Rd9plPsek3Y" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="YouTube"><i className="fab fa-youtube"></i></a>
                             </div>
                         </div>
 
