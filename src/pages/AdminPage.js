@@ -108,6 +108,8 @@ function AdminPage() {
   const [attendanceDateFilter, setAttendanceDateFilter] = useState('today');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [showNewRoleInput, setShowNewRoleInput] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
   const { t, language, changeLanguage } = useLanguage();
   const { token, logout, currentUser: authUser, isLoading } = useAuth();
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -1565,94 +1567,81 @@ function AdminPage() {
       {
         activeTab === 'staff' && (
           <div className="max-w-7xl mx-auto fade">
-            {/* Attendance Logs - Promoted to Top */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
-              <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                <h2 className="text-xl font-bold">Attendance Logs (All Staff)</h2>
-                <div className="flex gap-2 items-center flex-wrap">
-                  <select
-                    value={attendanceDateFilter}
-                    onChange={e => setAttendanceDateFilter(e.target.value)}
-                    className="input-field py-1 text-sm w-auto"
-                  >
-                    <option value="today">Today</option>
-                    <option value="yesterday">Yesterday</option>
-                    <option value="last7">Last 7 Days</option>
-                    <option value="thisMonth">This Month</option>
-                    <option value="custom">Custom Range</option>
-                  </select>
-                  {attendanceDateFilter === 'custom' && (
-                    <div className="flex gap-2">
-                      <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="input-field py-1 text-sm w-auto" />
-                      <span className="text-gray-400">-</span>
-                      <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="input-field py-1 text-sm w-auto" />
-                    </div>
-                  )}
-                  <button onClick={loadAttendanceLogs} className="btn btn-secondary px-3 py-1 text-sm">
-                    <i className="fas fa-sync-alt"></i> Refresh
-                  </button>
-                </div>
-              </div>
-              <div className="overflow-x-auto max-h-80 overflow-y-auto">
-                <table className="w-full text-left">
-                  <thead className="sticky top-0 bg-white shadow-sm z-10">
-                    <tr className="bg-gray-50 text-gray-600 text-sm">
-                      <th className="p-3">Staff Name</th>
-                      <th className="p-3">Date</th>
-                      <th className="p-3">Check In</th>
-                      <th className="p-3">Check Out</th>
-                      <th className="p-3">Working Hours</th>
-                      <th className="p-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attendanceLogs.map(log => (
-                      <tr key={log.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3 font-medium">{log.staff_name}</td>
-                        <td className="p-3">{new Date(log.date).toLocaleDateString()}</td>
-                        <td className="p-3">{new Date(log.check_in).toLocaleTimeString()}</td>
-                        <td className="p-3">{log.check_out ? new Date(log.check_out).toLocaleTimeString() : '-'}</td>
-                        <td className="p-3 font-mono text-sm">{log.duration || '-'}</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-1 rounded text-xs font-bold ${log.check_out ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                            {log.check_out ? 'Completed' : 'Active'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {attendanceLogs.length === 0 && (
-                      <tr>
-                        <td colSpan="5" className="p-8 text-center text-gray-500">No attendance records found yet.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+            <div>
               {/* Staff Management */}
               {/* Staff Management */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold">Staff Members</h2>
+                  <h2 className="text-xl font-bold">Staff Directory</h2>
                   <button onClick={() => setIsStaffQRModalOpen(true)} className="btn btn-secondary text-sm px-3 py-1">
                     <i className="fas fa-qrcode mr-2"></i> Portal QR
                   </button>
                 </div>
-                <form onSubmit={handleStaffSubmit} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+
+                  // Calculate the final role to send
+                  const roleSelect = e.target.elements.role_select.value;
+                  let finalRole = roleSelect;
+
+                  if (roleSelect === 'add-new') {
+                    const customRole = newRoleName.trim();
+                    if (!customRole) {
+                      showToast('Please enter a custom role name', 'error');
+                      return;
+                    }
+                    finalRole = customRole.toLowerCase();
+                  }
+
+                  // Force update the hidden input 'role' which handleStaffSubmit reads
+                  if (e.target.elements.role) {
+                    e.target.elements.role.value = finalRole;
+                  }
+
+                  handleStaffSubmit(e);
+                }} className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <h3 className="font-semibold mb-3">Add New Staff</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <input name="name" placeholder="Name" required className="input-field" />
-                    <select name="role" className="input-field">
-                      <option value="waiter">Waiter</option>
-                      <option value="kitchen">Kitchen</option>
-                      <option value="manager">Manager</option>
-                      <option value="chef">Chef</option>
-                      <option value="cashier">Cashier</option>
-                      <option value="cleaner">Cleaner</option>
-                      <option value="other">Other</option>
-                    </select>
+                    <div>
+                      <select
+                        name="role_select" // Changed name so it doesn't conflict if we want to send 'role'
+                        className="input-field w-full"
+                        defaultValue="waiter"
+                        onChange={(e) => setShowNewRoleInput(e.target.value === 'add-new')}
+                      >
+                        <option value="waiter">Waiter</option>
+                        <option value="kitchen">Kitchen</option>
+                        <option value="manager">Manager</option>
+                        <option value="chef">Chef</option>
+                        <option value="cashier">Cashier</option>
+                        <option value="cleaner">Cleaner</option>
+                        <option value="other">Other</option>
+                        <option value="add-new">➕ Add New Role</option>
+                      </select>
+                      {showNewRoleInput && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            placeholder="Enter Role Name"
+                            className="input-field w-full"
+                            value={newRoleName}
+                            onChange={(e) => setNewRoleName(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                      {/* Hidden input to pass the actual 'role' expected by backend/handler */}
+                      <input
+                        type="hidden"
+                        name="role"
+                        value={showNewRoleInput ? newRoleName : (document.querySelector('select[name="role_select"]')?.value || 'waiter')}
+                      />
+                      {/* The above value logic for hidden input is tricky in React render. 
+                           Better to handle in the onSubmit wrapper. */}
+                    </div>
                     <input name="pin" placeholder="PIN (6 digits)" maxLength="6" required className="input-field" />
                   </div>
                   <button type="submit" className="btn btn-primary w-full">Add Staff</button>
@@ -1716,36 +1705,7 @@ function AdminPage() {
                 </div>
               </div>
 
-              {/* Leave Requests */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-xl font-bold mb-6">Leave Requests</h2>
-                <div className="space-y-4">
-                  {leavesList.map(leave => (
-                    <div key={leave.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h4 className="font-bold">{leave.staff_name}</h4>
-                          <p className="text-sm text-gray-500">{new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${leave.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          leave.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                            'bg-yellow-100 text-yellow-700'
-                          }`}>
-                          {leave.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 mb-3">{leave.reason}</p>
-                      {leave.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <button onClick={() => handleLeaveAction(leave.id, 'approved')} className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm">Approve</button>
-                          <button onClick={() => handleLeaveAction(leave.id, 'rejected')} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-sm">Reject</button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {leavesList.length === 0 && <p className="text-gray-500 text-center">No leave requests</p>}
-                </div>
-              </div>
+
             </div>
           </div>
         )

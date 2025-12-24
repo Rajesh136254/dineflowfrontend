@@ -119,23 +119,10 @@ function StaffPage() {
     }, [API_URL, staff]);
 
     useEffect(() => {
-        const adminToken = localStorage.getItem('token');
-        if (adminToken) {
-            // Admin is logged in
-            if (token !== adminToken) {
-                setToken(adminToken);
-            }
-            setStaff(prev => {
-                if (prev && prev.role === 'admin') return prev;
-                return { id: 0, name: 'Admin', role: 'admin' };
-            });
-            // Optionally fetch data for admin if needed, e.g. all leaves
-            // fetchLeaves(adminToken); 
-        } else if (token) {
+        if (token) {
             const storedStaff = localStorage.getItem('staffDetails');
             if (storedStaff) {
                 const s = JSON.parse(storedStaff);
-                // Only update if different to avoid loops if staff is in deps (indirectly via fetchLeaves)
                 setStaff(prev => {
                     if (prev && prev.id === s.id) return prev;
                     return s;
