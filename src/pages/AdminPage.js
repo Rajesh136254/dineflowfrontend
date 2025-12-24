@@ -650,14 +650,24 @@ function AdminPage() {
         return;
       }
 
-      const formatDate = (d) => d.toISOString().split('T')[0];
+      const formatDate = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
       url += `?startDate=${formatDate(start)}&endDate=${formatDate(end)}`;
 
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const json = await res.json();
-      if (json.success) setAttendanceLogs(json.data);
+      if (json.success) {
+        // console.log('Attendance loaded:', json.data);
+        setAttendanceLogs(json.data || []);
+      } else {
+        console.warn('Attendance load failed:', json.message);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -1748,6 +1758,150 @@ function AdminPage() {
                         <tr>
                           <td colSpan="4" className="p-8 text-center text-gray-500">
                             No staff members added yet. Add your first staff member above.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Attendance Logs */}
+              <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                  <h2 className="text-xl font-bold">Attendance Logs</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {['today', 'yesterday', 'last7', 'thisMonth'].map(filter => (
+                      <button
+                        key={filter}
+                        onClick={() => setAttendanceDateFilter(filter)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${attendanceDateFilter === filter
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                      >
+                        {filter === 'today' ? 'Today' :
+                          filter === 'yesterday' ? 'Yesterday' :
+                            filter === 'last7' ? 'Last 7 Days' :
+                              'This Month'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-600 text-sm">
+                        <th className="p-3">Date</th>
+                        <th className="p-3">Staff Name</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Punch In</th>
+                        <th className="p-3">Punch Out</th>
+                        <th className="p-3">Duration</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attendanceLogs.length > 0 ? (
+                        attendanceLogs.map(log => {
+                          // Find staff name if possible, or use log.staff_name if backend sends it
+                          // Backend sends 'staff_name' via join in typical implementation, let's assume it's in log
+                          // Or we match with staffList
+                          const staffMember = staffList.find(s => s.id === log.staff_id);
+                          const staffName = staffMember ? staffMember.name : (log.staff_name || 'Unknown');
+
+                          return (
+                            <tr key={log.id} className="border-b hover:bg-gray-50">
+                              <td className="p-3">{new Date(log.date).toLocaleDateString()}</td>
+                              <td className="p-3 font-medium">{staffName}</td>
+                              <td className="p-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${log.status === 'present' ? 'bg-green-100 text-green-700' :
+                                  log.status === 'abscent' ? 'bg-red-100 text-red-700' :
+                                    'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                  {log.status === 'abscent' ? 'Absent' : 'Present'}
+                                </span>
+                              </td>
+                              <td className="p-3">{log.punch_in ? new Date(log.punch_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                              <td className="p-3">{log.punch_out ? new Date(log.punch_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
+                              <td className="p-3 font-mono text-sm">{log.duration_hours ? `${Number(log.duration_hours).toFixed(2)} hrs` : '-'}</td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="6" className="p-8 text-center text-gray-500">
+                            No attendance records found for the selected period.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Leave Requests */}
+              <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <h2 className="text-xl font-bold mb-6">Leave Requests</h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-600 text-sm">
+                        <th className="p-3">Staff Name</th>
+                        <th className="p-3">Type</th>
+                        <th className="p-3">Dates</th>
+                        <th className="p-3">Reason</th>
+                        <th className="p-3">Status</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leavesList.length > 0 ? (
+                        leavesList.map(leave => {
+                          const staffMember = staffList.find(s => s.id === leave.staff_id);
+                          const staffName = staffMember ? staffMember.name : (leave.staff_name || 'Unknown');
+                          return (
+                            <tr key={leave.id} className="border-b hover:bg-gray-50">
+                              <td className="p-3 font-medium">{staffName}</td>
+                              <td className="p-3 capitalize">{leave.leave_type}</td>
+                              <td className="p-3 text-sm">
+                                {new Date(leave.start_date).toLocaleDateString()}
+                                {leave.end_date && leave.end_date !== leave.start_date && ` - ${new Date(leave.end_date).toLocaleDateString()}`}
+                              </td>
+                              <td className="p-3 text-sm text-gray-600 max-w-xs truncate" title={leave.reason}>{leave.reason}</td>
+                              <td className="p-3">
+                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${leave.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                  leave.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                    'bg-yellow-100 text-yellow-700'
+                                  }`}>
+                                  {leave.status}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right">
+                                {leave.status === 'pending' && (
+                                  <div className="flex justify-end gap-2">
+                                    <button
+                                      onClick={() => handleLeaveAction(leave.id, 'approved')}
+                                      className="text-green-600 hover:text-green-800 hover:bg-green-50 px-2 py-1 rounded transition-colors text-sm font-medium"
+                                    >
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() => handleLeaveAction(leave.id, 'rejected')}
+                                      className="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors text-sm font-medium"
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="6" className="p-8 text-center text-gray-500">
+                            No leave requests found.
                           </td>
                         </tr>
                       )}
