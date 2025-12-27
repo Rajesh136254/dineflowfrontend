@@ -1244,19 +1244,32 @@ function AdminPage() {
 
 
   // ── Trial Logic ──────────────────────────────
+  // ── Trial Logic ──────────────────────────────
   const trialStatus = (() => {
-    if (companyProfile.has_paid) return null;
     if (!companyProfile.trial_ends_at) return null;
+    // Don't show trial if paid (optional, but usually helpful to hide it). 
+    // Actually, let's keep it independent if we want to show "Trial Expired" even if paid? No, if paid, no trial.
+    if (companyProfile.has_paid) return null;
 
     const end = new Date(companyProfile.trial_ends_at);
     const now = new Date();
-    const diffTime = end - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays <= 0) return { expired: true, days: 0 };
+    // Check strict expiration (time-based) for blocking
+    const isExpired = end < now;
+
+    // Calculate calendar days for display (Date-based)
+    const endDay = new Date(end);
+    endDay.setHours(0, 0, 0, 0);
+    const nowDay = new Date(now);
+    nowDay.setHours(0, 0, 0, 0);
+
+    const diffTime = endDay - nowDay;
+    // Round to ensure integer days
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    if (isExpired) return { expired: true, days: 0 };
     return { expired: false, days: diffDays };
   })();
-
 
   // ── Paid Logic ──────────────────────────────
   const paidStatus = (() => {
@@ -1295,7 +1308,9 @@ function AdminPage() {
             <span className="font-medium text-sm md:text-base">
               {trialStatus.expired
                 ? "Your free trial has expired. Some features may be limited."
-                : `🎉 You have ${trialStatus.days} days left in your 7-day free access period.`}
+                : trialStatus.days === 0
+                  ? "⚠️ Your free trial expires today! Upgrade now to keep access."
+                  : `🎉 You have ${trialStatus.days} days left in your 7-day free access period.`}
             </span>
           </div>
           <button
@@ -1304,6 +1319,56 @@ function AdminPage() {
           >
             {trialStatus.expired ? 'Subscribe Now' : 'Upgrade Plan'}
           </button>
+        </div>
+      )}
+
+      {/* ── FULL PAGE BLOCKER FOR EXPIRED TRIAL ── */}
+      {trialStatus?.expired && !paidStatus && (
+        <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-2xl w-full text-center border border-gray-100">
+            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+              <i className="fas fa-lock text-5xl text-red-600"></i>
+            </div>
+            <h1 className="text-4xl font-black text-gray-900 mb-4">Trial Period Expired</h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-lg mx-auto">
+              Your 7-day free access to <b>{companyProfile.name || 'DineFlow'}</b> has ended.
+              <br className="hidden md:block" />
+              To continue managing your restaurant, orders, and menu, please upgrade to a premium plan.
+            </p>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-8 text-left max-w-lg mx-auto">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-check text-green-600"></i>
+                </div>
+                <span className="font-medium text-gray-700">Unlimited Orders</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-check text-green-600"></i>
+                </div>
+                <span className="font-medium text-gray-700">Detailed Analytics</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <i className="fas fa-check text-green-600"></i>
+                </div>
+                <span className="font-medium text-gray-700">24/7 Support</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsSubscriptionOpen(true)}
+              className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white text-xl font-bold py-4 px-10 rounded-xl shadow-lg transform hover:-translate-y-1 transition duration-200 animate-bounce"
+            >
+              <i className="fas fa-rocket mr-2"></i> Upgrade Now to Continue
+            </button>
+            <p className="mt-4 text-gray-400 text-sm">
+              Secure payment via Cashfree • Cancel anytime
+            </p>
+          </div>
+          {/* Ensure SubscriptionModal can still open on top */}
+          <SubscriptionModal isOpen={isSubscriptionOpen} onClose={() => setIsSubscriptionOpen(false)} />
         </div>
       )}
       <style>{`
