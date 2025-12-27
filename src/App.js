@@ -16,6 +16,7 @@ import BranchesPage from './pages/BranchesPage';
 import AboutPage from './pages/AboutPage';
 import FeaturesPage from './pages/FeaturesPage';
 import FAQsPage from './pages/FAQsPage';
+import PaymentStatus from './pages/PaymentStatus';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { BranchProvider } from './contexts/BranchContext';
@@ -85,6 +86,7 @@ function App() {
               {/* Customer authentication flow */}
               <Route path="/login" element={<CustomerAuthPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/payment/status" element={<PaymentStatus />} />
 
               {/* Protected customer route */}
               <Route

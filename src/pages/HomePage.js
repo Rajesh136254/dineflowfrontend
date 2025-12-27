@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useBranch } from '../contexts/BranchContext';
 import SupportTicketModal from '../components/SupportTicketModal';
 
+import SubscriptionModal from '../components/SubscriptionModal';
+
 function HomePage() {
     const navigate = useNavigate();
     const { currentUser, logout, token, isLoading: authLoading } = useAuth();
@@ -15,6 +17,7 @@ function HomePage() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSupportOpen, setIsSupportOpen] = useState(false);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+    const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
 
     // State for frame navigation
     const [activeFrame, setActiveFrame] = useState(null);
@@ -49,7 +52,7 @@ function HomePage() {
                 if (res.ok) {
                     const json = await res.json();
                     if (isMounted && json.success && json.data) {
-                        // console.log('[HomePage] Info loaded:', json.data.name);
+                        console.log('[HomePage] Company Info Loaded:', json.data);
                         setCompanyInfo(json.data);
                     }
                 }
@@ -179,14 +182,14 @@ function HomePage() {
     ];
 
     const filterItems = (item) => {
-        console.log('[FILTER] Checking:', item.id, '| User:', currentUser?.email, '| Role:', currentUser?.role, '| Has role_id:', !!currentUser?.role_id, '| Permissions:', currentUser?.permissions);
+        // console.log('[FILTER] Checking:', item.id, '| User:', currentUser?.email, '| Role:', currentUser?.role, '| Has role_id:', !!currentUser?.role_id, '| Permissions:', currentUser?.permissions);
         if (item.id === 'home') return true;
         if (!currentUser) return true;
 
         // Super Admin (Legacy or explicit admin role without specific permissions)
         // Only allow if NO role_id is present. If role_id exists, we MUST use permissions.
         if (currentUser.role === 'admin' && !currentUser.role_id) {
-            console.log('[FILTER] ✅ Super Admin - showing all');
+            // console.log('[FILTER] ✅ Super Admin - showing all');
             return true;
         }
 
@@ -203,7 +206,7 @@ function HomePage() {
 
         // Role-based Users (with permissions)
         if (perms && Object.keys(perms).length > 0) {
-            console.log('[FILTER] Permissions check for', item.id, ':', perms);
+            // console.log('[FILTER] Permissions check for', item.id, ':', perms);
             if (item.id === 'admin') {
                 return !!(perms.admin ||
                     perms.menu ||
@@ -240,8 +243,59 @@ function HomePage() {
 
     const visibleNavItems = navItems.filter(filterItems);
 
+
+    // ── Trial Logic ──────────────────────────────
+    const trialStatus = (() => {
+        console.log('[HomePage] Checking Trial Status. Info:', companyInfo);
+
+        if (!companyInfo) {
+            console.log('[HomePage] No company info yet.');
+            return null;
+        }
+        if (companyInfo.has_paid) {
+            console.log('[HomePage] Company has paid.');
+            return null;
+        }
+        if (!companyInfo.trial_ends_at) {
+            console.log('[HomePage] No trial_ends_at date.');
+            return null;
+        }
+
+        const end = new Date(companyInfo.trial_ends_at);
+        const now = new Date();
+        const diffTime = end - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        console.log(`[HomePage] Trial expires: ${end}, Days left: ${diffDays}`);
+
+        if (diffDays <= 0) return { expired: true, days: 0 };
+        return { expired: false, days: diffDays };
+    })();
+
     return (
-        <div className="pattern-bg min-h-screen">
+        <div className="pattern-bg min-h-screen pt-0">
+            {/* Trial Banner */}
+            {trialStatus && (
+                <div className={`${trialStatus.expired ? 'bg-red-600' : 'bg-gradient-to-r from-purple-600 to-indigo-600'} text-white py-2 px-4 shadow-md relative z-[100]`}>
+                    <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+                        <div className="flex items-center gap-2 text-sm">
+                            <i className={`fas ${trialStatus.expired ? 'fa-exclamation-circle' : 'fa-gift'} text-lg`}></i>
+                            <span className="font-medium text-center sm:text-left">
+                                {trialStatus.expired
+                                    ? "Your free trial has expired. Some features may be limited."
+                                    : `🎉 You have ${trialStatus.days} days left in your 7-day free access period.`}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => setIsSubscriptionOpen(true)}
+                            className={`text-xs px-3 py-1 rounded bg-white ${trialStatus.expired ? 'text-red-600' : 'text-indigo-600'} font-bold hover:bg-opacity-90 transition whitespace-nowrap shadow-sm`}
+                        >
+                            {trialStatus.expired ? 'Subscribe Now' : 'Upgrade Plan'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Premium Header with Navigation */}
             <header
                 className={`text-white transition-all duration-500 sticky top-0 z-[90] bg-cover bg-center relative ${isScrolled ? 'py-3 shadow-2xl' : 'py-6'} ${!companyInfo?.banner_url ? 'hero-gradient' : ''}`}
@@ -549,6 +603,13 @@ function HomePage() {
                 </main>
             )
             }
+
+
+            {/* Subscription Modal */}
+            <SubscriptionModal
+                isOpen={isSubscriptionOpen}
+                onClose={() => setIsSubscriptionOpen(false)}
+            />
 
             {/* Footer */}
             {

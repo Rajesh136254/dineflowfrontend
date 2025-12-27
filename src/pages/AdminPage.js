@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
+import SubscriptionModal from '../components/SubscriptionModal';
 import { useAuth } from '../contexts/AuthContext';
 import SupportTicketModal from '../components/SupportTicketModal';
 import BranchesTab from '../components/BranchesTab';
@@ -16,6 +17,7 @@ function AdminPage() {
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [selectedGroupFilter, setSelectedGroupFilter] = useState('all');
+  const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
   const [companyProfile, setCompanyProfile] = useState({
     name: '',
     logo_url: '',
@@ -105,7 +107,7 @@ function AdminPage() {
   // Toast
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [attendanceLogs, setAttendanceLogs] = useState([]);
-  const [attendanceDateFilter, setAttendanceDateFilter] = useState('today');
+  const [attendanceDateFilter, setAttendanceDateFilter] = useState('thisMonth');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [showNewRoleInput, setShowNewRoleInput] = useState(false);
@@ -1240,8 +1242,70 @@ function AdminPage() {
   // Support Ticket State
   const [isSupportOpen, setIsSupportOpen] = useState(false);
 
+
+  // ── Trial Logic ──────────────────────────────
+  const trialStatus = (() => {
+    if (companyProfile.has_paid) return null;
+    if (!companyProfile.trial_ends_at) return null;
+
+    const end = new Date(companyProfile.trial_ends_at);
+    const now = new Date();
+    const diffTime = end - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) return { expired: true, days: 0 };
+    return { expired: false, days: diffDays };
+  })();
+
+
+  // ── Paid Logic ──────────────────────────────
+  const paidStatus = (() => {
+    if (!companyProfile.has_paid) return null;
+
+    // Format date readable
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const end = companyProfile.subscription_end_date ? new Date(companyProfile.subscription_end_date).toLocaleDateString(undefined, options) : 'N/A';
+
+    return {
+      plan: companyProfile.subscription_plan || 'Pro',
+      endDate: end
+    };
+  })();
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 pt-0">
+      {/* ── Active Subscription Banner ── */}
+      {paidStatus && (
+        <div className="bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 px-6 -mx-6 mb-6 shadow-md flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <i className="fas fa-check-circle text-xl"></i>
+            <span className="font-medium text-sm md:text-base">
+              Active Subscription: <span className="font-bold capitalize">{paidStatus.plan} Plan</span> (Valid until {paidStatus.endDate})
+            </span>
+          </div>
+          {/* Optional: Add Manage Subscription button later */}
+        </div>
+      )}
+
+      {/* ── Trial Banner (Only if NOT paid) ── */}
+      {trialStatus && !paidStatus && (
+        <div className={`${trialStatus.expired ? 'bg-red-600' : 'bg-gradient-to-r from-purple-600 to-indigo-600'} text-white py-3 px-6 -mx-6 mb-6 shadow-md flex justify-between items-center`}>
+          <div className="flex items-center gap-2">
+            <i className={`fas ${trialStatus.expired ? 'fa-exclamation-circle' : 'fa-gift'} text-xl`}></i>
+            <span className="font-medium text-sm md:text-base">
+              {trialStatus.expired
+                ? "Your free trial has expired. Some features may be limited."
+                : `🎉 You have ${trialStatus.days} days left in your 7-day free access period.`}
+            </span>
+          </div>
+          <button
+            onClick={() => setIsSubscriptionOpen(true)}
+            className={`text-xs px-3 py-1 rounded bg-white ${trialStatus.expired ? 'text-red-600' : 'text-indigo-600'} font-bold hover:bg-opacity-90 transition`}
+          >
+            {trialStatus.expired ? 'Subscribe Now' : 'Upgrade Plan'}
+          </button>
+        </div>
+      )}
       <style>{`
         @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
         .fade { animation: fade .3s ease-out; }
@@ -1766,150 +1830,19 @@ function AdminPage() {
                 </div>
               </div>
 
-              {/* Attendance Logs */}
-              <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                  <h2 className="text-xl font-bold">Attendance Logs</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {['today', 'yesterday', 'last7', 'thisMonth'].map(filter => (
-                      <button
-                        key={filter}
-                        onClick={() => setAttendanceDateFilter(filter)}
-                        className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${attendanceDateFilter === filter
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                          }`}
-                      >
-                        {filter === 'today' ? 'Today' :
-                          filter === 'yesterday' ? 'Yesterday' :
-                            filter === 'last7' ? 'Last 7 Days' :
-                              'This Month'}
-                      </button>
-                    ))}
-                  </div>
+              {/* Attendance & Leaves Management Link */}
+              <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <i className="fas fa-clipboard-check text-2xl text-indigo-500"></i>
                 </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50 text-gray-600 text-sm">
-                        <th className="p-3">Date</th>
-                        <th className="p-3">Staff Name</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Punch In</th>
-                        <th className="p-3">Punch Out</th>
-                        <th className="p-3">Duration</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attendanceLogs.length > 0 ? (
-                        attendanceLogs.map(log => {
-                          // Find staff name if possible, or use log.staff_name if backend sends it
-                          // Backend sends 'staff_name' via join in typical implementation, let's assume it's in log
-                          // Or we match with staffList
-                          const staffMember = staffList.find(s => s.id === log.staff_id);
-                          const staffName = staffMember ? staffMember.name : (log.staff_name || 'Unknown');
-
-                          return (
-                            <tr key={log.id} className="border-b hover:bg-gray-50">
-                              <td className="p-3">{new Date(log.date).toLocaleDateString()}</td>
-                              <td className="p-3 font-medium">{staffName}</td>
-                              <td className="p-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${log.status === 'present' ? 'bg-green-100 text-green-700' :
-                                  log.status === 'abscent' ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                  }`}>
-                                  {log.status === 'abscent' ? 'Absent' : 'Present'}
-                                </span>
-                              </td>
-                              <td className="p-3">{log.punch_in ? new Date(log.punch_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                              <td className="p-3">{log.punch_out ? new Date(log.punch_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                              <td className="p-3 font-mono text-sm">{log.duration_hours ? `${Number(log.duration_hours).toFixed(2)} hrs` : '-'}</td>
-                            </tr>
-                          );
-                        })
-                      ) : (
-                        <tr>
-                          <td colSpan="6" className="p-8 text-center text-gray-500">
-                            No attendance records found for the selected period.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <h2 className="text-xl font-bold mb-2">Manage Attendance & Leaves</h2>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                  View detailed attendance logs, duration hours, and manage leave requests in the dedicated Staff Management Dashboard.
+                </p>
+                <a href="/staff" target="_blank" className="btn btn-primary px-6 py-3 shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all inline-flex items-center gap-2">
+                  Open Attendance Manager <i className="fas fa-external-link-alt text-xs"></i>
+                </a>
               </div>
-
-              {/* Leave Requests */}
-              <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <h2 className="text-xl font-bold mb-6">Leave Requests</h2>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50 text-gray-600 text-sm">
-                        <th className="p-3">Staff Name</th>
-                        <th className="p-3">Type</th>
-                        <th className="p-3">Dates</th>
-                        <th className="p-3">Reason</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {leavesList.length > 0 ? (
-                        leavesList.map(leave => {
-                          const staffMember = staffList.find(s => s.id === leave.staff_id);
-                          const staffName = staffMember ? staffMember.name : (leave.staff_name || 'Unknown');
-                          return (
-                            <tr key={leave.id} className="border-b hover:bg-gray-50">
-                              <td className="p-3 font-medium">{staffName}</td>
-                              <td className="p-3 capitalize">{leave.leave_type}</td>
-                              <td className="p-3 text-sm">
-                                {new Date(leave.start_date).toLocaleDateString()}
-                                {leave.end_date && leave.end_date !== leave.start_date && ` - ${new Date(leave.end_date).toLocaleDateString()}`}
-                              </td>
-                              <td className="p-3 text-sm text-gray-600 max-w-xs truncate" title={leave.reason}>{leave.reason}</td>
-                              <td className="p-3">
-                                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${leave.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                  leave.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                  }`}>
-                                  {leave.status}
-                                </span>
-                              </td>
-                              <td className="p-3 text-right">
-                                {leave.status === 'pending' && (
-                                  <div className="flex justify-end gap-2">
-                                    <button
-                                      onClick={() => handleLeaveAction(leave.id, 'approved')}
-                                      className="text-green-600 hover:text-green-800 hover:bg-green-50 px-2 py-1 rounded transition-colors text-sm font-medium"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={() => handleLeaveAction(leave.id, 'rejected')}
-                                      className="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded transition-colors text-sm font-medium"
-                                    >
-                                      Reject
-                                    </button>
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
-                      ) : (
-                        <tr>
-                          <td colSpan="6" className="p-8 text-center text-gray-500">
-                            No leave requests found.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
 
             </div>
           </div>
@@ -2526,6 +2459,11 @@ function AdminPage() {
         isOpen={isSupportOpen}
         onClose={() => setIsSupportOpen(false)}
         currentUser={authUser}
+      />
+
+      <SubscriptionModal
+        isOpen={isSubscriptionOpen}
+        onClose={() => setIsSubscriptionOpen(false)}
       />
 
     </div >

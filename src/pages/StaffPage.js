@@ -58,16 +58,24 @@ function StaffPage() {
 
     const navigate = useNavigate();
 
-    const fetchAttendance = useCallback(async (staffId, authToken) => {
+    const fetchAttendance = useCallback(async (staffId, authToken, role) => {
         try {
-            let url = `${API_URL}/api/staff/attendance/${staffId}`;
+            // If admin, fetch all attendance. If staff, fetch specific.
+            let url = role === 'admin'
+                ? `${API_URL}/api/staff/attendance`
+                : `${API_URL}/api/staff/attendance/${staffId}`;
 
             const now = new Date();
             let start = new Date();
-            let end = new Date();
+            let end = new Date(); // end is today by default
+
+            // "today" -> start=today, end=today
+            // "yesterday" -> start=yesterday, end=yesterday
+            // "last7" -> start=today-7, end=today
+            // "thisMonth" -> start=1st, end=today (or end of month? Usually today is fine for "so far")
 
             if (dateFilter === 'today') {
-                // start and end are already now
+                // start and end are already today
             } else if (dateFilter === 'yesterday') {
                 start.setDate(now.getDate() - 1);
                 end.setDate(now.getDate() - 1);
@@ -82,7 +90,13 @@ function StaffPage() {
                 return;
             }
 
-            const formatDate = (d) => d.toISOString().split('T')[0];
+            const formatDate = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
             url += `?startDate=${formatDate(start)}&endDate=${formatDate(end)}`;
 
             const res = await fetch(url, {
@@ -96,27 +110,45 @@ function StaffPage() {
     }, [API_URL, dateFilter, customStart, customEnd]);
 
     const fetchLeaves = useCallback(async (authToken) => {
-        // Staff can only see their own leaves? The API I made returns ALL leaves for company.
-        // I should probably filter or update API. For now, let's assume staff sees all or I filter in frontend.
-        // Wait, the API `GET /api/staff/leaves` returns all leaves for company.
-        // I should filter by staff_id if I want privacy.
         try {
             const res = await fetch(`${API_URL}/api/staff/leaves`, {
                 headers: { 'Authorization': `Bearer ${authToken}` }
             });
             const json = await res.json();
             if (json.success) {
-                // Filter for current staff
-                if (staff) {
-                    setLeaves(json.data.filter(l => l.staff_id === staff.id));
-                } else {
-                    setLeaves(json.data);
-                }
+                // If admin, show all. If staff, filter by ID.
+                // Note: staff state might be null initially, but we check role or existence.
+                // However, 'staff' state is updated in useEffect. 
+                // We'll filter in render or here based on current context.
+                // Better to set all here and filter in render if needed? 
+                // Or simplistic:
+                setLeaves(json.data);
             }
         } catch (err) {
             console.error(err);
         }
-    }, [API_URL, staff]);
+    }, [API_URL]);
+
+    const handleLeaveAction = async (id, status) => {
+        try {
+            const res = await fetch(`${API_URL}/api/staff/leaves/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ status }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                setSuccessMsg(`Leave ${status}`);
+                fetchLeaves(token);
+                setTimeout(() => setSuccessMsg(''), 3000);
+            }
+        } catch (err) {
+            setError('Action failed');
+        }
+    };
 
     useEffect(() => {
         if (token) {
@@ -127,13 +159,15 @@ function StaffPage() {
                     if (prev && prev.id === s.id) return prev;
                     return s;
                 });
-                fetchAttendance(s.id, token);
+                fetchAttendance(s.id, token, s.role);
                 fetchLeaves(token);
             } else {
                 // Fallback: If no staff details but we have a token, check if it's the Admin token
                 const adminToken = localStorage.getItem('token');
                 if (token === adminToken) {
                     setStaff({ id: 0, name: 'Admin', role: 'admin' });
+                    // Fetch all for admin
+                    fetchAttendance(0, token, 'admin');
                     fetchLeaves(token);
                 } else {
                     setToken(null);
@@ -164,7 +198,7 @@ function StaffPage() {
                 setStaff(json.staff);
                 localStorage.setItem('staffToken', json.token);
                 localStorage.setItem('staffDetails', JSON.stringify(json.staff));
-                fetchAttendance(json.staff.id, json.token);
+                fetchAttendance(json.staff.id, json.token, json.staff.role);
             } else {
                 setError(json.message);
             }
@@ -196,7 +230,7 @@ function StaffPage() {
             const json = await res.json();
             if (json.success) {
                 setSuccessMsg(json.message);
-                fetchAttendance(staff.id, token);
+                fetchAttendance(staff.id, token, staff?.role);
                 setTimeout(() => setSuccessMsg(''), 3000);
             } else {
                 setError(json.message);
@@ -268,6 +302,11 @@ function StaffPage() {
             </div>
         );
     }
+
+    // Filter leaves for display
+    const visibleLeaves = staff?.role === 'admin'
+        ? leaves // Admin sees all
+        : leaves.filter(l => l.staff_id === staff?.id);
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -368,7 +407,7 @@ function StaffPage() {
                             <div>
                                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
                                     <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                        <i className="fas fa-history text-indigo-500"></i> Attendance History
+                                        <i className="fas fa-history text-indigo-500"></i> {staff?.role === 'admin' ? 'All Staff Attendance' : 'Attendance History'}
                                     </h3>
                                     <div className="flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
                                         <select
@@ -390,7 +429,7 @@ function StaffPage() {
                                             </div>
                                         )}
                                         <button
-                                            onClick={() => fetchAttendance(staff.id, token)}
+                                            onClick={() => fetchAttendance(staff.id, token, staff?.role)}
                                             className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition"
                                             title="Refresh"
                                         >
@@ -404,7 +443,7 @@ function StaffPage() {
                                         <table className="w-full text-left">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr className="text-gray-600 text-xs uppercase tracking-wider">
-                                                    <th className="p-4 font-semibold">Employee Name</th>
+                                                    {staff?.role === 'admin' && <th className="p-4 font-semibold">Staff Name</th>}
                                                     <th className="p-4 font-semibold">Date</th>
                                                     <th className="p-4 font-semibold">In</th>
                                                     <th className="p-4 font-semibold">Out</th>
@@ -415,9 +454,10 @@ function StaffPage() {
                                             <tbody className="divide-y divide-gray-100 text-sm">
                                                 {attendance.map(record => (
                                                     <tr key={record.id} className="hover:bg-gray-50 transition-colors">
-                                                        <td className="p-4 font-medium text-gray-900">{staff?.name}</td>
+                                                        {staff?.role === 'admin' && <td className="p-4 font-medium text-gray-900">{record.staff_name || 'Unknown'}</td>}
+                                                        {!staff?.role && <td className="p-4 font-medium text-gray-900">{staff?.name}</td>}
                                                         <td className="p-4 text-gray-600">{new Date(record.date).toLocaleDateString()}</td>
-                                                        <td className="p-4 text-gray-600 font-mono">{new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                                        <td className="p-4 text-gray-600 font-mono">{record.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                                                         <td className="p-4 text-gray-600 font-mono">{record.check_out ? new Date(record.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                                                         <td className="p-4 font-mono text-indigo-600 font-medium">{record.duration || '-'}</td>
                                                         <td className="p-4">
@@ -430,7 +470,7 @@ function StaffPage() {
                                                 ))}
                                                 {attendance.length === 0 && (
                                                     <tr>
-                                                        <td colSpan="6" className="p-12 text-center text-gray-500">
+                                                        <td colSpan={staff?.role === 'admin' ? 6 : 5} className="p-12 text-center text-gray-500">
                                                             <div className="flex flex-col items-center justify-center">
                                                                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                                                     <i className="fas fa-clipboard-list text-2xl text-gray-400"></i>
@@ -503,15 +543,15 @@ function StaffPage() {
 
                             <div>
                                 <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                    <i className="fas fa-list-ul text-indigo-500"></i> My Leave History
+                                    <i className="fas fa-list-ul text-indigo-500"></i> {staff?.role === 'admin' ? 'All Leave Requests' : 'My Leave History'}
                                 </h3>
                                 <div className="grid gap-4">
-                                    {leaves.map(leave => (
+                                    {visibleLeaves.map(leave => (
                                         <div key={leave.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                                 <div className="space-y-2">
                                                     <div className="flex items-center gap-3">
-                                                        <span className="font-bold text-gray-900 text-lg">{staff?.name}</span>
+                                                        <span className="font-bold text-gray-900 text-lg">{leave.staff_name || staff?.name}</span>
                                                         <span className="text-gray-300">|</span>
                                                         <div className="flex items-center gap-2 text-gray-600 text-sm font-medium">
                                                             <i className="far fa-calendar"></i>
@@ -522,13 +562,24 @@ function StaffPage() {
                                                     </div>
                                                     <p className="text-gray-600 bg-gray-50 p-2 rounded-lg text-sm border border-gray-100">{leave.reason}</p>
                                                 </div>
-                                                <div className="self-start md:self-center">
+                                                <div className="self-start md:self-center flex items-center gap-4">
                                                     <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${leave.status === 'approved' ? 'bg-green-50 text-green-700 border-green-200' :
                                                         leave.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
                                                             'bg-yellow-50 text-yellow-700 border-yellow-200'
                                                         }`}>
                                                         {leave.status}
                                                     </span>
+
+                                                    {staff?.role === 'admin' && leave.status === 'pending' && (
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => handleLeaveAction(leave.id, 'approved')} className="bg-green-100 text-green-700 hover:bg-green-200 p-2 rounded-lg transition" title="Approve">
+                                                                <i className="fas fa-check"></i>
+                                                            </button>
+                                                            <button onClick={() => handleLeaveAction(leave.id, 'rejected')} className="bg-red-100 text-red-700 hover:bg-red-200 p-2 rounded-lg transition" title="Reject">
+                                                                <i className="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

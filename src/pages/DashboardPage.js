@@ -352,7 +352,7 @@ function DashboardPage() {
                                 <li><a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); }}>About Us</a></li>
                                 <li><a href="#" onClick={(e) => e.preventDefault()}>Careers</a></li>
                                 <li><a href="#" onClick={(e) => e.preventDefault()}>Blog</a></li>
-                                <li><a href="#" onClick={(e) => e.preventDefault()}>Contact Support</a></li>
+                                <li><a href="mailto:support@redsorm.in">Contact Support</a></li>
                             </ul>
                         </div>
 
